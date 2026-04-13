@@ -74,11 +74,11 @@ export function StockContent() {
       setExistingMatch(null);
       return;
     }
-    const sizeVal = form.category === 'safety shoes' ? form.size : 'N/A';
+    const sizeVal = form.category === 'safety shoes' ? form.size.trim() : 'N/A';
     const match = items.find(
-      i => i.name.toLowerCase() === form.name.toLowerCase().trim() &&
+      i => i.name.trim().toLowerCase() === form.name.trim().toLowerCase() &&
            i.category === form.category &&
-           i.size === sizeVal
+           i.size.trim() === sizeVal
     );
     setExistingMatch(match || null);
   }, [form.name, form.category, form.size, editItem, items]);
