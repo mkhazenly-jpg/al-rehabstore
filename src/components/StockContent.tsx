@@ -85,30 +85,44 @@ export function StockContent() {
 
   const handleSave = async () => {
     const sizeVal = form.category === 'safety shoes' ? form.size : 'N/A';
-    
+    let stockItemId: string | null = editItem?.id ?? existingMatch?.id ?? null;
+    let stockError = null;
+
     if (editItem) {
-      // Edit mode - just update
-      await supabase.from('stock_items').update({ ...form, size: sizeVal }).eq('id', editItem.id);
+      const { error } = await supabase.from('stock_items').update({ ...form, size: sizeVal }).eq('id', editItem.id);
+      stockError = error;
     } else if (existingMatch) {
-      // Item exists - increase quantity and log addition
-      const newQty = existingMatch.quantity_in_stock + form.quantity_in_stock;
-      await supabase.from('stock_items').update({ quantity_in_stock: newQty }).eq('id', existingMatch.id);
-      await supabase.from('stock_additions').insert({
-        stock_item_id: existingMatch.id,
+      const { error } = await supabase
+        .from('stock_items')
+        .update({ quantity_in_stock: existingMatch.quantity_in_stock + form.quantity_in_stock })
+        .eq('id', existingMatch.id);
+      stockError = error;
+    } else {
+      const { data, error } = await supabase.from('stock_items').insert({ ...form, size: sizeVal }).select('id').single();
+      stockError = error;
+      stockItemId = data?.id ?? null;
+    }
+
+    if (stockError || !stockItemId) {
+      console.error('Failed to save stock item', stockError);
+      return;
+    }
+
+    if (!editItem) {
+      const { error: additionError } = await supabase.from('stock_additions').insert({
+        stock_item_id: stockItemId,
         quantity_added: form.quantity_in_stock,
       });
-    } else {
-      // New item - insert and log first addition
-      const { data } = await supabase.from('stock_items').insert({ ...form, size: sizeVal }).select().single();
-      if (data) {
-        await supabase.from('stock_additions').insert({
-          stock_item_id: data.id,
-          quantity_added: form.quantity_in_stock,
-        });
+
+      if (additionError) {
+        console.error('Failed to log stock addition', additionError);
+        return;
       }
     }
+
     setDialogOpen(false);
-    loadItems();
+    setExistingMatch(null);
+    await loadItems();
   };
 
   const handleDelete = async (id: string) => {
