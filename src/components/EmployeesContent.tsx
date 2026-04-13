@@ -32,7 +32,7 @@ export function EmployeesContent() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [editItem, setEditItem] = useState<Employee | null>(null);
-  const [form, setForm] = useState({ name: '', hire_date: '', status: 'active' as 'active' | 'resigned' | 'terminated', termination_date: '', department: '', notes: '' });
+  const [form, setForm] = useState({ name: '', hire_date: '', status: 'active' as 'active' | 'resigned' | 'terminated', termination_date: '', department: '', notes: '', shift: '' as '' | 'morning' | 'night', mobile: '', job_title: '' });
 
   useEffect(() => { loadEmployees(); }, []);
 
@@ -45,7 +45,7 @@ export function EmployeesContent() {
 
   const openAdd = () => {
     setEditItem(null);
-    setForm({ name: '', hire_date: new Date().toISOString().split('T')[0], status: 'active', termination_date: '', department: '', notes: '' });
+    setForm({ name: '', hire_date: new Date().toISOString().split('T')[0], status: 'active', termination_date: '', department: '', notes: '', shift: '', mobile: '', job_title: '' });
     setDialogOpen(true);
   };
 
@@ -58,6 +58,9 @@ export function EmployeesContent() {
       termination_date: emp.termination_date || '',
       department: emp.department || '',
       notes: emp.notes || '',
+      shift: (emp as any).shift || '',
+      mobile: (emp as any).mobile || '',
+      job_title: (emp as any).job_title || '',
     });
     setDialogOpen(true);
   };
@@ -81,6 +84,9 @@ export function EmployeesContent() {
       department: form.department || null,
       notes: form.notes || null,
       termination_date: form.status !== 'active' ? (form.termination_date || null) : null,
+      shift: form.shift || null,
+      mobile: form.mobile || null,
+      job_title: form.job_title || null,
     };
     if (editItem) {
       await supabase.from('employees').update(payload).eq('id', editItem.id);
@@ -225,6 +231,24 @@ export function EmployeesContent() {
               <Input value={form.department} onChange={e => setForm({ ...form, department: e.target.value })} />
             </div>
             <div className="space-y-2">
+              <Label>{t('jobTitle')}</Label>
+              <Input value={form.job_title} onChange={e => setForm({ ...form, job_title: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('mobile')}</Label>
+              <Input value={form.mobile} onChange={e => setForm({ ...form, mobile: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('shift')}</Label>
+              <Select value={form.shift} onValueChange={(v: any) => setForm({ ...form, shift: v })}>
+                <SelectTrigger><SelectValue placeholder="-" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="morning">{t('morning')}</SelectItem>
+                  <SelectItem value="night">{t('night')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label>{t('notes')}</Label>
               <Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
             </div>
@@ -261,6 +285,12 @@ export function EmployeesContent() {
                   )}
                   <span className="text-muted-foreground">{t('department')}:</span>
                   <span>{selectedEmployee.department || '-'}</span>
+                  <span className="text-muted-foreground">{t('jobTitle')}:</span>
+                  <span>{(selectedEmployee as any).job_title || '-'}</span>
+                  <span className="text-muted-foreground">{t('mobile')}:</span>
+                  <span>{(selectedEmployee as any).mobile || '-'}</span>
+                  <span className="text-muted-foreground">{t('shift')}:</span>
+                  <span>{(selectedEmployee as any).shift ? t((selectedEmployee as any).shift as any) : '-'}</span>
                 </div>
               </div>
 
@@ -273,7 +303,12 @@ export function EmployeesContent() {
                     {assignments.map((a: any) => (
                       <div key={a.id} className="flex items-center justify-between rounded-lg border p-2 text-sm">
                         <div>
-                          <p className="font-medium">{a.stock_items?.name} ({a.stock_items?.category})</p>
+                          <p className="font-medium">
+                            {a.stock_items?.name} ({a.stock_items?.category})
+                            {a.stock_items?.category?.toLowerCase().includes('safety') && a.stock_items?.size && a.stock_items.size !== 'N/A' && (
+                              <span className="ms-1 text-xs text-muted-foreground">- {t('size')}: {a.stock_items.size}</span>
+                            )}
+                          </p>
                           <p className="text-xs text-muted-foreground">
                             {t('quantity')}: {a.quantity_assigned} • {new Date(a.assignment_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}
                           </p>

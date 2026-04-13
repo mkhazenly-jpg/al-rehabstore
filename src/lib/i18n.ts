@@ -94,6 +94,12 @@ export const translations = {
     addItem: 'إضافة صنف',
     removeItem: 'إزالة',
     items: 'الأصناف',
+    shift: 'الشفت',
+    morning: 'صباحي',
+    night: 'مسائي',
+    mobile: 'رقم الموبايل',
+    jobTitle: 'الوظيفة',
+    safetyShoeSize: 'مقاس حذاء السلامة',
   },
   en: {
     appName: 'Al-Rahaba Warehouse',
@@ -188,6 +194,12 @@ export const translations = {
     addItem: 'Add Item',
     removeItem: 'Remove',
     items: 'Items',
+    shift: 'Shift',
+    morning: 'Morning',
+    night: 'Night',
+    mobile: 'Mobile',
+    jobTitle: 'Job Title',
+    safetyShoeSize: 'Safety Shoe Size',
   },
 } as const;
 

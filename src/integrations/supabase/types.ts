@@ -74,8 +74,11 @@ export type Database = {
           department: string | null
           hire_date: string
           id: string
+          job_title: string | null
+          mobile: string | null
           name: string
           notes: string | null
+          shift: string | null
           status: Database["public"]["Enums"]["employee_status"]
           termination_date: string | null
           updated_at: string
@@ -85,8 +88,11 @@ export type Database = {
           department?: string | null
           hire_date?: string
           id?: string
+          job_title?: string | null
+          mobile?: string | null
           name: string
           notes?: string | null
+          shift?: string | null
           status?: Database["public"]["Enums"]["employee_status"]
           termination_date?: string | null
           updated_at?: string
@@ -96,8 +102,11 @@ export type Database = {
           department?: string | null
           hire_date?: string
           id?: string
+          job_title?: string | null
+          mobile?: string | null
           name?: string
           notes?: string | null
+          shift?: string | null
           status?: Database["public"]["Enums"]["employee_status"]
           termination_date?: string | null
           updated_at?: string
