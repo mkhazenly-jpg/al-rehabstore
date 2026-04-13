@@ -100,6 +100,9 @@ export const translations = {
     mobile: 'رقم الموبايل',
     jobTitle: 'الوظيفة',
     safetyShoeSize: 'مقاس حذاء السلامة',
+    unauthorized: 'غير مصرح',
+    unauthorizedMessage: 'ليس لديك صلاحية للوصول إلى هذه الصفحة. تواصل مع المسؤول إذا كنت تعتقد أن هذا خطأ.',
+    goBack: 'العودة',
   },
   en: {
     appName: 'Al-Rahaba Warehouse',
@@ -200,6 +203,9 @@ export const translations = {
     mobile: 'Mobile',
     jobTitle: 'Job Title',
     safetyShoeSize: 'Safety Shoe Size',
+    unauthorized: 'Unauthorized',
+    unauthorizedMessage: 'You do not have permission to access this page. Contact your administrator if you believe this is an error.',
+    goBack: 'Go Back',
   },
 } as const;
 
