@@ -114,9 +114,12 @@ export function EmployeesContent() {
     exportToExcel(
       filtered.map(e => ({
         [t('name')]: e.name,
+        [t('jobTitle')]: (e as any).job_title || '-',
         [t('status')]: t(e.status as any),
-        [t('hireDate')]: e.hire_date,
+        [t('shift')]: (e as any).shift ? t((e as any).shift as any) : '-',
         [t('department')]: e.department || '-',
+        [t('mobile')]: (e as any).mobile || '-',
+        [t('hireDate')]: e.hire_date,
         [t('notes')]: e.notes || '-',
       })),
       'employees'
