@@ -27,6 +27,7 @@ const STATUS_COLORS: Record<string, string> = {
 export function EmployeesContent() {
   const { t, lang } = useLanguage();
   const { isAdmin } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [search, setSearch] = useState('');
   const [filterShift, setFilterShift] = useState('all');
@@ -126,6 +127,56 @@ export function EmployeesContent() {
       })),
       'employees'
     );
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const data = await file.arrayBuffer();
+      const wb = XLSX.read(data);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows: any[] = XLSX.utils.sheet_to_json(ws);
+
+      if (rows.length === 0) {
+        toast.error(lang === 'ar' ? 'الملف فارغ' : 'File is empty');
+        return;
+      }
+
+      let imported = 0;
+      for (const row of rows) {
+        const name = (row[t('name')] || row['Name'] || row['الاسم'] || '').toString().trim();
+        if (!name) continue;
+
+        const payload: any = {
+          name,
+          hire_date: row[t('hireDate')] || row['Hire Date'] || row['تاريخ التعيين'] || new Date().toISOString().split('T')[0],
+          status: 'active',
+          department: (row[t('department')] || row['Department'] || row['القسم'] || '').toString().trim() || null,
+          job_title: (row[t('jobTitle')] || row['Job Title'] || row['الوظيفة'] || '').toString().trim() || null,
+          mobile: (row[t('mobile')] || row['Mobile'] || row['رقم الموبايل'] || '').toString().trim() || null,
+          shift: null as string | null,
+          notes: (row[t('notes')] || row['Notes'] || row['ملاحظات'] || '').toString().trim() || null,
+        };
+
+        const shiftVal = (row[t('shift')] || row['Shift'] || row['الشفت'] || '').toString().trim().toLowerCase();
+        if (shiftVal.includes('morning') || shiftVal.includes('صباح')) payload.shift = 'morning';
+        else if (shiftVal.includes('night') || shiftVal.includes('مسائ')) payload.shift = 'night';
+
+        const statusVal = (row[t('status')] || row['Status'] || row['الحالة'] || '').toString().trim().toLowerCase();
+        if (statusVal.includes('resigned') || statusVal.includes('مستقيل')) payload.status = 'resigned';
+        else if (statusVal.includes('terminated') || statusVal.includes('منتهي')) payload.status = 'terminated';
+
+        const { error } = await supabase.from('employees').insert(payload);
+        if (!error) imported++;
+      }
+
+      toast.success(lang === 'ar' ? `تم استيراد ${imported} موظف` : `Imported ${imported} employees`);
+      loadEmployees();
+    } catch {
+      toast.error(lang === 'ar' ? 'خطأ في قراءة الملف' : 'Error reading file');
+    }
+    e.target.value = '';
   };
 
   return (
