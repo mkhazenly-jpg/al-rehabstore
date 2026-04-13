@@ -203,6 +203,9 @@ export const translations = {
     mobile: 'Mobile',
     jobTitle: 'Job Title',
     safetyShoeSize: 'Safety Shoe Size',
+    unauthorized: 'Unauthorized',
+    unauthorizedMessage: 'You do not have permission to access this page. Contact your administrator if you believe this is an error.',
+    goBack: 'Go Back',
   },
 } as const;
 
