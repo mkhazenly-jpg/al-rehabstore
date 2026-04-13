@@ -22,7 +22,8 @@ function Guard({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoading && (!isAuthenticated || !isApproved || !isAdmin)) navigate({ to: '/' });
+    if (!isLoading && (!isAuthenticated || !isApproved)) navigate({ to: '/' });
+    else if (!isLoading && !isAdmin) navigate({ to: '/unauthorized' });
   }, [isLoading, isAuthenticated, isApproved, isAdmin, navigate]);
 
   if (isLoading) return <div className="flex min-h-screen items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>;

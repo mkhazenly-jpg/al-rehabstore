@@ -26,9 +26,8 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoading && (!isAuthenticated || !isApproved || !isAdmin)) {
-      navigate({ to: '/' });
-    }
+    if (!isLoading && (!isAuthenticated || !isApproved)) navigate({ to: '/' });
+    else if (!isLoading && !isAdmin) navigate({ to: '/unauthorized' });
   }, [isLoading, isAuthenticated, isApproved, isAdmin, navigate]);
 
   if (isLoading) {
