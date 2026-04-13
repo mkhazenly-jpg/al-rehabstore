@@ -1,8 +1,8 @@
 import { useLanguage } from '@/hooks/use-language';
-import { useAuth } from '@/hooks/use-auth';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, LogOut } from 'lucide-react';
+import { Clock, LogOut, RefreshCw } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/hooks/use-auth';
 
 export function PendingApprovalPage() {
   const { t } = useLanguage();
@@ -21,7 +21,8 @@ export function PendingApprovalPage() {
           <p className="text-muted-foreground">{t('pendingApprovalMsg')}</p>
           <div className="flex gap-2 justify-center">
             <Button variant="outline" onClick={() => refreshAuth()}>
-              {lang === 'ar' ? 'تحقق مرة أخرى' : 'Check Again'}
+              <RefreshCw className="h-4 w-4 me-2" />
+              {t('submit')}
             </Button>
             <Button variant="ghost" onClick={() => signOut()}>
               <LogOut className="h-4 w-4 me-2" />
@@ -33,5 +34,3 @@ export function PendingApprovalPage() {
     </div>
   );
 }
-
-const lang = 'ar'; // placeholder, component uses hook
