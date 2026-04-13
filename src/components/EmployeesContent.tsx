@@ -113,25 +113,59 @@ export function EmployeesContent() {
     loadEmployees();
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const dataToExport = filtered.length > 0 ? filtered : employees;
     if (dataToExport.length === 0) {
       toast.error(lang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export');
       return;
     }
-    exportToExcel(
-      dataToExport.map(e => ({
-        [t('name')]: e.name,
-        [t('jobTitle')]: e.job_title || '-',
-        [t('status')]: t(e.status as any),
-        [t('shift')]: e.shift ? t(e.shift as any) : '-',
-        [t('department')]: e.department || '-',
-        [t('mobile')]: e.mobile || '-',
-        [t('hireDate')]: e.hire_date,
-        [t('notes')]: e.notes || '-',
-      })),
-      'employees'
-    );
+
+    // Fetch all assignments with stock item details
+    const { data: allAssignments } = await supabase
+      .from('assignments')
+      .select('*, stock_items(name, category, size)')
+      .in('employee_id', dataToExport.map(e => e.id));
+
+    // Group assignments by employee
+    const assignmentsByEmp: Record<string, any[]> = {};
+    (allAssignments || []).forEach((a: any) => {
+      if (!assignmentsByEmp[a.employee_id]) assignmentsByEmp[a.employee_id] = [];
+      assignmentsByEmp[a.employee_id].push(a);
+    });
+
+    const rows = dataToExport.flatMap(e => {
+      const empAssignments = assignmentsByEmp[e.id] || [];
+      if (empAssignments.length === 0) {
+        return [{
+          [t('name')]: e.name,
+          [t('jobTitle')]: e.job_title || '-',
+          [t('status')]: t(e.status as any),
+          [t('shift')]: e.shift ? t(e.shift as any) : '-',
+          [t('department')]: e.department || '-',
+          [t('mobile')]: e.mobile || '-',
+          [t('hireDate')]: e.hire_date,
+          [t('stockItem')]: '-',
+          [t('quantityAssigned')]: '-',
+          [t('assignmentDate')]: '-',
+          [t('returnDate')]: '-',
+        }];
+      }
+      return empAssignments.map((a: any, i: number) => ({
+        [t('name')]: i === 0 ? e.name : '',
+        [t('jobTitle')]: i === 0 ? (e.job_title || '-') : '',
+        [t('status')]: i === 0 ? t(e.status as any) : '',
+        [t('shift')]: i === 0 ? (e.shift ? t(e.shift as any) : '-') : '',
+        [t('department')]: i === 0 ? (e.department || '-') : '',
+        [t('mobile')]: i === 0 ? (e.mobile || '-') : '',
+        [t('hireDate')]: i === 0 ? e.hire_date : '',
+        [t('stockItem')]: `${a.stock_items?.name || ''} ${a.stock_items?.size !== 'N/A' ? `(${a.stock_items?.size})` : ''}`.trim(),
+        [t('quantityAssigned')]: a.quantity_assigned,
+        [t('assignmentDate')]: new Date(a.assignment_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US'),
+        [t('returnDate')]: a.return_date ? new Date(a.return_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US') : '-',
+      }));
+    });
+
+    exportToExcel(rows, 'employees');
     toast.success(lang === 'ar' ? `تم تصدير ${dataToExport.length} موظف` : `Exported ${dataToExport.length} employees`);
   };
 
