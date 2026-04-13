@@ -147,9 +147,16 @@ export function EmployeesContent() {
           [t('stockItem')]: '-',
           [t('quantityAssigned')]: '-',
           [t('assignmentDate')]: '-',
+          [t('reassignReason')]: '-',
           [t('returnDate')]: '-',
         }];
       }
+      const getReasonFromNotes = (notes: string | null) => {
+        if (!notes?.startsWith('[')) return '-';
+        if (notes.includes(t('lost'))) return t('lost');
+        if (notes.includes(t('damaged'))) return t('damaged');
+        return '-';
+      };
       return empAssignments.map((a: any, i: number) => ({
         [t('name')]: i === 0 ? e.name : '',
         [t('jobTitle')]: i === 0 ? (e.job_title || '-') : '',
@@ -161,6 +168,7 @@ export function EmployeesContent() {
         [t('stockItem')]: `${a.stock_items?.name || ''} ${a.stock_items?.size !== 'N/A' ? `(${a.stock_items?.size})` : ''}`.trim(),
         [t('quantityAssigned')]: a.quantity_assigned,
         [t('assignmentDate')]: new Date(a.assignment_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US'),
+        [t('reassignReason')]: getReasonFromNotes(a.notes),
         [t('returnDate')]: a.return_date ? new Date(a.return_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US') : '-',
       }));
     });

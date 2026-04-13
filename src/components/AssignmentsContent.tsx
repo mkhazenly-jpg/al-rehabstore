@@ -141,6 +141,13 @@ export function AssignmentsContent() {
     loadAll();
   };
 
+  const getReasonFromNotes = (notes: string | null) => {
+    if (!notes?.startsWith('[')) return '-';
+    if (notes.includes(t('lost'))) return t('lost');
+    if (notes.includes(t('damaged'))) return t('damaged');
+    return '-';
+  };
+
   const handleExport = () => {
     exportToExcel(
       assignments.map((a: any) => ({
@@ -149,6 +156,7 @@ export function AssignmentsContent() {
         [t('quantityAssigned')]: a.quantity_assigned,
         [t('status')]: t(a.status as any),
         [t('assignmentDate')]: new Date(a.assignment_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US'),
+        [t('reassignReason')]: getReasonFromNotes(a.notes),
         [t('returnDate')]: a.return_date ? new Date(a.return_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US') : '-',
       })),
       'assignments'
