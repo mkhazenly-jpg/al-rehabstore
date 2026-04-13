@@ -100,6 +100,9 @@ export const translations = {
     mobile: 'رقم الموبايل',
     jobTitle: 'الوظيفة',
     safetyShoeSize: 'مقاس حذاء السلامة',
+    unauthorized: 'غير مصرح',
+    unauthorizedMessage: 'ليس لديك صلاحية للوصول إلى هذه الصفحة. تواصل مع المسؤول إذا كنت تعتقد أن هذا خطأ.',
+    goBack: 'العودة',
   },
   en: {
     appName: 'Al-Rahaba Warehouse',
