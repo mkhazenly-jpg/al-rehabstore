@@ -215,6 +215,20 @@ export function AssignmentsContent() {
     );
   };
 
+  const handleDelete = async (assignment: any) => {
+    try {
+      // If approved, return stock first
+      if (assignment.status === 'approved') {
+        await supabase.rpc('return_assignment', { _assignment_id: assignment.id });
+      }
+      await supabase.from('assignments').delete().eq('id', assignment.id);
+      setDeleteConfirmId(null);
+      await loadAll();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const getAvailableQty = (stockId: string, currentIndex: number) => {
     const stock = stockItems.find(s => s.id === stockId);
     if (!stock) return 0;
@@ -283,11 +297,17 @@ export function AssignmentsContent() {
                     {isAdmin && (
                       <TableCell>
                         <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => openDialog(a)} title={t('edit')}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
                           {a.status === 'approved' && (
                             <Button variant="ghost" size="icon" onClick={() => handleReturn(a.id)} title={t('return')}>
                               <RotateCcw className="h-4 w-4" />
                             </Button>
                           )}
+                          <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmId(a.id)} title={t('delete')}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
                         </div>
                       </TableCell>
                     )}
@@ -419,7 +439,7 @@ export function AssignmentsContent() {
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>{t('cancel')}</Button>
               <Button
-                onClick={handleCreate}
+                onClick={handleSave}
                 disabled={!employeeId || lines.every(l => !l.stock_item_id) || saving}
               >
                 {t('save')}
