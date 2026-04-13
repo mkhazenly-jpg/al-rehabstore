@@ -448,6 +448,23 @@ export function AssignmentsContent() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t('confirm')}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">{t('delete')}?</p>
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>{t('cancel')}</Button>
+            <Button variant="destructive" onClick={() => {
+              const a = assignments.find((x: any) => x.id === deleteConfirmId);
+              if (a) handleDelete(a);
+            }}>{t('delete')}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
