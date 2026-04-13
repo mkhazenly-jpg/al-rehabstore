@@ -327,7 +327,7 @@ export function AssignmentsContent() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{t('newAssignment')}</DialogTitle>
+            <DialogTitle>{editingAssignment ? t('edit') : t('newAssignment')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {/* Employee select */}
