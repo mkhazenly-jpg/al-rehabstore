@@ -21,38 +21,48 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+const initialState: AuthState = {
+  user: null,
+  profile: null,
+  role: null,
+  isLoading: true,
+  isAuthenticated: false,
+  isApproved: false,
+  isAdmin: false,
+};
+
+const getSignedOutState = (): AuthState => ({
+  ...initialState,
+  isLoading: false,
+});
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AuthState>({
-    user: null,
-    profile: null,
-    role: null,
-    isLoading: true,
-    isAuthenticated: false,
-    isApproved: false,
-    isAdmin: false,
-  });
+  const [state, setState] = useState<AuthState>(initialState);
 
   const fetchUserData = async (user: User) => {
     try {
       const [profileRes, roleRes] = await Promise.all([
-        supabase.from('profiles').select('full_name, email, is_approved').eq('user_id', user.id).single(),
-        supabase.from('user_roles').select('role').eq('user_id', user.id).single(),
+        supabase.from('profiles').select('full_name, email, is_approved').eq('user_id', user.id).maybeSingle(),
+        supabase.from('user_roles').select('role').eq('user_id', user.id).maybeSingle(),
       ]);
 
-      const profile = profileRes.data;
-      const role = (roleRes.data?.role as 'admin' | 'staff') || 'staff';
+      if (profileRes.error) throw profileRes.error;
+      if (roleRes.error) throw roleRes.error;
+
+      const profile = profileRes.data ?? null;
+      const role = (roleRes.data?.role as 'admin' | 'staff' | undefined) ?? 'staff';
 
       setState({
         user,
-        profile: profile || null,
+        profile,
         role,
         isLoading: false,
         isAuthenticated: true,
-        isApproved: profile?.is_approved || false,
+        isApproved: profile?.is_approved ?? false,
         isAdmin: role === 'admin',
       });
-    } catch (err) {
-      console.error('fetchUserData error:', err);
+    } catch (error) {
+      console.error('fetchUserData error:', error);
       setState({
         user,
         profile: null,
@@ -66,34 +76,76 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshAuth = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      await fetchUserData(user);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setState(getSignedOutState());
+      return;
     }
+
+    setState({
+      user,
+      profile: null,
+      role: null,
+      isLoading: true,
+      isAuthenticated: true,
+      isApproved: false,
+      isAdmin: false,
+    });
+
+    await fetchUserData(user);
   };
 
   useEffect(() => {
     let mounted = true;
+    let authEventHandled = false;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const hydrateUser = (user: User) => {
+      setState({
+        user,
+        profile: null,
+        role: null,
+        isLoading: true,
+        isAuthenticated: true,
+        isApproved: false,
+        isAdmin: false,
+      });
+
+      window.setTimeout(() => {
+        if (!mounted) return;
+        void fetchUserData(user);
+      }, 0);
+    };
+
+    const clearAuth = () => {
       if (!mounted) return;
+      setState(getSignedOutState());
+    };
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      authEventHandled = true;
+
       if (session?.user) {
-        fetchUserData(session.user);
-      } else {
-        setState(prev => ({ ...prev, isLoading: false }));
+        hydrateUser(session.user);
+        return;
       }
+
+      clearAuth();
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return;
+    void supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted || authEventHandled) return;
+
       if (session?.user) {
-        await fetchUserData(session.user);
-      } else {
-        setState({
-          user: null, profile: null, role: null,
-          isLoading: false, isAuthenticated: false, isApproved: false, isAdmin: false,
-        });
+        hydrateUser(session.user);
+        return;
       }
+
+      clearAuth();
     });
 
     return () => {
@@ -108,16 +160,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
+    const redirectTo = typeof window !== 'undefined' ? window.location.origin : undefined;
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } },
+      options: {
+        data: { full_name: fullName },
+        emailRedirectTo: redirectTo,
+      },
     });
+
     return { error: error?.message || null };
   };
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    setState(getSignedOutState());
   };
 
   return (

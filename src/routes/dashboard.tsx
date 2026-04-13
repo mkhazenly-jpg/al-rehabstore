@@ -1,9 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { LanguageProvider } from '@/hooks/use-language';
-import { AuthProvider, useAuth } from '@/hooks/use-auth';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { useAuth } from '@/hooks/use-auth';
 import { AppLayout } from '@/components/AppLayout';
 import { DashboardContent } from '@/components/DashboardContent';
-import { useNavigate } from '@tanstack/react-router';
 import { useEffect } from 'react';
 
 export const Route = createFileRoute('/dashboard')({
@@ -15,15 +13,11 @@ export const Route = createFileRoute('/dashboard')({
 
 function DashboardPage() {
   return (
-    <LanguageProvider>
-      <AuthProvider>
-        <AuthGuard>
-          <AppLayout>
-            <DashboardContent />
-          </AppLayout>
-        </AuthGuard>
-      </AuthProvider>
-    </LanguageProvider>
+    <AuthGuard>
+      <AppLayout>
+        <DashboardContent />
+      </AppLayout>
+    </AuthGuard>
   );
 }
 
