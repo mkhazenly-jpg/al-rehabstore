@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Plus, Download, RotateCcw, Trash2, CalendarIcon, AlertTriangle } from 'lucide-react';
+import { Plus, Download, RotateCcw, Trash2, CalendarIcon, AlertTriangle, Pencil } from 'lucide-react';
 import { exportToExcel } from '@/lib/export';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -34,12 +34,14 @@ export function AssignmentsContent() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingAssignment, setEditingAssignment] = useState<any>(null);
   const [employeeId, setEmployeeId] = useState('');
   const [lines, setLines] = useState<AssignmentLine[]>([{ stock_item_id: '', quantity_assigned: 1, reassign_reason: '' }]);
   const [notes, setNotes] = useState('');
   const [assignmentDate, setAssignmentDate] = useState<Date>(new Date());
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   useEffect(() => { loadAll(); }, []);
 
@@ -64,11 +66,20 @@ export function AssignmentsContent() {
     );
   }, [employeeId, assignments]);
 
-  const openDialog = () => {
-    setEmployeeId('');
-    setLines([{ stock_item_id: '', quantity_assigned: 1, reassign_reason: '' }]);
-    setNotes('');
-    setAssignmentDate(new Date());
+  const openDialog = (assignment?: any) => {
+    if (assignment) {
+      setEditingAssignment(assignment);
+      setEmployeeId(assignment.employee_id);
+      setLines([{ stock_item_id: assignment.stock_item_id, quantity_assigned: assignment.quantity_assigned, reassign_reason: '' }]);
+      setNotes(assignment.notes?.startsWith('[') ? assignment.notes.replace(/^\[.*?\]\s*/, '') : (assignment.notes || ''));
+      setAssignmentDate(new Date(assignment.assignment_date));
+    } else {
+      setEditingAssignment(null);
+      setEmployeeId('');
+      setLines([{ stock_item_id: '', quantity_assigned: 1, reassign_reason: '' }]);
+      setNotes('');
+      setAssignmentDate(new Date());
+    }
     setError('');
     setDialogOpen(true);
   };
