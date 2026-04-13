@@ -16,11 +16,13 @@ function AuthGate() {
   const { isLoading, isAuthenticated, isApproved } = useAuth();
   const navigate = useNavigate();
 
+  const { isAdmin } = useAuth();
+
   useEffect(() => {
     if (!isLoading && isAuthenticated && isApproved) {
-      navigate({ to: '/dashboard' });
+      navigate({ to: isAdmin ? '/dashboard' : '/employees' });
     }
-  }, [isLoading, isAuthenticated, isApproved, navigate]);
+  }, [isLoading, isAuthenticated, isApproved, isAdmin, navigate]);
 
   if (isLoading) {
     return (

@@ -11,12 +11,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const navItems = [
-    { to: '/dashboard' as const, icon: LayoutDashboard, label: t('dashboard') },
-    { to: '/stock' as const, icon: Package, label: t('stock') },
-    { to: '/employees' as const, icon: Users, label: t('employees') },
-    { to: '/assignments' as const, icon: ClipboardList, label: t('assignments') },
-  ];
+  const navItems = isAdmin
+    ? [
+        { to: '/dashboard' as const, icon: LayoutDashboard, label: t('dashboard') },
+        { to: '/stock' as const, icon: Package, label: t('stock') },
+        { to: '/employees' as const, icon: Users, label: t('employees') },
+        { to: '/assignments' as const, icon: ClipboardList, label: t('assignments') },
+      ]
+    : [
+        { to: '/employees' as const, icon: Users, label: t('employees') },
+      ];
 
   const adminItems = isAdmin
     ? [{ to: '/admin/users' as const, icon: Shield, label: t('userManagement') }]
