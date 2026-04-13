@@ -188,9 +188,15 @@ export function EmployeesContent() {
             <Download className="h-4 w-4 me-1" />{t('exportExcel')}
           </Button>
           {isAdmin && (
-            <Button size="sm" onClick={openAdd}>
-              <Plus className="h-4 w-4 me-1" />{t('addEmployee')}
-            </Button>
+            <>
+              <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImport} />
+              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                <Upload className="h-4 w-4 me-1" />{lang === 'ar' ? 'استيراد' : 'Import'}
+              </Button>
+              <Button size="sm" onClick={openAdd}>
+                <Plus className="h-4 w-4 me-1" />{t('addEmployee')}
+              </Button>
+            </>
           )}
         </div>
       </div>
