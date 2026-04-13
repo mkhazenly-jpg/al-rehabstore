@@ -14,16 +14,206 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      assignments: {
+        Row: {
+          assignment_date: string
+          created_at: string
+          employee_id: string
+          id: string
+          notes: string | null
+          quantity_assigned: number
+          return_date: string | null
+          status: Database["public"]["Enums"]["assignment_status"]
+          stock_item_id: string
+          updated_at: string
+        }
+        Insert: {
+          assignment_date?: string
+          created_at?: string
+          employee_id: string
+          id?: string
+          notes?: string | null
+          quantity_assigned?: number
+          return_date?: string | null
+          status?: Database["public"]["Enums"]["assignment_status"]
+          stock_item_id: string
+          updated_at?: string
+        }
+        Update: {
+          assignment_date?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+          notes?: string | null
+          quantity_assigned?: number
+          return_date?: string | null
+          status?: Database["public"]["Enums"]["assignment_status"]
+          stock_item_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employees: {
+        Row: {
+          created_at: string
+          department: string | null
+          hire_date: string
+          id: string
+          name: string
+          notes: string | null
+          status: Database["public"]["Enums"]["employee_status"]
+          termination_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          department?: string | null
+          hire_date?: string
+          id?: string
+          name: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["employee_status"]
+          termination_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          department?: string | null
+          hire_date?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["employee_status"]
+          termination_date?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          is_approved: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          is_approved?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          is_approved?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      stock_items: {
+        Row: {
+          added_date: string
+          category: string
+          created_by: string | null
+          id: string
+          last_updated: string
+          name: string
+          quantity_in_stock: number
+          size: string
+          unit: string
+        }
+        Insert: {
+          added_date?: string
+          category: string
+          created_by?: string | null
+          id?: string
+          last_updated?: string
+          name: string
+          quantity_in_stock?: number
+          size?: string
+          unit?: string
+        }
+        Update: {
+          added_date?: string
+          category?: string
+          created_by?: string | null
+          id?: string
+          last_updated?: string
+          name?: string
+          quantity_in_stock?: number
+          size?: string
+          unit?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      approve_assignment: {
+        Args: { _assignment_id: string }
+        Returns: undefined
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_approved: { Args: { _user_id: string }; Returns: boolean }
+      return_assignment: {
+        Args: { _assignment_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "staff"
+      assignment_status: "pending" | "approved" | "returned"
+      employee_status: "active" | "resigned" | "terminated"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +340,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "staff"],
+      assignment_status: ["pending", "approved", "returned"],
+      employee_status: ["active", "resigned", "terminated"],
+    },
   },
 } as const
