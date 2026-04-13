@@ -27,6 +27,8 @@ export function EmployeesContent() {
   const { isAdmin } = useAuth();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [search, setSearch] = useState('');
+  const [filterShift, setFilterShift] = useState('all');
+  const [filterDept, setFilterDept] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
@@ -41,7 +43,13 @@ export function EmployeesContent() {
     setEmployees(data || []);
   };
 
-  const filtered = employees.filter(e => e.name.toLowerCase().includes(search.toLowerCase()));
+  const departments = [...new Set(employees.map(e => e.department).filter(Boolean))];
+  const filtered = employees.filter(e => {
+    if (!e.name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (filterShift !== 'all' && (e as any).shift !== filterShift) return false;
+    if (filterDept !== 'all' && e.department !== filterDept) return false;
+    return true;
+  });
 
   const openAdd = () => {
     setEditItem(null);
@@ -131,9 +139,26 @@ export function EmployeesContent() {
         </div>
       </div>
 
-      <div className="relative">
-        <Search className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input className="ps-9" placeholder={t('search')} value={search} onChange={e => setSearch(e.target.value)} />
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="relative flex-1">
+          <Search className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input className="ps-9" placeholder={t('search')} value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+        <Select value={filterShift} onValueChange={setFilterShift}>
+          <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder={t('shift')} /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('shift')}: {t('allCategories')}</SelectItem>
+            <SelectItem value="morning">{t('morning')}</SelectItem>
+            <SelectItem value="night">{t('night')}</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterDept} onValueChange={setFilterDept}>
+          <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder={t('department')} /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('department')}: {t('allCategories')}</SelectItem>
+            {departments.map(d => <SelectItem key={d} value={d!}>{d}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
 
       <Card>
@@ -143,8 +168,9 @@ export function EmployeesContent() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('name')}</TableHead>
+                  <TableHead>{t('jobTitle')}</TableHead>
                   <TableHead>{t('status')}</TableHead>
-                  <TableHead>{t('hireDate')}</TableHead>
+                  <TableHead>{t('shift')}</TableHead>
                   <TableHead>{t('department')}</TableHead>
                   <TableHead>{t('actions')}</TableHead>
                 </TableRow>
@@ -157,13 +183,14 @@ export function EmployeesContent() {
                         {emp.name}
                       </button>
                     </TableCell>
+                    <TableCell className="text-xs">{(emp as any).job_title || '-'}</TableCell>
                     <TableCell>
                       <span className={`rounded-full px-2 py-1 text-xs font-medium ${STATUS_COLORS[emp.status]}`}>
                         {t(emp.status as any)}
                       </span>
                     </TableCell>
-                    <TableCell>{new Date(emp.hire_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}</TableCell>
-                    <TableCell>{emp.department || '-'}</TableCell>
+                    <TableCell className="text-xs">{(emp as any).shift ? t((emp as any).shift as any) : '-'}</TableCell>
+                    <TableCell className="text-xs">{emp.department || '-'}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" onClick={() => viewDetails(emp)}>
@@ -185,7 +212,7 @@ export function EmployeesContent() {
                 ))}
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">-</TableCell>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">-</TableCell>
                   </TableRow>
                 )}
               </TableBody>
