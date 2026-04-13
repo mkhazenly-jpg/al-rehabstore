@@ -32,7 +32,7 @@ export function EmployeesContent() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [editItem, setEditItem] = useState<Employee | null>(null);
-  const [form, setForm] = useState({ name: '', hire_date: '', status: 'active' as 'active' | 'resigned' | 'terminated', termination_date: '', department: '', notes: '' });
+  const [form, setForm] = useState({ name: '', hire_date: '', status: 'active' as 'active' | 'resigned' | 'terminated', termination_date: '', department: '', notes: '', shift: '' as '' | 'morning' | 'night', mobile: '', job_title: '' });
 
   useEffect(() => { loadEmployees(); }, []);
 
@@ -45,7 +45,7 @@ export function EmployeesContent() {
 
   const openAdd = () => {
     setEditItem(null);
-    setForm({ name: '', hire_date: new Date().toISOString().split('T')[0], status: 'active', termination_date: '', department: '', notes: '' });
+    setForm({ name: '', hire_date: new Date().toISOString().split('T')[0], status: 'active', termination_date: '', department: '', notes: '', shift: '', mobile: '', job_title: '' });
     setDialogOpen(true);
   };
 
@@ -58,6 +58,9 @@ export function EmployeesContent() {
       termination_date: emp.termination_date || '',
       department: emp.department || '',
       notes: emp.notes || '',
+      shift: (emp as any).shift || '',
+      mobile: (emp as any).mobile || '',
+      job_title: (emp as any).job_title || '',
     });
     setDialogOpen(true);
   };
@@ -81,6 +84,9 @@ export function EmployeesContent() {
       department: form.department || null,
       notes: form.notes || null,
       termination_date: form.status !== 'active' ? (form.termination_date || null) : null,
+      shift: form.shift || null,
+      mobile: form.mobile || null,
+      job_title: form.job_title || null,
     };
     if (editItem) {
       await supabase.from('employees').update(payload).eq('id', editItem.id);
