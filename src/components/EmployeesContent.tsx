@@ -183,13 +183,14 @@ export function EmployeesContent() {
                         {emp.name}
                       </button>
                     </TableCell>
+                    <TableCell className="text-xs">{(emp as any).job_title || '-'}</TableCell>
                     <TableCell>
                       <span className={`rounded-full px-2 py-1 text-xs font-medium ${STATUS_COLORS[emp.status]}`}>
                         {t(emp.status as any)}
                       </span>
                     </TableCell>
-                    <TableCell>{new Date(emp.hire_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}</TableCell>
-                    <TableCell>{emp.department || '-'}</TableCell>
+                    <TableCell className="text-xs">{(emp as any).shift ? t((emp as any).shift as any) : '-'}</TableCell>
+                    <TableCell className="text-xs">{emp.department || '-'}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" onClick={() => viewDetails(emp)}>
