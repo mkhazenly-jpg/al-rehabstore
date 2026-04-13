@@ -1,9 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { LanguageProvider } from '@/hooks/use-language';
-import { AuthProvider, useAuth } from '@/hooks/use-auth';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { useAuth } from '@/hooks/use-auth';
 import { LoginPage } from '@/components/LoginPage';
 import { PendingApprovalPage } from '@/components/PendingApprovalPage';
-import { useNavigate } from '@tanstack/react-router';
 import { useEffect } from 'react';
 
 export const Route = createFileRoute('/')({
@@ -11,13 +9,7 @@ export const Route = createFileRoute('/')({
 });
 
 function IndexPage() {
-  return (
-    <LanguageProvider>
-      <AuthProvider>
-        <AuthGate />
-      </AuthProvider>
-    </LanguageProvider>
-  );
+  return <AuthGate />;
 }
 
 function AuthGate() {
