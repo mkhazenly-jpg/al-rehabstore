@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as StockRouteImport } from './routes/stock'
+import { Route as SetupRouteImport } from './routes/setup'
 import { Route as EmployeesRouteImport } from './routes/employees'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AssignmentsRouteImport } from './routes/assignments'
@@ -19,6 +20,11 @@ import { Route as AdminUsersRouteImport } from './routes/admin/users'
 const StockRoute = StockRouteImport.update({
   id: '/stock',
   path: '/stock',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SetupRoute = SetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EmployeesRoute = EmployeesRouteImport.update({
@@ -52,6 +58,7 @@ export interface FileRoutesByFullPath {
   '/assignments': typeof AssignmentsRoute
   '/dashboard': typeof DashboardRoute
   '/employees': typeof EmployeesRoute
+  '/setup': typeof SetupRoute
   '/stock': typeof StockRoute
   '/admin/users': typeof AdminUsersRoute
 }
@@ -60,6 +67,7 @@ export interface FileRoutesByTo {
   '/assignments': typeof AssignmentsRoute
   '/dashboard': typeof DashboardRoute
   '/employees': typeof EmployeesRoute
+  '/setup': typeof SetupRoute
   '/stock': typeof StockRoute
   '/admin/users': typeof AdminUsersRoute
 }
@@ -69,6 +77,7 @@ export interface FileRoutesById {
   '/assignments': typeof AssignmentsRoute
   '/dashboard': typeof DashboardRoute
   '/employees': typeof EmployeesRoute
+  '/setup': typeof SetupRoute
   '/stock': typeof StockRoute
   '/admin/users': typeof AdminUsersRoute
 }
@@ -79,6 +88,7 @@ export interface FileRouteTypes {
     | '/assignments'
     | '/dashboard'
     | '/employees'
+    | '/setup'
     | '/stock'
     | '/admin/users'
   fileRoutesByTo: FileRoutesByTo
@@ -87,6 +97,7 @@ export interface FileRouteTypes {
     | '/assignments'
     | '/dashboard'
     | '/employees'
+    | '/setup'
     | '/stock'
     | '/admin/users'
   id:
@@ -95,6 +106,7 @@ export interface FileRouteTypes {
     | '/assignments'
     | '/dashboard'
     | '/employees'
+    | '/setup'
     | '/stock'
     | '/admin/users'
   fileRoutesById: FileRoutesById
@@ -104,6 +116,7 @@ export interface RootRouteChildren {
   AssignmentsRoute: typeof AssignmentsRoute
   DashboardRoute: typeof DashboardRoute
   EmployeesRoute: typeof EmployeesRoute
+  SetupRoute: typeof SetupRoute
   StockRoute: typeof StockRoute
   AdminUsersRoute: typeof AdminUsersRoute
 }
@@ -115,6 +128,13 @@ declare module '@tanstack/react-router' {
       path: '/stock'
       fullPath: '/stock'
       preLoaderRoute: typeof StockRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/setup': {
+      id: '/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof SetupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/employees': {
@@ -160,6 +180,7 @@ const rootRouteChildren: RootRouteChildren = {
   AssignmentsRoute: AssignmentsRoute,
   DashboardRoute: DashboardRoute,
   EmployeesRoute: EmployeesRoute,
+  SetupRoute: SetupRoute,
   StockRoute: StockRoute,
   AdminUsersRoute: AdminUsersRoute,
 }
