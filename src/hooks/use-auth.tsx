@@ -33,23 +33,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const fetchUserData = async (user: User) => {
-    const [profileRes, roleRes] = await Promise.all([
-      supabase.from('profiles').select('full_name, email, is_approved').eq('user_id', user.id).single(),
-      supabase.from('user_roles').select('role').eq('user_id', user.id).single(),
-    ]);
+    try {
+      const [profileRes, roleRes] = await Promise.all([
+        supabase.from('profiles').select('full_name, email, is_approved').eq('user_id', user.id).single(),
+        supabase.from('user_roles').select('role').eq('user_id', user.id).single(),
+      ]);
 
-    const profile = profileRes.data;
-    const role = (roleRes.data?.role as 'admin' | 'staff') || 'staff';
+      const profile = profileRes.data;
+      const role = (roleRes.data?.role as 'admin' | 'staff') || 'staff';
 
-    setState({
-      user,
-      profile: profile || null,
-      role,
-      isLoading: false,
-      isAuthenticated: true,
-      isApproved: profile?.is_approved || false,
-      isAdmin: role === 'admin',
-    });
+      setState({
+        user,
+        profile: profile || null,
+        role,
+        isLoading: false,
+        isAuthenticated: true,
+        isApproved: profile?.is_approved || false,
+        isAdmin: role === 'admin',
+      });
+    } catch (err) {
+      console.error('fetchUserData error:', err);
+      setState({
+        user,
+        profile: null,
+        role: 'staff',
+        isLoading: false,
+        isAuthenticated: true,
+        isApproved: false,
+        isAdmin: false,
+      });
+    }
   };
 
   const refreshAuth = async () => {
