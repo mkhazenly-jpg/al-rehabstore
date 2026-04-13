@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
@@ -10,9 +10,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Pencil, Trash2, Download, Search, Eye } from 'lucide-react';
+import { Plus, Pencil, Trash2, Download, Search, Eye, Upload } from 'lucide-react';
 import { exportToExcel } from '@/lib/export';
-import type { Tables } from '@/integrations/supabase/types';
+import { toast } from 'sonner';
+import * as XLSX from 'xlsx';
+import type { Tables as DBTables } from '@/integrations/supabase/types';
 
 type Employee = Tables<'employees'>;
 
