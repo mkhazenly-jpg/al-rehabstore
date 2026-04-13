@@ -189,6 +189,7 @@ export function AssignmentsContent() {
                   <TableHead>{t('quantityAssigned')}</TableHead>
                   <TableHead>{t('status')}</TableHead>
                   <TableHead>{t('assignmentDate')}</TableHead>
+                  <TableHead>{t('reassignReason')}</TableHead>
                   <TableHead>{t('returnDate')}</TableHead>
                   {isAdmin && <TableHead>{t('actions')}</TableHead>}
                 </TableRow>
@@ -209,6 +210,15 @@ export function AssignmentsContent() {
                       </span>
                     </TableCell>
                     <TableCell>{new Date(a.assignment_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}</TableCell>
+                    <TableCell>
+                      {a.notes?.startsWith('[') ? (
+                        <span className={`rounded-full px-2 py-1 text-xs font-medium ${
+                          a.notes.includes(t('lost')) ? 'bg-destructive/20 text-destructive' : 'bg-amber-500/20 text-amber-600'
+                        }`}>
+                          {a.notes.includes(t('lost')) ? t('lost') : a.notes.includes(t('damaged')) ? t('damaged') : '-'}
+                        </span>
+                      ) : '-'}
+                    </TableCell>
                     <TableCell>{a.return_date ? new Date(a.return_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US') : '-'}</TableCell>
                     {isAdmin && (
                       <TableCell>
@@ -225,7 +235,7 @@ export function AssignmentsContent() {
                 ))}
                 {assignments.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">-</TableCell>
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">-</TableCell>
                   </TableRow>
                 )}
               </TableBody>
