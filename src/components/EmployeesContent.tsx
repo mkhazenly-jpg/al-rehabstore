@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
@@ -10,11 +10,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Pencil, Trash2, Download, Search, Eye } from 'lucide-react';
+import { Plus, Pencil, Trash2, Download, Search, Eye, Upload } from 'lucide-react';
 import { exportToExcel } from '@/lib/export';
-import type { Tables } from '@/integrations/supabase/types';
+import { toast } from 'sonner';
+import * as XLSX from 'xlsx';
+import type { Tables as DBTables } from '@/integrations/supabase/types';
 
-type Employee = Tables<'employees'>;
+type Employee = DBTables<'employees'>;
 
 const STATUS_COLORS: Record<string, string> = {
   active: 'bg-success/20 text-success',
@@ -25,6 +27,7 @@ const STATUS_COLORS: Record<string, string> = {
 export function EmployeesContent() {
   const { t, lang } = useLanguage();
   const { isAdmin } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [search, setSearch] = useState('');
   const [filterShift, setFilterShift] = useState('all');
@@ -126,6 +129,56 @@ export function EmployeesContent() {
     );
   };
 
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const data = await file.arrayBuffer();
+      const wb = XLSX.read(data);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows: any[] = XLSX.utils.sheet_to_json(ws);
+
+      if (rows.length === 0) {
+        toast.error(lang === 'ar' ? 'الملف فارغ' : 'File is empty');
+        return;
+      }
+
+      let imported = 0;
+      for (const row of rows) {
+        const name = (row[t('name')] || row['Name'] || row['الاسم'] || '').toString().trim();
+        if (!name) continue;
+
+        const payload: any = {
+          name,
+          hire_date: row[t('hireDate')] || row['Hire Date'] || row['تاريخ التعيين'] || new Date().toISOString().split('T')[0],
+          status: 'active',
+          department: (row[t('department')] || row['Department'] || row['القسم'] || '').toString().trim() || null,
+          job_title: (row[t('jobTitle')] || row['Job Title'] || row['الوظيفة'] || '').toString().trim() || null,
+          mobile: (row[t('mobile')] || row['Mobile'] || row['رقم الموبايل'] || '').toString().trim() || null,
+          shift: null as string | null,
+          notes: (row[t('notes')] || row['Notes'] || row['ملاحظات'] || '').toString().trim() || null,
+        };
+
+        const shiftVal = (row[t('shift')] || row['Shift'] || row['الشفت'] || '').toString().trim().toLowerCase();
+        if (shiftVal.includes('morning') || shiftVal.includes('صباح')) payload.shift = 'morning';
+        else if (shiftVal.includes('night') || shiftVal.includes('مسائ')) payload.shift = 'night';
+
+        const statusVal = (row[t('status')] || row['Status'] || row['الحالة'] || '').toString().trim().toLowerCase();
+        if (statusVal.includes('resigned') || statusVal.includes('مستقيل')) payload.status = 'resigned';
+        else if (statusVal.includes('terminated') || statusVal.includes('منتهي')) payload.status = 'terminated';
+
+        const { error } = await supabase.from('employees').insert(payload);
+        if (!error) imported++;
+      }
+
+      toast.success(lang === 'ar' ? `تم استيراد ${imported} موظف` : `Imported ${imported} employees`);
+      loadEmployees();
+    } catch {
+      toast.error(lang === 'ar' ? 'خطأ في قراءة الملف' : 'Error reading file');
+    }
+    e.target.value = '';
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -135,9 +188,15 @@ export function EmployeesContent() {
             <Download className="h-4 w-4 me-1" />{t('exportExcel')}
           </Button>
           {isAdmin && (
-            <Button size="sm" onClick={openAdd}>
-              <Plus className="h-4 w-4 me-1" />{t('addEmployee')}
-            </Button>
+            <>
+              <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImport} />
+              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                <Upload className="h-4 w-4 me-1" />{lang === 'ar' ? 'استيراد' : 'Import'}
+              </Button>
+              <Button size="sm" onClick={openAdd}>
+                <Plus className="h-4 w-4 me-1" />{t('addEmployee')}
+              </Button>
+            </>
           )}
         </div>
       </div>
