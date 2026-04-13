@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Plus, Download, RotateCcw, Trash2, CalendarIcon, AlertTriangle } from 'lucide-react';
+import { Plus, Download, RotateCcw, Trash2, CalendarIcon, AlertTriangle, Pencil } from 'lucide-react';
 import { exportToExcel } from '@/lib/export';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -34,12 +34,14 @@ export function AssignmentsContent() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingAssignment, setEditingAssignment] = useState<any>(null);
   const [employeeId, setEmployeeId] = useState('');
   const [lines, setLines] = useState<AssignmentLine[]>([{ stock_item_id: '', quantity_assigned: 1, reassign_reason: '' }]);
   const [notes, setNotes] = useState('');
   const [assignmentDate, setAssignmentDate] = useState<Date>(new Date());
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   useEffect(() => { loadAll(); }, []);
 
@@ -64,11 +66,20 @@ export function AssignmentsContent() {
     );
   }, [employeeId, assignments]);
 
-  const openDialog = () => {
-    setEmployeeId('');
-    setLines([{ stock_item_id: '', quantity_assigned: 1, reassign_reason: '' }]);
-    setNotes('');
-    setAssignmentDate(new Date());
+  const openDialog = (assignment?: any) => {
+    if (assignment) {
+      setEditingAssignment(assignment);
+      setEmployeeId(assignment.employee_id);
+      setLines([{ stock_item_id: assignment.stock_item_id, quantity_assigned: assignment.quantity_assigned, reassign_reason: '' }]);
+      setNotes(assignment.notes?.startsWith('[') ? assignment.notes.replace(/^\[.*?\]\s*/, '') : (assignment.notes || ''));
+      setAssignmentDate(new Date(assignment.assignment_date));
+    } else {
+      setEditingAssignment(null);
+      setEmployeeId('');
+      setLines([{ stock_item_id: '', quantity_assigned: 1, reassign_reason: '' }]);
+      setNotes('');
+      setAssignmentDate(new Date());
+    }
     setError('');
     setDialogOpen(true);
   };
@@ -86,9 +97,51 @@ export function AssignmentsContent() {
     setLines(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleCreate = async () => {
+  const handleSave = async () => {
     setError('');
 
+    if (editingAssignment) {
+      // Edit mode - single item update
+      const line = lines[0];
+      if (!line.stock_item_id || !employeeId) return;
+      if (line.quantity_assigned < 1) return;
+
+      setSaving(true);
+      try {
+        const reasonNote = line.reassign_reason
+          ? `[${line.reassign_reason === 'lost' ? t('lost') : t('damaged')}] ${notes || ''}`
+          : (notes || null);
+
+        // If quantity or item changed and status is approved, handle stock
+        const oldA = editingAssignment;
+        if (oldA.status === 'approved') {
+          // Return old stock
+          await supabase.rpc('return_assignment', { _assignment_id: oldA.id });
+        }
+
+        await supabase.from('assignments').update({
+          employee_id: employeeId,
+          stock_item_id: line.stock_item_id,
+          quantity_assigned: line.quantity_assigned,
+          notes: reasonNote,
+          assignment_date: assignmentDate.toISOString(),
+          status: 'pending',
+        }).eq('id', oldA.id);
+
+        // Re-approve to deduct new stock
+        await supabase.rpc('approve_assignment', { _assignment_id: oldA.id });
+
+        setDialogOpen(false);
+        await loadAll();
+      } catch (e) {
+        setError(String(e));
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
+    // Create mode
     for (const line of lines) {
       if (!line.stock_item_id) continue;
       const stock = stockItems.find(s => s.id === line.stock_item_id);
@@ -98,7 +151,6 @@ export function AssignmentsContent() {
         return;
       }
       if (line.quantity_assigned < 1) return;
-      // If duplicate, reason is required
       if (employeeActiveItems.has(line.stock_item_id) && !line.reassign_reason) {
         setError(`${t('selectReason')}: ${stock.name}`);
         return;
@@ -161,6 +213,20 @@ export function AssignmentsContent() {
       })),
       'assignments'
     );
+  };
+
+  const handleDelete = async (assignment: any) => {
+    try {
+      // If approved, return stock first
+      if (assignment.status === 'approved') {
+        await supabase.rpc('return_assignment', { _assignment_id: assignment.id });
+      }
+      await supabase.from('assignments').delete().eq('id', assignment.id);
+      setDeleteConfirmId(null);
+      await loadAll();
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const getAvailableQty = (stockId: string, currentIndex: number) => {
@@ -231,11 +297,17 @@ export function AssignmentsContent() {
                     {isAdmin && (
                       <TableCell>
                         <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => openDialog(a)} title={t('edit')}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
                           {a.status === 'approved' && (
                             <Button variant="ghost" size="icon" onClick={() => handleReturn(a.id)} title={t('return')}>
                               <RotateCcw className="h-4 w-4" />
                             </Button>
                           )}
+                          <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmId(a.id)} title={t('delete')}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
                         </div>
                       </TableCell>
                     )}
@@ -255,7 +327,7 @@ export function AssignmentsContent() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{t('newAssignment')}</DialogTitle>
+            <DialogTitle>{editingAssignment ? t('edit') : t('newAssignment')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {/* Employee select */}
@@ -295,9 +367,11 @@ export function AssignmentsContent() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label>{t('items')}</Label>
-                <Button type="button" variant="outline" size="sm" onClick={addLine}>
-                  <Plus className="h-3 w-3 me-1" />{t('addItem')}
-                </Button>
+                {!editingAssignment && (
+                  <Button type="button" variant="outline" size="sm" onClick={addLine}>
+                    <Plus className="h-3 w-3 me-1" />{t('addItem')}
+                  </Button>
+                )}
               </div>
 
               {lines.map((line, index) => {
@@ -367,12 +441,29 @@ export function AssignmentsContent() {
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>{t('cancel')}</Button>
               <Button
-                onClick={handleCreate}
+                onClick={handleSave}
                 disabled={!employeeId || lines.every(l => !l.stock_item_id) || saving}
               >
                 {t('save')}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t('confirm')}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">{t('delete')}?</p>
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>{t('cancel')}</Button>
+            <Button variant="destructive" onClick={() => {
+              const a = assignments.find((x: any) => x.id === deleteConfirmId);
+              if (a) handleDelete(a);
+            }}>{t('delete')}</Button>
           </div>
         </DialogContent>
       </Dialog>
