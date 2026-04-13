@@ -91,6 +91,9 @@ export const translations = {
     quantityAdded: 'الكمية المضافة',
     itemExists: 'الصنف موجود بالفعل، سيتم زيادة الكمية',
     additionDate: 'تاريخ الإضافة',
+    addItem: 'إضافة صنف',
+    removeItem: 'إزالة',
+    items: 'الأصناف',
   },
   en: {
     appName: 'Al-Rahaba Warehouse',
