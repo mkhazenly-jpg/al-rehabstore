@@ -185,6 +185,9 @@ export const translations = {
     quantityAdded: 'Quantity Added',
     itemExists: 'Item already exists, quantity will be increased',
     additionDate: 'Addition Date',
+    addItem: 'Add Item',
+    removeItem: 'Remove',
+    items: 'Items',
   },
 } as const;
 
