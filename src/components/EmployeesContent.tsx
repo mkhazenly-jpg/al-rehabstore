@@ -27,6 +27,8 @@ export function EmployeesContent() {
   const { isAdmin } = useAuth();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [search, setSearch] = useState('');
+  const [filterShift, setFilterShift] = useState('all');
+  const [filterDept, setFilterDept] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
@@ -41,7 +43,13 @@ export function EmployeesContent() {
     setEmployees(data || []);
   };
 
-  const filtered = employees.filter(e => e.name.toLowerCase().includes(search.toLowerCase()));
+  const departments = [...new Set(employees.map(e => e.department).filter(Boolean))];
+  const filtered = employees.filter(e => {
+    if (!e.name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (filterShift !== 'all' && (e as any).shift !== filterShift) return false;
+    if (filterDept !== 'all' && e.department !== filterDept) return false;
+    return true;
+  });
 
   const openAdd = () => {
     setEditItem(null);
