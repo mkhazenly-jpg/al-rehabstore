@@ -10,13 +10,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Download, Check, RotateCcw } from 'lucide-react';
+import { Plus, Download, RotateCcw, Trash2 } from 'lucide-react';
 import { exportToExcel } from '@/lib/export';
 import type { Tables } from '@/integrations/supabase/types';
 
-type Assignment = Tables<'assignments'>;
 type Employee = Tables<'employees'>;
 type StockItem = Tables<'stock_items'>;
+
+interface AssignmentLine {
+  stock_item_id: string;
+  quantity_assigned: number;
+}
 
 export function AssignmentsContent() {
   const { t, lang } = useLanguage();
@@ -25,8 +29,11 @@ export function AssignmentsContent() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ employee_id: '', stock_item_id: '', quantity_assigned: 1, notes: '' });
+  const [employeeId, setEmployeeId] = useState('');
+  const [lines, setLines] = useState<AssignmentLine[]>([{ stock_item_id: '', quantity_assigned: 1 }]);
+  const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => { loadAll(); }, []);
 
@@ -41,29 +48,68 @@ export function AssignmentsContent() {
     setStockItems(sRes.data || []);
   };
 
-  const handleCreate = async () => {
+  const openDialog = () => {
+    setEmployeeId('');
+    setLines([{ stock_item_id: '', quantity_assigned: 1 }]);
+    setNotes('');
     setError('');
-    const selectedStock = stockItems.find(s => s.id === form.stock_item_id);
-    if (!selectedStock) return;
-    if (form.quantity_assigned > selectedStock.quantity_in_stock) {
-      setError(t('insufficientStock'));
-      return;
-    }
-    if (form.quantity_assigned < 1) return;
-
-    await supabase.from('assignments').insert({
-      employee_id: form.employee_id,
-      stock_item_id: form.stock_item_id,
-      quantity_assigned: form.quantity_assigned,
-      notes: form.notes || null,
-    });
-    setDialogOpen(false);
-    loadAll();
+    setDialogOpen(true);
   };
 
-  const handleApprove = async (id: string) => {
-    await supabase.rpc('approve_assignment', { _assignment_id: id });
-    loadAll();
+  const updateLine = (index: number, field: keyof AssignmentLine, value: string | number) => {
+    setLines(prev => prev.map((l, i) => i === index ? { ...l, [field]: value } : l));
+  };
+
+  const addLine = () => {
+    setLines(prev => [...prev, { stock_item_id: '', quantity_assigned: 1 }]);
+  };
+
+  const removeLine = (index: number) => {
+    if (lines.length <= 1) return;
+    setLines(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleCreate = async () => {
+    setError('');
+
+    // Validate all lines
+    for (const line of lines) {
+      if (!line.stock_item_id) continue;
+      const stock = stockItems.find(s => s.id === line.stock_item_id);
+      if (!stock) return;
+      if (line.quantity_assigned > stock.quantity_in_stock) {
+        setError(`${t('insufficientStock')}: ${stock.name}`);
+        return;
+      }
+      if (line.quantity_assigned < 1) return;
+    }
+
+    const validLines = lines.filter(l => l.stock_item_id);
+    if (validLines.length === 0 || !employeeId) return;
+
+    setSaving(true);
+    try {
+      for (const line of validLines) {
+        // Insert assignment
+        const { data: assignment } = await supabase.from('assignments').insert({
+          employee_id: employeeId,
+          stock_item_id: line.stock_item_id,
+          quantity_assigned: line.quantity_assigned,
+          notes: notes || null,
+        }).select('id').single();
+
+        // Auto-approve (deduct stock immediately)
+        if (assignment) {
+          await supabase.rpc('approve_assignment', { _assignment_id: assignment.id });
+        }
+      }
+      setDialogOpen(false);
+      await loadAll();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleReturn = async (id: string) => {
@@ -85,7 +131,15 @@ export function AssignmentsContent() {
     );
   };
 
-  const selectedStock = stockItems.find(s => s.id === form.stock_item_id);
+  // Get available quantity considering other lines in the same form
+  const getAvailableQty = (stockId: string, currentIndex: number) => {
+    const stock = stockItems.find(s => s.id === stockId);
+    if (!stock) return 0;
+    const usedByOtherLines = lines
+      .filter((l, i) => i !== currentIndex && l.stock_item_id === stockId)
+      .reduce((sum, l) => sum + l.quantity_assigned, 0);
+    return stock.quantity_in_stock - usedByOtherLines;
+  };
 
   return (
     <div className="space-y-4">
@@ -95,7 +149,7 @@ export function AssignmentsContent() {
           <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="h-4 w-4 me-1" />{t('exportExcel')}
           </Button>
-          <Button size="sm" onClick={() => { setForm({ employee_id: '', stock_item_id: '', quantity_assigned: 1, notes: '' }); setError(''); setDialogOpen(true); }}>
+          <Button size="sm" onClick={openDialog}>
             <Plus className="h-4 w-4 me-1" />{t('newAssignment')}
           </Button>
         </div>
@@ -120,7 +174,7 @@ export function AssignmentsContent() {
                 {assignments.map((a: any) => (
                   <TableRow key={a.id}>
                     <TableCell className="font-medium">{a.employees?.name}</TableCell>
-                    <TableCell>{a.stock_items?.name}</TableCell>
+                    <TableCell>{a.stock_items?.name} {a.stock_items?.size !== 'N/A' ? `(${a.stock_items?.size})` : ''}</TableCell>
                     <TableCell>{a.quantity_assigned}</TableCell>
                     <TableCell>
                       <span className={`rounded-full px-2 py-1 text-xs font-medium ${
@@ -136,11 +190,6 @@ export function AssignmentsContent() {
                     {isAdmin && (
                       <TableCell>
                         <div className="flex gap-1">
-                          {a.status === 'pending' && (
-                            <Button variant="ghost" size="icon" onClick={() => handleApprove(a.id)} title={t('approve')}>
-                              <Check className="h-4 w-4 text-success" />
-                            </Button>
-                          )}
                           {a.status === 'approved' && (
                             <Button variant="ghost" size="icon" onClick={() => handleReturn(a.id)} title={t('return')}>
                               <RotateCcw className="h-4 w-4" />
@@ -163,48 +212,81 @@ export function AssignmentsContent() {
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{t('newAssignment')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>{t('employee')}</Label>
-              <Select value={form.employee_id} onValueChange={v => setForm({ ...form, employee_id: v })}>
+              <Select value={employeeId} onValueChange={setEmployeeId}>
                 <SelectTrigger><SelectValue placeholder={t('selectEmployee')} /></SelectTrigger>
                 <SelectContent>
                   {employees.map(e => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>{t('stockItem')}</Label>
-              <Select value={form.stock_item_id} onValueChange={v => setForm({ ...form, stock_item_id: v })}>
-                <SelectTrigger><SelectValue placeholder={t('selectItem')} /></SelectTrigger>
-                <SelectContent>
-                  {stockItems.map(s => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.name} ({s.category}{s.size !== 'N/A' ? ` - ${s.size}` : ''}) - {t('available')}: {s.quantity_in_stock}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>{t('items')}</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addLine}>
+                  <Plus className="h-3 w-3 me-1" />{t('addItem')}
+                </Button>
+              </div>
+
+              {lines.map((line, index) => {
+                const available = getAvailableQty(line.stock_item_id, index);
+                return (
+                  <div key={index} className="flex gap-2 items-start rounded-lg border p-3">
+                    <div className="flex-1 space-y-2">
+                      <Select value={line.stock_item_id} onValueChange={v => updateLine(index, 'stock_item_id', v)}>
+                        <SelectTrigger><SelectValue placeholder={t('selectItem')} /></SelectTrigger>
+                        <SelectContent>
+                          {stockItems.map(s => (
+                            <SelectItem key={s.id} value={s.id}>
+                              {s.name} ({s.category}{s.size !== 'N/A' ? ` - ${s.size}` : ''}) - {s.quantity_in_stock}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {line.stock_item_id && (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min={1}
+                            max={available}
+                            value={line.quantity_assigned}
+                            onChange={e => updateLine(index, 'quantity_assigned', parseInt(e.target.value) || 1)}
+                            className="w-20"
+                          />
+                          <span className="text-xs text-muted-foreground">{t('available')}: {available}</span>
+                        </div>
+                      )}
+                    </div>
+                    {lines.length > 1 && (
+                      <Button variant="ghost" size="icon" onClick={() => removeLine(index)} className="shrink-0 mt-1">
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-            {selectedStock && (
-              <p className="text-sm text-muted-foreground">{t('available')}: {selectedStock.quantity_in_stock} {selectedStock.unit}</p>
-            )}
-            <div className="space-y-2">
-              <Label>{t('quantityAssigned')}</Label>
-              <Input type="number" min={1} max={selectedStock?.quantity_in_stock || 999} value={form.quantity_assigned} onChange={e => setForm({ ...form, quantity_assigned: parseInt(e.target.value) || 1 })} />
-            </div>
+
             <div className="space-y-2">
               <Label>{t('notes')}</Label>
-              <Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
+              <Textarea value={notes} onChange={e => setNotes(e.target.value)} />
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>{t('cancel')}</Button>
-              <Button onClick={handleCreate} disabled={!form.employee_id || !form.stock_item_id}>{t('save')}</Button>
+              <Button
+                onClick={handleCreate}
+                disabled={!employeeId || lines.every(l => !l.stock_item_id) || saving}
+              >
+                {t('save')}
+              </Button>
             </div>
           </div>
         </DialogContent>
