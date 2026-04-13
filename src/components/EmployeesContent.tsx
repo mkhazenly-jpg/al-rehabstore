@@ -168,8 +168,9 @@ export function EmployeesContent() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('name')}</TableHead>
+                  <TableHead>{t('jobTitle')}</TableHead>
                   <TableHead>{t('status')}</TableHead>
-                  <TableHead>{t('hireDate')}</TableHead>
+                  <TableHead>{t('shift')}</TableHead>
                   <TableHead>{t('department')}</TableHead>
                   <TableHead>{t('actions')}</TableHead>
                 </TableRow>
