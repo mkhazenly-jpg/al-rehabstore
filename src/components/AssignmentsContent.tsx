@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
@@ -10,8 +10,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Download, RotateCcw, Trash2 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Plus, Download, RotateCcw, Trash2, CalendarIcon, AlertTriangle } from 'lucide-react';
 import { exportToExcel } from '@/lib/export';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Employee = Tables<'employees'>;
@@ -20,6 +24,7 @@ type StockItem = Tables<'stock_items'>;
 interface AssignmentLine {
   stock_item_id: string;
   quantity_assigned: number;
+  reassign_reason: string;
 }
 
 export function AssignmentsContent() {
@@ -30,8 +35,9 @@ export function AssignmentsContent() {
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [employeeId, setEmployeeId] = useState('');
-  const [lines, setLines] = useState<AssignmentLine[]>([{ stock_item_id: '', quantity_assigned: 1 }]);
+  const [lines, setLines] = useState<AssignmentLine[]>([{ stock_item_id: '', quantity_assigned: 1, reassign_reason: '' }]);
   const [notes, setNotes] = useState('');
+  const [assignmentDate, setAssignmentDate] = useState<Date>(new Date());
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -48,10 +54,21 @@ export function AssignmentsContent() {
     setStockItems(sRes.data || []);
   };
 
+  // Track which stock items the selected employee currently has (approved status)
+  const employeeActiveItems = useMemo(() => {
+    if (!employeeId) return new Set<string>();
+    return new Set(
+      assignments
+        .filter((a: any) => a.employee_id === employeeId && a.status === 'approved')
+        .map((a: any) => a.stock_item_id)
+    );
+  }, [employeeId, assignments]);
+
   const openDialog = () => {
     setEmployeeId('');
-    setLines([{ stock_item_id: '', quantity_assigned: 1 }]);
+    setLines([{ stock_item_id: '', quantity_assigned: 1, reassign_reason: '' }]);
     setNotes('');
+    setAssignmentDate(new Date());
     setError('');
     setDialogOpen(true);
   };
@@ -61,7 +78,7 @@ export function AssignmentsContent() {
   };
 
   const addLine = () => {
-    setLines(prev => [...prev, { stock_item_id: '', quantity_assigned: 1 }]);
+    setLines(prev => [...prev, { stock_item_id: '', quantity_assigned: 1, reassign_reason: '' }]);
   };
 
   const removeLine = (index: number) => {
@@ -72,7 +89,6 @@ export function AssignmentsContent() {
   const handleCreate = async () => {
     setError('');
 
-    // Validate all lines
     for (const line of lines) {
       if (!line.stock_item_id) continue;
       const stock = stockItems.find(s => s.id === line.stock_item_id);
@@ -82,6 +98,11 @@ export function AssignmentsContent() {
         return;
       }
       if (line.quantity_assigned < 1) return;
+      // If duplicate, reason is required
+      if (employeeActiveItems.has(line.stock_item_id) && !line.reassign_reason) {
+        setError(`${t('selectReason')}: ${stock.name}`);
+        return;
+      }
     }
 
     const validLines = lines.filter(l => l.stock_item_id);
@@ -90,15 +111,18 @@ export function AssignmentsContent() {
     setSaving(true);
     try {
       for (const line of validLines) {
-        // Insert assignment
+        const reasonNote = line.reassign_reason
+          ? `[${line.reassign_reason === 'lost' ? t('lost') : t('damaged')}] ${notes || ''}`
+          : (notes || null);
+
         const { data: assignment } = await supabase.from('assignments').insert({
           employee_id: employeeId,
           stock_item_id: line.stock_item_id,
           quantity_assigned: line.quantity_assigned,
-          notes: notes || null,
+          notes: reasonNote,
+          assignment_date: assignmentDate.toISOString(),
         }).select('id').single();
 
-        // Auto-approve (deduct stock immediately)
         if (assignment) {
           await supabase.rpc('approve_assignment', { _assignment_id: assignment.id });
         }
@@ -131,7 +155,6 @@ export function AssignmentsContent() {
     );
   };
 
-  // Get available quantity considering other lines in the same form
   const getAvailableQty = (stockId: string, currentIndex: number) => {
     const stock = stockItems.find(s => s.id === stockId);
     if (!stock) return 0;
@@ -212,14 +235,15 @@ export function AssignmentsContent() {
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t('newAssignment')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Employee select */}
             <div className="space-y-2">
               <Label>{t('employee')}</Label>
-              <Select value={employeeId} onValueChange={setEmployeeId}>
+              <Select value={employeeId} onValueChange={v => { setEmployeeId(v); setLines(prev => prev.map(l => ({ ...l, reassign_reason: '' }))); }}>
                 <SelectTrigger><SelectValue placeholder={t('selectEmployee')} /></SelectTrigger>
                 <SelectContent>
                   {employees.map(e => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
@@ -227,6 +251,29 @@ export function AssignmentsContent() {
               </Select>
             </div>
 
+            {/* Assignment date picker */}
+            <div className="space-y-2">
+              <Label>{t('assignmentDateLabel')}</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full justify-start text-start font-normal", !assignmentDate && "text-muted-foreground")}>
+                    <CalendarIcon className="h-4 w-4 me-2" />
+                    {assignmentDate ? format(assignmentDate, 'yyyy-MM-dd') : t('assignmentDateLabel')}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={assignmentDate}
+                    onSelect={d => d && setAssignmentDate(d)}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Items */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label>{t('items')}</Label>
@@ -237,10 +284,11 @@ export function AssignmentsContent() {
 
               {lines.map((line, index) => {
                 const available = getAvailableQty(line.stock_item_id, index);
+                const isDuplicate = line.stock_item_id && employeeActiveItems.has(line.stock_item_id);
                 return (
                   <div key={index} className="flex gap-2 items-start rounded-lg border p-3">
                     <div className="flex-1 space-y-2">
-                      <Select value={line.stock_item_id} onValueChange={v => updateLine(index, 'stock_item_id', v)}>
+                      <Select value={line.stock_item_id} onValueChange={v => { updateLine(index, 'stock_item_id', v); updateLine(index, 'reassign_reason', ''); }}>
                         <SelectTrigger><SelectValue placeholder={t('selectItem')} /></SelectTrigger>
                         <SelectContent>
                           {stockItems.map(s => (
@@ -250,6 +298,25 @@ export function AssignmentsContent() {
                           ))}
                         </SelectContent>
                       </Select>
+
+                      {isDuplicate && (
+                        <div className="space-y-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-2">
+                          <div className="flex items-center gap-1 text-xs text-amber-600">
+                            <AlertTriangle className="h-3 w-3" />
+                            <span>{t('alreadyAssigned')}</span>
+                          </div>
+                          <Select value={line.reassign_reason} onValueChange={v => updateLine(index, 'reassign_reason', v)}>
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder={t('selectReason')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="lost">{t('lost')}</SelectItem>
+                              <SelectItem value="damaged">{t('damaged')}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+
                       {line.stock_item_id && (
                         <div className="flex items-center gap-2">
                           <Input

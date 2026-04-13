@@ -103,6 +103,12 @@ export const translations = {
     unauthorized: 'غير مصرح',
     unauthorizedMessage: 'ليس لديك صلاحية للوصول إلى هذه الصفحة. تواصل مع المسؤول إذا كنت تعتقد أن هذا خطأ.',
     goBack: 'العودة',
+    assignmentDateLabel: 'تاريخ التسليم',
+    reassignReason: 'سبب التسليم الجديد',
+    lost: 'فقدان',
+    damaged: 'تالف',
+    alreadyAssigned: 'هذا الموظف مستلم هذا الصنف بالفعل',
+    selectReason: 'اختر السبب',
   },
   en: {
     appName: 'Al-Rahaba Warehouse',
@@ -206,6 +212,12 @@ export const translations = {
     unauthorized: 'Unauthorized',
     unauthorizedMessage: 'You do not have permission to access this page. Contact your administrator if you believe this is an error.',
     goBack: 'Go Back',
+    assignmentDateLabel: 'Assignment Date',
+    reassignReason: 'Reason for reassignment',
+    lost: 'Lost',
+    damaged: 'Damaged',
+    alreadyAssigned: 'This employee already has this item assigned',
+    selectReason: 'Select reason',
   },
 } as const;
 
