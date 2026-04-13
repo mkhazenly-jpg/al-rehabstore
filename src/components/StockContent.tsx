@@ -84,7 +84,7 @@ export function StockContent() {
   }, [form.name, form.category, form.size, editItem, items]);
 
   const handleSave = async () => {
-    const sizeVal = form.category === 'safety shoes' ? form.size : 'N/A';
+    const sizeVal = form.category === 'safety shoes' ? form.size.trim() : 'N/A';
     let stockItemId: string | null = editItem?.id ?? existingMatch?.id ?? null;
     let stockError = null;
 
