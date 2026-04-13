@@ -97,9 +97,51 @@ export function AssignmentsContent() {
     setLines(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleCreate = async () => {
+  const handleSave = async () => {
     setError('');
 
+    if (editingAssignment) {
+      // Edit mode - single item update
+      const line = lines[0];
+      if (!line.stock_item_id || !employeeId) return;
+      if (line.quantity_assigned < 1) return;
+
+      setSaving(true);
+      try {
+        const reasonNote = line.reassign_reason
+          ? `[${line.reassign_reason === 'lost' ? t('lost') : t('damaged')}] ${notes || ''}`
+          : (notes || null);
+
+        // If quantity or item changed and status is approved, handle stock
+        const oldA = editingAssignment;
+        if (oldA.status === 'approved') {
+          // Return old stock
+          await supabase.rpc('return_assignment', { _assignment_id: oldA.id });
+        }
+
+        await supabase.from('assignments').update({
+          employee_id: employeeId,
+          stock_item_id: line.stock_item_id,
+          quantity_assigned: line.quantity_assigned,
+          notes: reasonNote,
+          assignment_date: assignmentDate.toISOString(),
+          status: 'pending',
+        }).eq('id', oldA.id);
+
+        // Re-approve to deduct new stock
+        await supabase.rpc('approve_assignment', { _assignment_id: oldA.id });
+
+        setDialogOpen(false);
+        await loadAll();
+      } catch (e) {
+        setError(String(e));
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
+    // Create mode
     for (const line of lines) {
       if (!line.stock_item_id) continue;
       const stock = stockItems.find(s => s.id === line.stock_item_id);
@@ -109,7 +151,6 @@ export function AssignmentsContent() {
         return;
       }
       if (line.quantity_assigned < 1) return;
-      // If duplicate, reason is required
       if (employeeActiveItems.has(line.stock_item_id) && !line.reassign_reason) {
         setError(`${t('selectReason')}: ${stock.name}`);
         return;
