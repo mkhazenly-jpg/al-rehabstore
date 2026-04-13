@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import type { Tables as DBTables } from '@/integrations/supabase/types';
 
-type Employee = Tables<'employees'>;
+type Employee = DBTables<'employees'>;
 
 const STATUS_COLORS: Record<string, string> = {
   active: 'bg-success/20 text-success',
