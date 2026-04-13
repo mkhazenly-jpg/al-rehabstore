@@ -139,9 +139,26 @@ export function EmployeesContent() {
         </div>
       </div>
 
-      <div className="relative">
-        <Search className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input className="ps-9" placeholder={t('search')} value={search} onChange={e => setSearch(e.target.value)} />
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="relative flex-1">
+          <Search className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input className="ps-9" placeholder={t('search')} value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+        <Select value={filterShift} onValueChange={setFilterShift}>
+          <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder={t('shift')} /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('shift')}: {t('allCategories')}</SelectItem>
+            <SelectItem value="morning">{t('morning')}</SelectItem>
+            <SelectItem value="night">{t('night')}</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterDept} onValueChange={setFilterDept}>
+          <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder={t('department')} /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('department')}: {t('allCategories')}</SelectItem>
+            {departments.map(d => <SelectItem key={d} value={d!}>{d}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
 
       <Card>
