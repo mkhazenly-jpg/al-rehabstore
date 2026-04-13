@@ -1,32 +1,39 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { LanguageProvider } from '@/hooks/use-language';
 import { AuthProvider, useAuth } from '@/hooks/use-auth';
-import { LoginPage } from '@/components/LoginPage';
-import { PendingApprovalPage } from '@/components/PendingApprovalPage';
+import { AppLayout } from '@/components/AppLayout';
+import { DashboardContent } from '@/components/DashboardContent';
 import { useNavigate } from '@tanstack/react-router';
 import { useEffect } from 'react';
 
-export const Route = createFileRoute('/')({
-  component: IndexPage,
+export const Route = createFileRoute('/dashboard')({
+  component: DashboardPage,
+  head: () => ({
+    meta: [{ title: 'مخزن الرحاب - لوحة التحكم' }],
+  }),
 });
 
-function IndexPage() {
+function DashboardPage() {
   return (
     <LanguageProvider>
       <AuthProvider>
-        <AuthGate />
+        <AuthGuard>
+          <AppLayout>
+            <DashboardContent />
+          </AppLayout>
+        </AuthGuard>
       </AuthProvider>
     </LanguageProvider>
   );
 }
 
-function AuthGate() {
+function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isLoading, isAuthenticated, isApproved } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated && isApproved) {
-      navigate({ to: '/dashboard' });
+    if (!isLoading && (!isAuthenticated || !isApproved)) {
+      navigate({ to: '/' });
     }
   }, [isLoading, isAuthenticated, isApproved, navigate]);
 
@@ -38,7 +45,6 @@ function AuthGate() {
     );
   }
 
-  if (!isAuthenticated) return <LoginPage />;
-  if (!isApproved) return <PendingApprovalPage />;
-  return null;
+  if (!isAuthenticated || !isApproved) return null;
+  return <>{children}</>;
 }
