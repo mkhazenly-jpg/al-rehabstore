@@ -183,22 +183,20 @@ export function EmployeesContent() {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">{t('employees')}</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleExport}>
-            <Download className="h-4 w-4 me-1" />{t('exportExcel')}
-          </Button>
-          {isAdmin && (
-            <>
-              <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImport} />
-              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                <Upload className="h-4 w-4 me-1" />{lang === 'ar' ? 'استيراد' : 'Import'}
-              </Button>
-              <Button size="sm" onClick={openAdd}>
-                <Plus className="h-4 w-4 me-1" />{t('addEmployee')}
-              </Button>
-            </>
-          )}
-        </div>
+        {isAdmin && (
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleExport}>
+              <Download className="h-4 w-4 me-1" />{t('exportExcel')}
+            </Button>
+            <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImport} />
+            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+              <Upload className="h-4 w-4 me-1" />{lang === 'ar' ? 'استيراد' : 'Import'}
+            </Button>
+            <Button size="sm" onClick={openAdd}>
+              <Plus className="h-4 w-4 me-1" />{t('addEmployee')}
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row">
