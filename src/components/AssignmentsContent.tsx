@@ -367,9 +367,11 @@ export function AssignmentsContent() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label>{t('items')}</Label>
-                <Button type="button" variant="outline" size="sm" onClick={addLine}>
-                  <Plus className="h-3 w-3 me-1" />{t('addItem')}
-                </Button>
+                {!editingAssignment && (
+                  <Button type="button" variant="outline" size="sm" onClick={addLine}>
+                    <Plus className="h-3 w-3 me-1" />{t('addItem')}
+                  </Button>
+                )}
               </div>
 
               {lines.map((line, index) => {
