@@ -22,14 +22,14 @@ function DashboardPage() {
 }
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { isLoading, isAuthenticated, isApproved } = useAuth();
+  const { isLoading, isAuthenticated, isApproved, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoading && (!isAuthenticated || !isApproved)) {
+    if (!isLoading && (!isAuthenticated || !isApproved || !isAdmin)) {
       navigate({ to: '/' });
     }
-  }, [isLoading, isAuthenticated, isApproved, navigate]);
+  }, [isLoading, isAuthenticated, isApproved, isAdmin, navigate]);
 
   if (isLoading) {
     return (
@@ -39,6 +39,6 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!isAuthenticated || !isApproved) return null;
+  if (!isAuthenticated || !isApproved || !isAdmin) return null;
   return <>{children}</>;
 }
