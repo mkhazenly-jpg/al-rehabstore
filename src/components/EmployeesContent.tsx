@@ -303,7 +303,12 @@ export function EmployeesContent() {
                     {assignments.map((a: any) => (
                       <div key={a.id} className="flex items-center justify-between rounded-lg border p-2 text-sm">
                         <div>
-                          <p className="font-medium">{a.stock_items?.name} ({a.stock_items?.category})</p>
+                          <p className="font-medium">
+                            {a.stock_items?.name} ({a.stock_items?.category})
+                            {a.stock_items?.category?.toLowerCase().includes('safety') && a.stock_items?.size && a.stock_items.size !== 'N/A' && (
+                              <span className="ms-1 text-xs text-muted-foreground">- {t('size')}: {a.stock_items.size}</span>
+                            )}
+                          </p>
                           <p className="text-xs text-muted-foreground">
                             {t('quantity')}: {a.quantity_assigned} • {new Date(a.assignment_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}
                           </p>
