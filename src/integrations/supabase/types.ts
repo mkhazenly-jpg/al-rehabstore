@@ -134,6 +134,41 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_additions: {
+        Row: {
+          added_at: string
+          added_by: string | null
+          id: string
+          notes: string | null
+          quantity_added: number
+          stock_item_id: string
+        }
+        Insert: {
+          added_at?: string
+          added_by?: string | null
+          id?: string
+          notes?: string | null
+          quantity_added?: number
+          stock_item_id: string
+        }
+        Update: {
+          added_at?: string
+          added_by?: string | null
+          id?: string
+          notes?: string | null
+          quantity_added?: number
+          stock_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_additions_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_items: {
         Row: {
           added_date: string

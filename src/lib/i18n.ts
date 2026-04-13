@@ -87,6 +87,10 @@ export const translations = {
     confirm: 'تأكيد',
     details: 'تفاصيل',
     available: 'متاح',
+    additionHistory: 'سجل الإضافات',
+    quantityAdded: 'الكمية المضافة',
+    itemExists: 'الصنف موجود بالفعل، سيتم زيادة الكمية',
+    additionDate: 'تاريخ الإضافة',
   },
   en: {
     appName: 'Al-Rahaba Warehouse',
@@ -174,6 +178,10 @@ export const translations = {
     confirm: 'Confirm',
     details: 'Details',
     available: 'Available',
+    additionHistory: 'Addition History',
+    quantityAdded: 'Quantity Added',
+    itemExists: 'Item already exists, quantity will be increased',
+    additionDate: 'Addition Date',
   },
 } as const;
 

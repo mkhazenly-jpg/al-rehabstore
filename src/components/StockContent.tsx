@@ -5,15 +5,24 @@ import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Pencil, Trash2, Download, Search, AlertTriangle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Download, Search, AlertTriangle, History, Info } from 'lucide-react';
 import { exportToExcel } from '@/lib/export';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { Tables } from '@/integrations/supabase/types';
 
 type StockItem = Tables<'stock_items'>;
+
+interface StockAddition {
+  id: string;
+  stock_item_id: string;
+  quantity_added: number;
+  added_at: string;
+  notes: string | null;
+}
 
 const CATEGORIES = ['safety shoes', 'vests', 'helmets', 'gloves', 'other'];
 const UNITS = ['pair', 'piece', 'box'];
@@ -27,6 +36,10 @@ export function StockContent() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<StockItem | null>(null);
   const [form, setForm] = useState({ name: '', category: 'safety shoes', size: '', quantity_in_stock: 0, unit: 'piece' });
+  const [existingMatch, setExistingMatch] = useState<StockItem | null>(null);
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [historyItem, setHistoryItem] = useState<StockItem | null>(null);
+  const [additions, setAdditions] = useState<StockAddition[]>([]);
 
   useEffect(() => { loadItems(); }, []);
 
@@ -43,22 +56,56 @@ export function StockContent() {
 
   const openAdd = () => {
     setEditItem(null);
+    setExistingMatch(null);
     setForm({ name: '', category: 'safety shoes', size: '', quantity_in_stock: 0, unit: 'piece' });
     setDialogOpen(true);
   };
 
   const openEdit = (item: StockItem) => {
     setEditItem(item);
+    setExistingMatch(null);
     setForm({ name: item.name, category: item.category, size: item.size, quantity_in_stock: item.quantity_in_stock, unit: item.unit });
     setDialogOpen(true);
   };
 
+  // Check for existing item when name/category/size changes (only in add mode)
+  useEffect(() => {
+    if (editItem || !form.name.trim()) {
+      setExistingMatch(null);
+      return;
+    }
+    const sizeVal = form.category === 'safety shoes' ? form.size : 'N/A';
+    const match = items.find(
+      i => i.name.toLowerCase() === form.name.toLowerCase().trim() &&
+           i.category === form.category &&
+           i.size === sizeVal
+    );
+    setExistingMatch(match || null);
+  }, [form.name, form.category, form.size, editItem, items]);
+
   const handleSave = async () => {
     const sizeVal = form.category === 'safety shoes' ? form.size : 'N/A';
+    
     if (editItem) {
+      // Edit mode - just update
       await supabase.from('stock_items').update({ ...form, size: sizeVal }).eq('id', editItem.id);
+    } else if (existingMatch) {
+      // Item exists - increase quantity and log addition
+      const newQty = existingMatch.quantity_in_stock + form.quantity_in_stock;
+      await supabase.from('stock_items').update({ quantity_in_stock: newQty }).eq('id', existingMatch.id);
+      await supabase.from('stock_additions').insert({
+        stock_item_id: existingMatch.id,
+        quantity_added: form.quantity_in_stock,
+      });
     } else {
-      await supabase.from('stock_items').insert({ ...form, size: sizeVal });
+      // New item - insert and log first addition
+      const { data } = await supabase.from('stock_items').insert({ ...form, size: sizeVal }).select().single();
+      if (data) {
+        await supabase.from('stock_additions').insert({
+          stock_item_id: data.id,
+          quantity_added: form.quantity_in_stock,
+        });
+      }
     }
     setDialogOpen(false);
     loadItems();
@@ -67,6 +114,17 @@ export function StockContent() {
   const handleDelete = async (id: string) => {
     await supabase.from('stock_items').delete().eq('id', id);
     loadItems();
+  };
+
+  const openHistory = async (item: StockItem) => {
+    setHistoryItem(item);
+    const { data } = await supabase
+      .from('stock_additions')
+      .select('*')
+      .eq('stock_item_id', item.id)
+      .order('added_at', { ascending: false });
+    setAdditions((data as StockAddition[]) || []);
+    setHistoryDialogOpen(true);
   };
 
   const handleExport = () => {
@@ -147,6 +205,9 @@ export function StockContent() {
                     {isAdmin && (
                       <TableCell>
                         <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => openHistory(item)} title={t('additionHistory')}>
+                            <History className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" onClick={() => openEdit(item)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -169,12 +230,19 @@ export function StockContent() {
         </CardContent>
       </Card>
 
+      {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editItem ? t('editStock') : t('addStock')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {existingMatch && !editItem && (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>{t('itemExists')}</AlertDescription>
+              </Alert>
+            )}
             <div className="space-y-2">
               <Label>{t('name')}</Label>
               <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
@@ -195,7 +263,7 @@ export function StockContent() {
               </div>
             )}
             <div className="space-y-2">
-              <Label>{t('quantity')}</Label>
+              <Label>{existingMatch && !editItem ? t('quantityAdded') : t('quantity')}</Label>
               <Input type="number" min={0} value={form.quantity_in_stock} onChange={e => setForm({ ...form, quantity_in_stock: parseInt(e.target.value) || 0 })} />
             </div>
             <div className="space-y-2">
@@ -211,6 +279,38 @@ export function StockContent() {
               <Button variant="outline" onClick={() => setDialogOpen(false)}>{t('cancel')}</Button>
               <Button onClick={handleSave}>{t('save')}</Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Addition History Dialog */}
+      <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('additionHistory')} - {historyItem?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-x-auto max-h-80">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('quantityAdded')}</TableHead>
+                  <TableHead>{t('additionDate')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {additions.map(a => (
+                  <TableRow key={a.id}>
+                    <TableCell className="font-medium">+{a.quantity_added}</TableCell>
+                    <TableCell>{new Date(a.added_at).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</TableCell>
+                  </TableRow>
+                ))}
+                {additions.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={2} className="text-center text-muted-foreground py-4">-</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </div>
         </DialogContent>
       </Dialog>
