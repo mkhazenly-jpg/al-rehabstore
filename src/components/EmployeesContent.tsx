@@ -231,6 +231,24 @@ export function EmployeesContent() {
               <Input value={form.department} onChange={e => setForm({ ...form, department: e.target.value })} />
             </div>
             <div className="space-y-2">
+              <Label>{t('jobTitle')}</Label>
+              <Input value={form.job_title} onChange={e => setForm({ ...form, job_title: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('mobile')}</Label>
+              <Input value={form.mobile} onChange={e => setForm({ ...form, mobile: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('shift')}</Label>
+              <Select value={form.shift} onValueChange={(v: any) => setForm({ ...form, shift: v })}>
+                <SelectTrigger><SelectValue placeholder="-" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="morning">{t('morning')}</SelectItem>
+                  <SelectItem value="night">{t('night')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label>{t('notes')}</Label>
               <Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
             </div>
