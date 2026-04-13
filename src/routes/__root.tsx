@@ -43,6 +43,8 @@ export const Route = createRootRoute({
       { name: "twitter:site", content: "@Lovable" },
       { name: "twitter:title", content: "مخزن الرحاب - Al-Rahaba Warehouse" },
       { name: "twitter:description", content: "نظام إدارة مخزون معدات السلامة والموظفين" },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/hPik1PqCgrXhcFkg6NsPQgKg8Mx1/social-images/social-1776117773407-1000269202.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/hPik1PqCgrXhcFkg6NsPQgKg8Mx1/social-images/social-1776117773407-1000269202.webp" },
     ],
     links: [
       {
