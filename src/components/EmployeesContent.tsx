@@ -285,6 +285,12 @@ export function EmployeesContent() {
                   )}
                   <span className="text-muted-foreground">{t('department')}:</span>
                   <span>{selectedEmployee.department || '-'}</span>
+                  <span className="text-muted-foreground">{t('jobTitle')}:</span>
+                  <span>{(selectedEmployee as any).job_title || '-'}</span>
+                  <span className="text-muted-foreground">{t('mobile')}:</span>
+                  <span>{(selectedEmployee as any).mobile || '-'}</span>
+                  <span className="text-muted-foreground">{t('shift')}:</span>
+                  <span>{(selectedEmployee as any).shift ? t((selectedEmployee as any).shift as any) : '-'}</span>
                 </div>
               </div>
 
