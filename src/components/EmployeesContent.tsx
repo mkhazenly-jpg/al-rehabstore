@@ -114,19 +114,25 @@ export function EmployeesContent() {
   };
 
   const handleExport = () => {
+    const dataToExport = filtered.length > 0 ? filtered : employees;
+    if (dataToExport.length === 0) {
+      toast.error(lang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export');
+      return;
+    }
     exportToExcel(
-      filtered.map(e => ({
+      dataToExport.map(e => ({
         [t('name')]: e.name,
-        [t('jobTitle')]: (e as any).job_title || '-',
+        [t('jobTitle')]: e.job_title || '-',
         [t('status')]: t(e.status as any),
-        [t('shift')]: (e as any).shift ? t((e as any).shift as any) : '-',
+        [t('shift')]: e.shift ? t(e.shift as any) : '-',
         [t('department')]: e.department || '-',
-        [t('mobile')]: (e as any).mobile || '-',
+        [t('mobile')]: e.mobile || '-',
         [t('hireDate')]: e.hire_date,
         [t('notes')]: e.notes || '-',
       })),
       'employees'
     );
+    toast.success(lang === 'ar' ? `تم تصدير ${dataToExport.length} موظف` : `Exported ${dataToExport.length} employees`);
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
