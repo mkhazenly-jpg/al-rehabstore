@@ -35,7 +35,7 @@ export function StockContent() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<StockItem | null>(null);
-  const [form, setForm] = useState({ name: '', category: 'safety shoes', size: '', quantity_in_stock: 0, unit: 'piece' });
+  const [form, setForm] = useState({ name: '', category: 'safety shoes', size: '', quantity_in_stock: 0, unit: 'piece', unit_price: 0 });
   const [existingMatch, setExistingMatch] = useState<StockItem | null>(null);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [historyItem, setHistoryItem] = useState<StockItem | null>(null);
@@ -57,14 +57,14 @@ export function StockContent() {
   const openAdd = () => {
     setEditItem(null);
     setExistingMatch(null);
-    setForm({ name: '', category: 'safety shoes', size: '', quantity_in_stock: 0, unit: 'piece' });
+    setForm({ name: '', category: 'safety shoes', size: '', quantity_in_stock: 0, unit: 'piece', unit_price: 0 });
     setDialogOpen(true);
   };
 
   const openEdit = (item: StockItem) => {
     setEditItem(item);
     setExistingMatch(null);
-    setForm({ name: item.name, category: item.category, size: item.size, quantity_in_stock: item.quantity_in_stock, unit: item.unit });
+    setForm({ name: item.name, category: item.category, size: item.size, quantity_in_stock: item.quantity_in_stock, unit: item.unit, unit_price: (item as any).unit_price || 0 });
     setDialogOpen(true);
   };
 
