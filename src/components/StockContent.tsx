@@ -283,7 +283,10 @@ export function StockContent() {
               <Input type="number" min={0} value={form.quantity_in_stock} onChange={e => setForm({ ...form, quantity_in_stock: parseInt(e.target.value) || 0 })} />
             </div>
             <div className="space-y-2">
-              <Label>{t('unit')}</Label>
+              <Label>{t('unitPrice')} ({t('currency')})</Label>
+              <Input type="number" min={0} step="0.01" value={form.unit_price} onChange={e => setForm({ ...form, unit_price: parseFloat(e.target.value) || 0 })} />
+            </div>
+            <div className="space-y-2">
               <Select value={form.unit} onValueChange={v => setForm({ ...form, unit: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
