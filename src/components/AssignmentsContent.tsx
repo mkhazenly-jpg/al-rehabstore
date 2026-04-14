@@ -72,7 +72,8 @@ export function AssignmentsContent() {
       setEmployeeId(assignment.employee_id);
       setLines([{ stock_item_id: assignment.stock_item_id, quantity_assigned: assignment.quantity_assigned, reassign_reason: '' }]);
       setNotes(assignment.notes?.startsWith('[') ? assignment.notes.replace(/^\[.*?\]\s*/, '') : (assignment.notes || ''));
-      setAssignmentDate(new Date(assignment.assignment_date));
+      const parsedDate = new Date(assignment.assignment_date);
+      setAssignmentDate(!isNaN(parsedDate.getTime()) ? parsedDate : new Date());
     } else {
       setEditingAssignment(null);
       setEmployeeId('');
@@ -283,7 +284,7 @@ export function AssignmentsContent() {
                         {t(a.status as any)}
                       </span>
                     </TableCell>
-                    <TableCell>{new Date(a.assignment_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}</TableCell>
+                    <TableCell>{a.assignment_date && !isNaN(new Date(a.assignment_date).getTime()) ? new Date(a.assignment_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US') : '-'}</TableCell>
                     <TableCell>
                       {a.notes?.startsWith('[') ? (
                         <span className={`rounded-full px-2 py-1 text-xs font-medium ${
@@ -293,7 +294,7 @@ export function AssignmentsContent() {
                         </span>
                       ) : '-'}
                     </TableCell>
-                    <TableCell>{a.return_date ? new Date(a.return_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US') : '-'}</TableCell>
+                    <TableCell>{a.return_date && !isNaN(new Date(a.return_date).getTime()) ? new Date(a.return_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US') : '-'}</TableCell>
                     {isAdmin && (
                       <TableCell>
                         <div className="flex gap-1">
@@ -348,7 +349,7 @@ export function AssignmentsContent() {
                 <PopoverTrigger asChild>
                   <Button variant="outline" className={cn("w-full justify-start text-start font-normal", !assignmentDate && "text-muted-foreground")}>
                     <CalendarIcon className="h-4 w-4 me-2" />
-                    {assignmentDate ? format(assignmentDate, 'yyyy-MM-dd') : t('assignmentDateLabel')}
+                    {assignmentDate && !isNaN(assignmentDate.getTime()) ? format(assignmentDate, 'yyyy-MM-dd') : t('assignmentDateLabel')}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
