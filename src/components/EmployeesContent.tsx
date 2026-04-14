@@ -80,7 +80,7 @@ export function EmployeesContent() {
     setSelectedEmployee(emp);
     const { data } = await supabase
       .from('assignments')
-      .select('*, stock_items(name, category, size)')
+      .select('*, stock_items(name, category, size, unit_price)')
       .eq('employee_id', emp.id)
       .order('assignment_date', { ascending: false });
     setAssignments(data || []);
@@ -434,30 +434,47 @@ export function EmployeesContent() {
                 {assignments.length === 0 ? (
                   <p className="text-sm text-muted-foreground">-</p>
                 ) : (
-                  <div className="max-h-60 overflow-y-auto space-y-2">
-                    {assignments.map((a: any) => (
-                      <div key={a.id} className="flex items-center justify-between rounded-lg border p-2 text-sm">
-                        <div>
-                          <p className="font-medium">
-                            {a.stock_items?.name} ({a.stock_items?.category})
-                            {a.stock_items?.category?.toLowerCase().includes('safety') && a.stock_items?.size && a.stock_items.size !== 'N/A' && (
-                              <span className="ms-1 text-xs text-muted-foreground">- {t('size')}: {a.stock_items.size}</span>
-                            )}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {t('quantity')}: {a.quantity_assigned} • {new Date(a.assignment_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}
-                          </p>
+                  <>
+                    <div className="max-h-60 overflow-y-auto space-y-2">
+                      {assignments.map((a: any) => {
+                        const price = (a.stock_items?.unit_price || 0) * a.quantity_assigned;
+                        return (
+                          <div key={a.id} className="flex items-center justify-between rounded-lg border p-2 text-sm">
+                            <div>
+                              <p className="font-medium">
+                                {a.stock_items?.name} ({a.stock_items?.category})
+                                {a.stock_items?.category?.toLowerCase().includes('safety') && a.stock_items?.size && a.stock_items.size !== 'N/A' && (
+                                  <span className="ms-1 text-xs text-muted-foreground">- {t('size')}: {a.stock_items.size}</span>
+                                )}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {t('quantity')}: {a.quantity_assigned} • {new Date(a.assignment_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}
+                                {a.stock_items?.unit_price > 0 && (
+                                  <> • {t('unitPrice')}: {a.stock_items.unit_price} {t('currency')} • {t('totalPrice')}: {price} {t('currency')}</>
+                                )}
+                              </p>
+                            </div>
+                            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                              a.status === 'approved' ? 'bg-success/20 text-success' :
+                              a.status === 'pending' ? 'bg-accent/20 text-accent-foreground' :
+                              'bg-muted text-muted-foreground'
+                            }`}>
+                              {t(a.status as any)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {(() => {
+                      const grandTotal = assignments.reduce((sum: number, a: any) => sum + ((a.stock_items?.unit_price || 0) * a.quantity_assigned), 0);
+                      return grandTotal > 0 ? (
+                        <div className="flex justify-between items-center rounded-lg bg-muted p-2 text-sm font-semibold">
+                          <span>{t('totalPrice')}</span>
+                          <span>{grandTotal} {t('currency')}</span>
                         </div>
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                          a.status === 'approved' ? 'bg-success/20 text-success' :
-                          a.status === 'pending' ? 'bg-accent/20 text-accent-foreground' :
-                          'bg-muted text-muted-foreground'
-                        }`}>
-                          {t(a.status as any)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                      ) : null;
+                    })()}
+                  </>
                 )}
               </div>
             </div>

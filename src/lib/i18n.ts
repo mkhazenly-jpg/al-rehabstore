@@ -109,6 +109,9 @@ export const translations = {
     damaged: 'تالف',
     alreadyAssigned: 'هذا الموظف مستلم هذا الصنف بالفعل',
     selectReason: 'اختر السبب',
+    unitPrice: 'سعر القطعة',
+    totalPrice: 'الإجمالي',
+    currency: 'ج.م',
   },
   en: {
     appName: 'Al-Rahaba Warehouse',
@@ -218,6 +221,9 @@ export const translations = {
     damaged: 'Damaged',
     alreadyAssigned: 'This employee already has this item assigned',
     selectReason: 'Select reason',
+    unitPrice: 'Unit Price',
+    totalPrice: 'Total',
+    currency: 'EGP',
   },
 } as const;
 

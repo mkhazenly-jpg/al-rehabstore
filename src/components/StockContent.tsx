@@ -35,7 +35,7 @@ export function StockContent() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<StockItem | null>(null);
-  const [form, setForm] = useState({ name: '', category: 'safety shoes', size: '', quantity_in_stock: 0, unit: 'piece' });
+  const [form, setForm] = useState({ name: '', category: 'safety shoes', size: '', quantity_in_stock: 0, unit: 'piece', unit_price: 0 });
   const [existingMatch, setExistingMatch] = useState<StockItem | null>(null);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [historyItem, setHistoryItem] = useState<StockItem | null>(null);
@@ -57,14 +57,14 @@ export function StockContent() {
   const openAdd = () => {
     setEditItem(null);
     setExistingMatch(null);
-    setForm({ name: '', category: 'safety shoes', size: '', quantity_in_stock: 0, unit: 'piece' });
+    setForm({ name: '', category: 'safety shoes', size: '', quantity_in_stock: 0, unit: 'piece', unit_price: 0 });
     setDialogOpen(true);
   };
 
   const openEdit = (item: StockItem) => {
     setEditItem(item);
     setExistingMatch(null);
-    setForm({ name: item.name, category: item.category, size: item.size, quantity_in_stock: item.quantity_in_stock, unit: item.unit });
+    setForm({ name: item.name, category: item.category, size: item.size, quantity_in_stock: item.quantity_in_stock, unit: item.unit, unit_price: (item as any).unit_price || 0 });
     setDialogOpen(true);
   };
 
@@ -148,6 +148,7 @@ export function StockContent() {
         [t('category')]: i.category,
         [t('size')]: i.size,
         [t('quantity')]: i.quantity_in_stock,
+        [t('unitPrice')]: (i as any).unit_price || 0,
         [t('unit')]: i.unit,
         [t('addedDate')]: new Date(i.added_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US'),
       })),
@@ -197,6 +198,7 @@ export function StockContent() {
                   <TableHead>{t('category')}</TableHead>
                   <TableHead>{t('size')}</TableHead>
                   <TableHead>{t('quantity')}</TableHead>
+                  <TableHead>{t('unitPrice')}</TableHead>
                   <TableHead>{t('unit')}</TableHead>
                   <TableHead>{t('addedDate')}</TableHead>
                   {isAdmin && <TableHead>{t('actions')}</TableHead>}
@@ -214,6 +216,7 @@ export function StockContent() {
                         {item.quantity_in_stock < 5 && <AlertTriangle className="h-3 w-3" />}
                       </span>
                     </TableCell>
+                    <TableCell>{(item as any).unit_price > 0 ? `${(item as any).unit_price} ${t('currency')}` : '-'}</TableCell>
                     <TableCell>{item.unit}</TableCell>
                     <TableCell>{new Date(item.added_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}</TableCell>
                     {isAdmin && (
@@ -235,7 +238,7 @@ export function StockContent() {
                 ))}
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">-</TableCell>
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">-</TableCell>
                   </TableRow>
                 )}
               </TableBody>
@@ -281,7 +284,10 @@ export function StockContent() {
               <Input type="number" min={0} value={form.quantity_in_stock} onChange={e => setForm({ ...form, quantity_in_stock: parseInt(e.target.value) || 0 })} />
             </div>
             <div className="space-y-2">
-              <Label>{t('unit')}</Label>
+              <Label>{t('unitPrice')} ({t('currency')})</Label>
+              <Input type="number" min={0} step="0.01" value={form.unit_price} onChange={e => setForm({ ...form, unit_price: parseFloat(e.target.value) || 0 })} />
+            </div>
+            <div className="space-y-2">
               <Select value={form.unit} onValueChange={v => setForm({ ...form, unit: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>

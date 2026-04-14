@@ -189,6 +189,7 @@ export type Database = {
           quantity_in_stock: number
           size: string
           unit: string
+          unit_price: number
         }
         Insert: {
           added_date?: string
@@ -200,6 +201,7 @@ export type Database = {
           quantity_in_stock?: number
           size?: string
           unit?: string
+          unit_price?: number
         }
         Update: {
           added_date?: string
@@ -211,6 +213,7 @@ export type Database = {
           quantity_in_stock?: number
           size?: string
           unit?: string
+          unit_price?: number
         }
         Relationships: []
       }
