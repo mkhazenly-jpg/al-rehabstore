@@ -168,7 +168,7 @@ export function AssignmentsContent() {
           ? `[${line.reassign_reason === 'lost' ? t('lost') : t('damaged')}] ${notes || ''}`
           : (notes || null);
 
-        const { data: assignment } = await supabase.from('assignments').insert({
+        const { data: assignment, error: insertErr } = await supabase.from('assignments').insert({
           employee_id: employeeId,
           stock_item_id: line.stock_item_id,
           quantity_assigned: line.quantity_assigned,
@@ -176,8 +176,19 @@ export function AssignmentsContent() {
           assignment_date: assignmentDate.toISOString(),
         }).select('id').single();
 
+        if (insertErr) {
+          setError(insertErr.message);
+          setSaving(false);
+          return;
+        }
+
         if (assignment) {
-          await supabase.rpc('approve_assignment', { _assignment_id: assignment.id });
+          const { error: approveErr } = await supabase.rpc('approve_assignment', { _assignment_id: assignment.id });
+          if (approveErr) {
+            setError(approveErr.message);
+            setSaving(false);
+            return;
+          }
         }
       }
       setDialogOpen(false);
