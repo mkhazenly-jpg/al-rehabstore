@@ -31,6 +31,7 @@ export function StockContent() {
   const { t, lang } = useLanguage();
   const { isAdmin } = useAuth();
   const [items, setItems] = useState<StockItem[]>([]);
+  const [totalAdded, setTotalAdded] = useState<Record<string, number>>({});
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
