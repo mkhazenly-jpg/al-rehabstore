@@ -149,6 +149,7 @@ export function StockContent() {
         [t('size')]: i.size,
         [t('quantity')]: i.quantity_in_stock,
         [t('unitPrice')]: (i as any).unit_price || 0,
+        [t('totalPrice')]: ((i as any).unit_price || 0) * i.quantity_in_stock,
         [t('unit')]: i.unit,
         [t('addedDate')]: new Date(i.added_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US'),
       })),
@@ -199,6 +200,7 @@ export function StockContent() {
                   <TableHead>{t('size')}</TableHead>
                   <TableHead>{t('quantity')}</TableHead>
                   <TableHead>{t('unitPrice')}</TableHead>
+                  <TableHead>{t('totalPrice')}</TableHead>
                   <TableHead>{t('unit')}</TableHead>
                   <TableHead>{t('addedDate')}</TableHead>
                   {isAdmin && <TableHead>{t('actions')}</TableHead>}
@@ -217,6 +219,7 @@ export function StockContent() {
                       </span>
                     </TableCell>
                     <TableCell>{(item as any).unit_price > 0 ? `${(item as any).unit_price} ${t('currency')}` : '-'}</TableCell>
+                    <TableCell>{(item as any).unit_price > 0 ? `${(item as any).unit_price * item.quantity_in_stock} ${t('currency')}` : '-'}</TableCell>
                     <TableCell>{item.unit}</TableCell>
                     <TableCell>{new Date(item.added_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}</TableCell>
                     {isAdmin && (
