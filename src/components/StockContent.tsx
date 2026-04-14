@@ -31,6 +31,7 @@ export function StockContent() {
   const { t, lang } = useLanguage();
   const { isAdmin } = useAuth();
   const [items, setItems] = useState<StockItem[]>([]);
+  const [totalAdded, setTotalAdded] = useState<Record<string, number>>({});
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -44,8 +45,17 @@ export function StockContent() {
   useEffect(() => { loadItems(); }, []);
 
   const loadItems = async () => {
-    const { data } = await supabase.from('stock_items').select('*').order('added_date', { ascending: false });
+    const [{ data }, { data: additionsData }] = await Promise.all([
+      supabase.from('stock_items').select('*').order('added_date', { ascending: false }),
+      supabase.from('stock_additions').select('stock_item_id, quantity_added'),
+    ]);
     setItems(data || []);
+    // Calculate total quantities ever added per item
+    const totals: Record<string, number> = {};
+    (additionsData || []).forEach((a: any) => {
+      totals[a.stock_item_id] = (totals[a.stock_item_id] || 0) + a.quantity_added;
+    });
+    setTotalAdded(totals);
   };
 
   const filtered = items.filter(i => {
@@ -149,7 +159,7 @@ export function StockContent() {
         [t('size')]: i.size,
         [t('quantity')]: i.quantity_in_stock,
         [t('unitPrice')]: (i as any).unit_price || 0,
-        [t('totalPrice')]: ((i as any).unit_price || 0) * i.quantity_in_stock,
+        [t('totalPrice')]: ((i as any).unit_price || 0) * (totalAdded[i.id] || i.quantity_in_stock),
         [t('unit')]: i.unit,
         [t('addedDate')]: new Date(i.added_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US'),
       })),
@@ -219,7 +229,7 @@ export function StockContent() {
                       </span>
                     </TableCell>
                     <TableCell>{(item as any).unit_price > 0 ? `${(item as any).unit_price} ${t('currency')}` : '-'}</TableCell>
-                    <TableCell>{(item as any).unit_price > 0 ? `${(item as any).unit_price * item.quantity_in_stock} ${t('currency')}` : '-'}</TableCell>
+                    <TableCell>{(item as any).unit_price > 0 ? `${(item as any).unit_price * (totalAdded[item.id] || item.quantity_in_stock)} ${t('currency')}` : '-'}</TableCell>
                     <TableCell>{item.unit}</TableCell>
                     <TableCell>{new Date(item.added_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}</TableCell>
                     {isAdmin && (
@@ -317,24 +327,37 @@ export function StockContent() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('quantityAdded')}</TableHead>
+                  <TableHead>{t('unitPrice')}</TableHead>
+                  <TableHead>{t('totalPrice')}</TableHead>
                   <TableHead>{t('additionDate')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {additions.map(a => (
-                  <TableRow key={a.id}>
-                    <TableCell className="font-medium">+{a.quantity_added}</TableCell>
-                    <TableCell>{new Date(a.added_at).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</TableCell>
-                  </TableRow>
-                ))}
+                {additions.map(a => {
+                  const price = (historyItem as any)?.unit_price || 0;
+                  return (
+                    <TableRow key={a.id}>
+                      <TableCell className="font-medium">+{a.quantity_added}</TableCell>
+                      <TableCell>{price > 0 ? `${price} ${t('currency')}` : '-'}</TableCell>
+                      <TableCell>{price > 0 ? `${price * a.quantity_added} ${t('currency')}` : '-'}</TableCell>
+                      <TableCell>{new Date(a.added_at).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</TableCell>
+                    </TableRow>
+                  );
+                })}
                 {additions.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={2} className="text-center text-muted-foreground py-4">-</TableCell>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-4">-</TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
           </div>
+          {additions.length > 0 && (historyItem as any)?.unit_price > 0 && (
+            <div className="mt-3 p-3 rounded-lg bg-muted text-sm font-medium flex justify-between">
+              <span>{t('totalPrice')}</span>
+              <span>{(historyItem as any).unit_price * additions.reduce((s, a) => s + a.quantity_added, 0)} {t('currency')}</span>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
