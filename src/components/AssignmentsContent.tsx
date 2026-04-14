@@ -72,7 +72,8 @@ export function AssignmentsContent() {
       setEmployeeId(assignment.employee_id);
       setLines([{ stock_item_id: assignment.stock_item_id, quantity_assigned: assignment.quantity_assigned, reassign_reason: '' }]);
       setNotes(assignment.notes?.startsWith('[') ? assignment.notes.replace(/^\[.*?\]\s*/, '') : (assignment.notes || ''));
-      setAssignmentDate(new Date(assignment.assignment_date));
+      const parsedDate = new Date(assignment.assignment_date);
+      setAssignmentDate(!isNaN(parsedDate.getTime()) ? parsedDate : new Date());
     } else {
       setEditingAssignment(null);
       setEmployeeId('');
