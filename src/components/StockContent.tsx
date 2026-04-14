@@ -148,6 +148,7 @@ export function StockContent() {
         [t('category')]: i.category,
         [t('size')]: i.size,
         [t('quantity')]: i.quantity_in_stock,
+        [t('unitPrice')]: (i as any).unit_price || 0,
         [t('unit')]: i.unit,
         [t('addedDate')]: new Date(i.added_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US'),
       })),
