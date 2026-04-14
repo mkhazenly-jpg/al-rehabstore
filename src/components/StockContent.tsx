@@ -197,6 +197,7 @@ export function StockContent() {
                   <TableHead>{t('category')}</TableHead>
                   <TableHead>{t('size')}</TableHead>
                   <TableHead>{t('quantity')}</TableHead>
+                  <TableHead>{t('unitPrice')}</TableHead>
                   <TableHead>{t('unit')}</TableHead>
                   <TableHead>{t('addedDate')}</TableHead>
                   {isAdmin && <TableHead>{t('actions')}</TableHead>}
@@ -214,6 +215,7 @@ export function StockContent() {
                         {item.quantity_in_stock < 5 && <AlertTriangle className="h-3 w-3" />}
                       </span>
                     </TableCell>
+                    <TableCell>{(item as any).unit_price > 0 ? `${(item as any).unit_price} ${t('currency')}` : '-'}</TableCell>
                     <TableCell>{item.unit}</TableCell>
                     <TableCell>{new Date(item.added_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}</TableCell>
                     {isAdmin && (
