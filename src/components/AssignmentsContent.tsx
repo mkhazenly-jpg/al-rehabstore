@@ -113,14 +113,13 @@ export function AssignmentsContent() {
           ? `[${line.reassign_reason === 'lost' ? t('lost') : t('damaged')}] ${notes || ''}`
           : (notes || null);
 
-        // If quantity or item changed and status is approved, handle stock
         const oldA = editingAssignment;
         if (oldA.status === 'approved') {
-          // Return old stock
-          await supabase.rpc('return_assignment', { _assignment_id: oldA.id });
+          const { error: retErr } = await supabase.rpc('return_assignment', { _assignment_id: oldA.id });
+          if (retErr) { setError(retErr.message); setSaving(false); return; }
         }
 
-        await supabase.from('assignments').update({
+        const { error: updErr } = await supabase.from('assignments').update({
           employee_id: employeeId,
           stock_item_id: line.stock_item_id,
           quantity_assigned: line.quantity_assigned,
@@ -129,8 +128,10 @@ export function AssignmentsContent() {
           status: 'pending',
         }).eq('id', oldA.id);
 
-        // Re-approve to deduct new stock
-        await supabase.rpc('approve_assignment', { _assignment_id: oldA.id });
+        if (updErr) { setError(updErr.message); setSaving(false); return; }
+
+        const { error: appErr } = await supabase.rpc('approve_assignment', { _assignment_id: oldA.id });
+        if (appErr) { setError(appErr.message); setSaving(false); return; }
 
         setDialogOpen(false);
         await loadAll();
@@ -168,7 +169,7 @@ export function AssignmentsContent() {
           ? `[${line.reassign_reason === 'lost' ? t('lost') : t('damaged')}] ${notes || ''}`
           : (notes || null);
 
-        const { data: assignment } = await supabase.from('assignments').insert({
+        const { data: assignment, error: insertErr } = await supabase.from('assignments').insert({
           employee_id: employeeId,
           stock_item_id: line.stock_item_id,
           quantity_assigned: line.quantity_assigned,
@@ -176,8 +177,19 @@ export function AssignmentsContent() {
           assignment_date: assignmentDate.toISOString(),
         }).select('id').single();
 
+        if (insertErr) {
+          setError(insertErr.message);
+          setSaving(false);
+          return;
+        }
+
         if (assignment) {
-          await supabase.rpc('approve_assignment', { _assignment_id: assignment.id });
+          const { error: approveErr } = await supabase.rpc('approve_assignment', { _assignment_id: assignment.id });
+          if (approveErr) {
+            setError(approveErr.message);
+            setSaving(false);
+            return;
+          }
         }
       }
       setDialogOpen(false);
