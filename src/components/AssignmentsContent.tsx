@@ -259,7 +259,7 @@ export function AssignmentsContent() {
           <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="h-4 w-4 me-1" />{t('exportExcel')}
           </Button>
-          <Button size="sm" onClick={openDialog}>
+          <Button size="sm" onClick={() => openDialog()}>
             <Plus className="h-4 w-4 me-1" />{t('newAssignment')}
           </Button>
         </div>
