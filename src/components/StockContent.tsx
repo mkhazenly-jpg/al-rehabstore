@@ -45,8 +45,17 @@ export function StockContent() {
   useEffect(() => { loadItems(); }, []);
 
   const loadItems = async () => {
-    const { data } = await supabase.from('stock_items').select('*').order('added_date', { ascending: false });
+    const [{ data }, { data: additionsData }] = await Promise.all([
+      supabase.from('stock_items').select('*').order('added_date', { ascending: false }),
+      supabase.from('stock_additions').select('stock_item_id, quantity_added'),
+    ]);
     setItems(data || []);
+    // Calculate total quantities ever added per item
+    const totals: Record<string, number> = {};
+    (additionsData || []).forEach((a: any) => {
+      totals[a.stock_item_id] = (totals[a.stock_item_id] || 0) + a.quantity_added;
+    });
+    setTotalAdded(totals);
   };
 
   const filtered = items.filter(i => {
