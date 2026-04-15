@@ -386,6 +386,30 @@ export function StockContent() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Settings Dialog */}
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t('settings')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>{t('minStockThreshold')}</Label>
+              <Input
+                type="number"
+                min={1}
+                value={thresholdInput}
+                onChange={e => setThresholdInput(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                {lang === 'ar' ? 'الأصناف التي تصل لهذا الرقم أو أقل ستظهر بعلامة تحذير حمراء' : 'Items at or below this number will show a red warning'}
+              </p>
+            </div>
+            <Button onClick={saveThreshold} className="w-full">{t('save')}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
