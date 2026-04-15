@@ -41,6 +41,22 @@ Deno.serve(async (req) => {
     }
 
     if (action === "delete-user") {
+      const PROTECTED_EMAIL = "m.khazenly@gmail.com";
+
+      // Check if target user is protected
+      const { data: targetProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("email")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (targetProfile?.email === PROTECTED_EMAIL) {
+        return new Response(JSON.stringify({ error: "PROTECTED_USER" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       // Verify caller is admin via auth header
       const authHeader = req.headers.get("authorization");
       const token = authHeader?.replace("Bearer ", "");
