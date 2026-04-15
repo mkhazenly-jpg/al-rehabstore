@@ -1,11 +1,15 @@
 import { supabase } from '@/integrations/supabase/client';
 
 const FUNCTIONS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-actions`;
+const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 export async function resetUserPassword(email: string, newPassword: string) {
   const res = await fetch(FUNCTIONS_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': ANON_KEY,
+    },
     body: JSON.stringify({ action: 'reset-password', email, newPassword }),
   });
   const data = await res.json();
@@ -19,6 +23,7 @@ export async function deleteUserById(userId: string) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'apikey': ANON_KEY,
       'Authorization': `Bearer ${session?.access_token}`,
     },
     body: JSON.stringify({ action: 'delete-user', userId }),
