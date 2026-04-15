@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/hooks/use-language';
+import { deleteUser } from '@/server/admin-actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Check, X, Shield } from 'lucide-react';
+import { Check, X, Shield, Trash2 } from 'lucide-react';
 
 export function UserManagementContent() {
   const { t } = useLanguage();
   const [users, setUsers] = useState<any[]>([]);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => { loadUsers(); }, []);
 
@@ -31,6 +33,18 @@ export function UserManagementContent() {
   const changeRole = async (userId: string, newRole: 'admin' | 'staff') => {
     await supabase.from('user_roles').update({ role: newRole }).eq('user_id', userId);
     loadUsers();
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm(t('confirm') + '?')) return;
+    setDeleting(userId);
+    try {
+      await deleteUser({ data: { userId } });
+      loadUsers();
+    } catch (err) {
+      console.error('Delete user error:', err);
+    }
+    setDeleting(null);
   };
 
   return (
@@ -77,17 +91,28 @@ export function UserManagementContent() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleApproval(user.user_id, user.is_approved)}
-                      >
-                        {user.is_approved ? (
-                          <><X className="h-4 w-4 me-1 text-destructive" />{t('rejectUser')}</>
-                        ) : (
-                          <><Check className="h-4 w-4 me-1 text-success" />{t('approveUser')}</>
-                        )}
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleApproval(user.user_id, user.is_approved)}
+                        >
+                          {user.is_approved ? (
+                            <><X className="h-4 w-4 me-1 text-destructive" />{t('rejectUser')}</>
+                          ) : (
+                            <><Check className="h-4 w-4 me-1 text-success" />{t('approveUser')}</>
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteUser(user.user_id)}
+                          disabled={deleting === user.user_id}
+                        >
+                          <Trash2 className="h-4 w-4 me-1 text-destructive" />
+                          {t('delete')}
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
