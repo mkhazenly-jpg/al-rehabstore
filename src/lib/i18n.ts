@@ -149,6 +149,12 @@ export const translations = {
     monthlyPurchases: 'مشتريات الشهر',
     monthlyConsumption: 'مصروفات الشهر',
     costDistribution: 'توزيع التكاليف حسب الفئة',
+    monthlyComparison: 'مقارنة المشتريات والمصروفات الشهرية',
+    purchases: 'المشتريات',
+    consumption: 'المصروفات',
+    settings: 'الإعدادات',
+    minStockThreshold: 'الحد الأدنى للمخزون',
+    settingsSaved: 'تم حفظ الإعدادات',
   },
   en: {
     appName: 'Al-Rahaba Warehouse',
@@ -298,6 +304,12 @@ export const translations = {
     monthlyPurchases: 'Monthly Purchases',
     monthlyConsumption: 'Monthly Consumption',
     costDistribution: 'Cost Distribution by Category',
+    monthlyComparison: 'Monthly Purchases vs Consumption',
+    purchases: 'Purchases',
+    consumption: 'Consumption',
+    settings: 'Settings',
+    minStockThreshold: 'Minimum Stock Threshold',
+    settingsSaved: 'Settings saved',
   },
 } as const;
 
