@@ -39,13 +39,25 @@ export function LoginPage() {
         setSignupSuccess(true);
       }
     } else if (view === 'forgot') {
-      const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      if (err) {
-        setError(err.message);
-      } else {
-        setResetSent(true);
+      if (!newPassword || newPassword.length < 6) {
+        setError(t('password') + ' (min 6)');
+        setLoading(false);
+        return;
+      }
+      try {
+        await resetUserPassword({ data: { email, newPassword } });
+        // Auto-login after reset
+        const res = await signIn(email, newPassword);
+        if (res.error) {
+          setResetSent(true); // password changed but login failed
+        }
+      } catch (err: any) {
+        const msg = err?.message || '';
+        if (msg.includes('USER_NOT_FOUND')) {
+          setError(t('email') + ' - ' + 'Not found');
+        } else {
+          setError(msg);
+        }
       }
     }
     setLoading(false);
