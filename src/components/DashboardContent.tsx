@@ -211,16 +211,3 @@ export function DashboardContent() {
     </div>
   );
 }
-
-function StatusBadge({ status, t }: { status: string; t: (k: any) => string }) {
-  const colors: Record<string, string> = {
-    pending: 'bg-accent/20 text-accent-foreground',
-    approved: 'bg-success/20 text-success',
-    returned: 'bg-muted text-muted-foreground',
-  };
-  return (
-    <span className={`rounded-full px-2 py-1 text-xs font-medium ${colors[status] || ''}`}>
-      {t(status as any)}
-    </span>
-  );
-}
