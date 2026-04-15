@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 
 export function DashboardContent() {
   const { t, lang } = useLanguage();
-  const [stats, setStats] = useState({ totalStock: 0, lowStock: 0, activeEmployees: 0, activeAssignments: 0, pendingAssignments: 0 });
+  const [stats, setStats] = useState({ totalStock: 0, lowStock: 0, totalEmployees: 0, pendingAssignments: 0 });
   const [recentAssignments, setRecentAssignments] = useState<any[]>([]);
   const [stockItems, setStockItems] = useState<any[]>([]);
   const [additions, setAdditions] = useState<any[]>([]);
@@ -33,8 +33,7 @@ export function DashboardContent() {
     setStats({
       totalStock: items.length,
       lowStock: items.filter(i => i.quantity_in_stock < 5).length,
-      activeEmployees: employees.filter(e => e.status === 'active').length,
-      activeAssignments: allAssignments.filter(a => a.status === 'approved').length,
+      totalEmployees: employees.length,
       pendingAssignments: allAssignments.filter(a => a.status === 'pending').length,
     });
 
@@ -83,8 +82,7 @@ export function DashboardContent() {
   const cards = [
     { title: t('totalStock'), value: stats.totalStock, icon: Package, gradient: 'from-primary to-primary/80' },
     { title: t('lowStock'), value: stats.lowStock, icon: AlertTriangle, gradient: 'from-accent to-accent/80' },
-    { title: t('activeEmployees'), value: stats.activeEmployees, icon: Users, gradient: 'from-success to-success/80' },
-    { title: t('activeAssignments'), value: stats.activeAssignments, icon: ClipboardList, gradient: 'from-ring to-ring/80' },
+    { title: t('activeEmployees'), value: stats.totalEmployees, icon: Users, gradient: 'from-success to-success/80' },
   ];
 
   const categoryNames: Record<string, string> = {
