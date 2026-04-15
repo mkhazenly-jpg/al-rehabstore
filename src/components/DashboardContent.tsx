@@ -2,14 +2,12 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/hooks/use-language';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Package, AlertTriangle, Users, ClipboardList, DollarSign, BarChart3 } from 'lucide-react';
+import { Package, Users, ClipboardList, DollarSign, BarChart3 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
 export function DashboardContent() {
   const { t, lang } = useLanguage();
-  const [stats, setStats] = useState({ totalStock: 0, lowStock: 0, totalEmployees: 0, pendingAssignments: 0 });
-  const [recentAssignments, setRecentAssignments] = useState<any[]>([]);
+  const [stats, setStats] = useState({ totalStock: 0, totalEmployees: 0, pendingAssignments: 0 });
   const [stockItems, setStockItems] = useState<any[]>([]);
   const [additions, setAdditions] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
