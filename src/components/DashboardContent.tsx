@@ -154,49 +154,52 @@ export function DashboardContent() {
         </CardContent>
       </Card>
 
-      {/* Consumption overview per item */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('consumptionOverview')}</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('name')}</TableHead>
-                  <TableHead>{t('category')}</TableHead>
-                  <TableHead>{t('size')}</TableHead>
-                  <TableHead>{t('totalAdded')}</TableHead>
-                  <TableHead>{t('totalConsumed')}</TableHead>
-                  <TableHead>{t('remaining')}</TableHead>
-                  <TableHead>{t('totalPrice')}</TableHead>
-                  <TableHead className="w-32">%</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {itemConsumption.map(item => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell>{categoryNames[item.category] || item.category}</TableCell>
-                    <TableCell>{item.size !== 'N/A' ? item.size : '-'}</TableCell>
-                    <TableCell>{item.added}</TableCell>
-                    <TableCell>{item.consumed}</TableCell>
-                    <TableCell>{item.remaining}</TableCell>
-                    <TableCell>{(item.unit_price * item.added).toLocaleString()} {t('currency')}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Progress value={item.pct} className="h-2 flex-1" />
-                        <span className="text-xs text-muted-foreground w-8">{item.pct}%</span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Consumption overview per item - colorful cards */}
+      <div>
+        <h2 className="text-lg font-bold mb-4">{t('consumptionOverview')}</h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {itemConsumption.map((item, idx) => (
+            <Card key={item.id} className="overflow-hidden">
+              <div className={`bg-gradient-to-br ${itemGradients[idx % itemGradients.length]} p-4`}>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-bold text-primary-foreground">{item.name}</p>
+                  <span className="text-xs text-primary-foreground/70">{categoryNames[item.category] || item.category}</span>
+                </div>
+                {item.size !== 'N/A' && (
+                  <p className="text-xs text-primary-foreground/70 mb-2">{t('size')}: {item.size}</p>
+                )}
+              </div>
+              <CardContent className="p-4 space-y-3">
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <p className="text-xs text-muted-foreground">{t('totalAdded')}</p>
+                    <p className="text-lg font-bold">{item.added}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">{t('totalConsumed')}</p>
+                    <p className="text-lg font-bold">{item.consumed}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">{t('remaining')}</p>
+                    <p className="text-lg font-bold">{item.remaining}</p>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                    <span>{t('consumptionOverview')}</span>
+                    <span>{item.pct}%</span>
+                  </div>
+                  <Progress value={item.pct} className="h-2" />
+                </div>
+                <div className="text-center border-t pt-2">
+                  <p className="text-xs text-muted-foreground">{t('totalPrice')}</p>
+                  <p className="text-sm font-bold">{(item.unit_price * item.added).toLocaleString()} {t('currency')}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
 
       {stats.lowStock > 0 && (
         <Card className="border-accent">
