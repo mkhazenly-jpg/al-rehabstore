@@ -45,7 +45,7 @@ export function LoginPage() {
         return;
       }
       try {
-        await resetUserPassword({ data: { email, newPassword } });
+        await resetUserPassword(email, newPassword);
         // Auto-login after reset
         const res = await signIn(email, newPassword);
         if (res.error) {

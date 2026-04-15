@@ -39,7 +39,7 @@ export function UserManagementContent() {
     if (!confirm(t('confirm') + '?')) return;
     setDeleting(userId);
     try {
-      await deleteUser({ data: { userId } });
+      await deleteUserById(userId);
       loadUsers();
     } catch (err) {
       console.error('Delete user error:', err);
