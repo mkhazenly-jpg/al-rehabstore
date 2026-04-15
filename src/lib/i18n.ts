@@ -122,6 +122,8 @@ export const translations = {
     passwordMismatch: 'كلمتا المرور غير متطابقتين',
     backToLogin: 'العودة لتسجيل الدخول',
     sendResetLink: 'إرسال رابط الإعادة',
+    deleteUser: 'حذف المستخدم',
+    userNotFound: 'البريد الإلكتروني غير موجود',
   },
   en: {
     appName: 'Al-Rahaba Warehouse',
@@ -244,6 +246,8 @@ export const translations = {
     passwordMismatch: 'Passwords do not match',
     backToLogin: 'Back to Login',
     sendResetLink: 'Send Reset Link',
+    deleteUser: 'Delete User',
+    userNotFound: 'Email not found',
   },
 } as const;
 
