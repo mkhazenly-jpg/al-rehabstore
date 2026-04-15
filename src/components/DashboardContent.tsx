@@ -246,27 +246,22 @@ export function DashboardContent() {
       </Card>
 
       {/* Cost by category */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
-            {t('categoryCost')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {Object.entries(costByCategory).map(([cat, cost]) => (
-              <div key={cat} className="rounded-lg border p-4 space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">{categoryNames[cat] || cat}</p>
-                <p className="text-xl font-bold">{cost.toLocaleString()} {t('currency')}</p>
+      <h2 className="text-lg font-bold">{t('categoryCost')}</h2>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {Object.entries(costByCategory).map(([cat, cost], idx) => (
+          <Card key={cat} className="overflow-hidden">
+            <div className={`bg-gradient-to-br ${itemGradients[idx % itemGradients.length]} p-4`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-primary-foreground/80">{categoryNames[cat] || cat}</p>
+                  <p className="text-3xl font-bold text-primary-foreground">{cost.toLocaleString()} {t('currency')}</p>
+                </div>
+                <DollarSign className="h-8 w-8 text-primary-foreground/60" />
               </div>
-            ))}
-            {Object.keys(costByCategory).length === 0 && (
-              <p className="text-sm text-muted-foreground col-span-full">-</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+            </div>
+          </Card>
+        ))}
+      </div>
 
       {/* Pie Chart */}
       {pieData.length > 0 && (
