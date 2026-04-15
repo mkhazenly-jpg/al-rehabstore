@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/hooks/use-language';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Package, AlertTriangle, Users, ClipboardList, DollarSign, BarChart3 } from 'lucide-react';
+import { Package, AlertTriangle, Users, DollarSign, BarChart3 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
 export function DashboardContent() {
