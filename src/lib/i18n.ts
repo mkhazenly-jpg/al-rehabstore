@@ -261,7 +261,6 @@ export const translations = {
     totalConsumed: 'Total Consumed',
     remaining: 'Remaining',
   },
-  },
 } as const;
 
 export type TranslationKey = keyof typeof translations.ar;
