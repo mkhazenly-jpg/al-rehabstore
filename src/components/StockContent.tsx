@@ -223,9 +223,9 @@ export function StockContent() {
                     <TableCell>{item.category}</TableCell>
                     <TableCell>{item.size}</TableCell>
                     <TableCell>
-                      <span className={`flex items-center gap-1 ${item.quantity_in_stock < 5 ? 'text-destructive font-medium' : ''}`}>
+                      <span className={`flex items-center gap-1 ${item.quantity_in_stock <= 10 ? 'text-destructive font-bold' : ''}`}>
                         {item.quantity_in_stock}
-                        {item.quantity_in_stock < 5 && <AlertTriangle className="h-3 w-3" />}
+                        {item.quantity_in_stock <= 10 && <AlertTriangle className="h-4 w-4 text-destructive" />}
                       </span>
                     </TableCell>
                     <TableCell>{(item as any).unit_price > 0 ? `${(item as any).unit_price} ${t('currency')}` : '-'}</TableCell>

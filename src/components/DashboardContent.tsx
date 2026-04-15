@@ -81,7 +81,6 @@ export function DashboardContent() {
 
   const cards = [
     { title: t('totalStock'), value: stats.totalStock, icon: Package, gradient: 'from-primary to-primary/80' },
-    { title: t('lowStock'), value: stats.lowStock, icon: AlertTriangle, gradient: 'from-accent to-accent/80' },
     { title: t('activeEmployees'), value: stats.totalEmployees, icon: Users, gradient: 'from-success to-success/80' },
   ];
 
@@ -201,20 +200,6 @@ export function DashboardContent() {
         </div>
       </div>
 
-      {stats.lowStock > 0 && (
-        <Card className="border-accent">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-accent-foreground">
-              <AlertTriangle className="h-5 w-5" />
-              {t('lowStockWarning')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">{stats.lowStock} {t('stock')}</p>
-          </CardContent>
-        </Card>
-      )}
-
       {stats.pendingAssignments > 0 && (
         <Card className="border-ring">
           <CardHeader className="pb-2">
@@ -228,29 +213,6 @@ export function DashboardContent() {
           </CardContent>
         </Card>
       )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('recentActivity')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {recentAssignments.length === 0 ? (
-            <p className="text-sm text-muted-foreground">-</p>
-          ) : (
-            <div className="space-y-3">
-              {recentAssignments.map((a: any) => (
-                <div key={a.id} className="flex items-center justify-between rounded-lg border p-3">
-                  <div>
-                    <p className="text-sm font-medium">{a.employees?.name}</p>
-                    <p className="text-xs text-muted-foreground">{a.stock_items?.name} × {a.quantity_assigned}</p>
-                  </div>
-                  <StatusBadge status={a.status} t={t} />
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }
