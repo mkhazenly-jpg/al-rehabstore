@@ -70,11 +70,19 @@ export function UserManagementContent() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map(user => (
+                {users.map(user => {
+                  const isProtected = user.email === PROTECTED_EMAIL;
+                  return (
                   <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.full_name || '-'}</TableCell>
+                    <TableCell className="font-medium">
+                      {user.full_name || '-'}
+                      {isProtected && <Lock className="inline h-4 w-4 ms-1 text-primary" />}
+                    </TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
+                      {isProtected ? (
+                        <span className="text-sm font-medium">{t('admin')}</span>
+                      ) : (
                       <Select value={user.role} onValueChange={(v: any) => changeRole(user.user_id, v)}>
                         <SelectTrigger className="w-28">
                           <SelectValue />
@@ -84,6 +92,7 @@ export function UserManagementContent() {
                           <SelectItem value="staff">{t('staff')}</SelectItem>
                         </SelectContent>
                       </Select>
+                      )}
                     </TableCell>
                     <TableCell>
                       <span className={`rounded-full px-2 py-1 text-xs font-medium ${
@@ -93,6 +102,9 @@ export function UserManagementContent() {
                       </span>
                     </TableCell>
                     <TableCell>
+                      {isProtected ? (
+                        <span className="text-xs text-muted-foreground">{t('protectedAccount') || 'محمي'}</span>
+                      ) : (
                       <div className="flex items-center gap-1">
                         <Button
                           variant="ghost"
@@ -115,9 +127,11 @@ export function UserManagementContent() {
                           {t('delete')}
                         </Button>
                       </div>
+                      )}
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
