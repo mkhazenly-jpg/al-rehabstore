@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/hooks/use-language';
-import { deleteUser } from '@/server/admin-actions';
+import { deleteUserById } from '@/lib/admin-actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -39,7 +39,7 @@ export function UserManagementContent() {
     if (!confirm(t('confirm') + '?')) return;
     setDeleting(userId);
     try {
-      await deleteUser({ data: { userId } });
+      await deleteUserById(userId);
       loadUsers();
     } catch (err) {
       console.error('Delete user error:', err);

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
-import { resetUserPassword } from '@/server/admin-actions';
+import { resetUserPassword } from '@/lib/admin-actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -45,7 +45,7 @@ export function LoginPage() {
         return;
       }
       try {
-        await resetUserPassword({ data: { email, newPassword } });
+        await resetUserPassword(email, newPassword);
         // Auto-login after reset
         const res = await signIn(email, newPassword);
         if (res.error) {
