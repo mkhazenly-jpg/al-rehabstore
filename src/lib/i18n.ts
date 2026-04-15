@@ -124,6 +124,12 @@ export const translations = {
     sendResetLink: 'إرسال رابط الإعادة',
     deleteUser: 'حذف المستخدم',
     userNotFound: 'البريد الإلكتروني غير موجود',
+    totalPurchaseCost: 'إجمالي تكلفة المشتريات',
+    categoryCost: 'تكلفة حسب النوع',
+    consumptionOverview: 'نظرة عامة على الاستهلاك',
+    totalAdded: 'إجمالي الوارد',
+    totalConsumed: 'إجمالي المصروف',
+    remaining: 'المتبقي',
   },
   en: {
     appName: 'Al-Rahaba Warehouse',
