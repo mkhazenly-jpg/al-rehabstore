@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 
 export function DashboardContent() {
   const { t, lang } = useLanguage();
-  const [stats, setStats] = useState({ totalStock: 0, lowStock: 0, activeEmployees: 0, activeAssignments: 0, pendingAssignments: 0 });
+  const [stats, setStats] = useState({ totalStock: 0, lowStock: 0, totalEmployees: 0, pendingAssignments: 0 });
   const [recentAssignments, setRecentAssignments] = useState<any[]>([]);
   const [stockItems, setStockItems] = useState<any[]>([]);
   const [additions, setAdditions] = useState<any[]>([]);
@@ -33,8 +33,7 @@ export function DashboardContent() {
     setStats({
       totalStock: items.length,
       lowStock: items.filter(i => i.quantity_in_stock < 5).length,
-      activeEmployees: employees.filter(e => e.status === 'active').length,
-      activeAssignments: allAssignments.filter(a => a.status === 'approved').length,
+      totalEmployees: employees.length,
       pendingAssignments: allAssignments.filter(a => a.status === 'pending').length,
     });
 
@@ -83,8 +82,7 @@ export function DashboardContent() {
   const cards = [
     { title: t('totalStock'), value: stats.totalStock, icon: Package, gradient: 'from-primary to-primary/80' },
     { title: t('lowStock'), value: stats.lowStock, icon: AlertTriangle, gradient: 'from-accent to-accent/80' },
-    { title: t('activeEmployees'), value: stats.activeEmployees, icon: Users, gradient: 'from-success to-success/80' },
-    { title: t('activeAssignments'), value: stats.activeAssignments, icon: ClipboardList, gradient: 'from-ring to-ring/80' },
+    { title: t('activeEmployees'), value: stats.totalEmployees, icon: Users, gradient: 'from-success to-success/80' },
   ];
 
   const categoryNames: Record<string, string> = {
@@ -93,6 +91,15 @@ export function DashboardContent() {
     helmets: t('helmets'),
     gloves: t('gloves'),
   };
+
+  const itemGradients = [
+    'from-primary to-primary/70',
+    'from-accent to-accent/70',
+    'from-success to-success/70',
+    'from-ring to-ring/70',
+    'from-primary/80 to-ring/60',
+    'from-accent/80 to-success/60',
+  ];
 
   return (
     <div className="space-y-6">
@@ -147,49 +154,52 @@ export function DashboardContent() {
         </CardContent>
       </Card>
 
-      {/* Consumption overview per item */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('consumptionOverview')}</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('name')}</TableHead>
-                  <TableHead>{t('category')}</TableHead>
-                  <TableHead>{t('size')}</TableHead>
-                  <TableHead>{t('totalAdded')}</TableHead>
-                  <TableHead>{t('totalConsumed')}</TableHead>
-                  <TableHead>{t('remaining')}</TableHead>
-                  <TableHead>{t('totalPrice')}</TableHead>
-                  <TableHead className="w-32">%</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {itemConsumption.map(item => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell>{categoryNames[item.category] || item.category}</TableCell>
-                    <TableCell>{item.size !== 'N/A' ? item.size : '-'}</TableCell>
-                    <TableCell>{item.added}</TableCell>
-                    <TableCell>{item.consumed}</TableCell>
-                    <TableCell>{item.remaining}</TableCell>
-                    <TableCell>{(item.unit_price * item.added).toLocaleString()} {t('currency')}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Progress value={item.pct} className="h-2 flex-1" />
-                        <span className="text-xs text-muted-foreground w-8">{item.pct}%</span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Consumption overview per item - colorful cards */}
+      <div>
+        <h2 className="text-lg font-bold mb-4">{t('consumptionOverview')}</h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {itemConsumption.map((item, idx) => (
+            <Card key={item.id} className="overflow-hidden">
+              <div className={`bg-gradient-to-br ${itemGradients[idx % itemGradients.length]} p-4`}>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-bold text-primary-foreground">{item.name}</p>
+                  <span className="text-xs text-primary-foreground/70">{categoryNames[item.category] || item.category}</span>
+                </div>
+                {item.size !== 'N/A' && (
+                  <p className="text-xs text-primary-foreground/70 mb-2">{t('size')}: {item.size}</p>
+                )}
+              </div>
+              <CardContent className="p-4 space-y-3">
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <p className="text-xs text-muted-foreground">{t('totalAdded')}</p>
+                    <p className="text-lg font-bold">{item.added}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">{t('totalConsumed')}</p>
+                    <p className="text-lg font-bold">{item.consumed}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">{t('remaining')}</p>
+                    <p className="text-lg font-bold">{item.remaining}</p>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                    <span>{t('consumptionOverview')}</span>
+                    <span>{item.pct}%</span>
+                  </div>
+                  <Progress value={item.pct} className="h-2" />
+                </div>
+                <div className="text-center border-t pt-2">
+                  <p className="text-xs text-muted-foreground">{t('totalPrice')}</p>
+                  <p className="text-sm font-bold">{(item.unit_price * item.added).toLocaleString()} {t('currency')}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
 
       {stats.lowStock > 0 && (
         <Card className="border-accent">
