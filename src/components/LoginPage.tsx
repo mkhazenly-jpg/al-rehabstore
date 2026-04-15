@@ -98,7 +98,7 @@ export function LoginPage() {
             </div>
           ) : resetSent ? (
             <div className="text-center space-y-3">
-              <p className="font-medium text-primary">{t('resetLinkSent')}</p>
+              <p className="font-medium text-primary">{t('passwordUpdated')}</p>
               <Button variant="outline" onClick={() => switchView('login')}>
                 {t('backToLogin')}
               </Button>
@@ -119,6 +119,12 @@ export function LoginPage() {
                 <div className="space-y-2">
                   <Label>{t('password')}</Label>
                   <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+                </div>
+              )}
+              {view === 'forgot' && (
+                <div className="space-y-2">
+                  <Label>{t('newPassword')}</Label>
+                  <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={6} />
                 </div>
               )}
               {view === 'login' && (
