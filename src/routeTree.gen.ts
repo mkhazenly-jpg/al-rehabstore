@@ -11,7 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UnauthorizedRouteImport } from './routes/unauthorized'
 import { Route as StockRouteImport } from './routes/stock'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as EmployeesRouteImport } from './routes/employees'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AssignmentsRouteImport } from './routes/assignments'
@@ -26,11 +25,6 @@ const UnauthorizedRoute = UnauthorizedRouteImport.update({
 const StockRoute = StockRouteImport.update({
   id: '/stock',
   path: '/stock',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EmployeesRoute = EmployeesRouteImport.update({
@@ -64,7 +58,6 @@ export interface FileRoutesByFullPath {
   '/assignments': typeof AssignmentsRoute
   '/dashboard': typeof DashboardRoute
   '/employees': typeof EmployeesRoute
-  '/reset-password': typeof ResetPasswordRoute
   '/stock': typeof StockRoute
   '/unauthorized': typeof UnauthorizedRoute
   '/admin/users': typeof AdminUsersRoute
@@ -74,7 +67,6 @@ export interface FileRoutesByTo {
   '/assignments': typeof AssignmentsRoute
   '/dashboard': typeof DashboardRoute
   '/employees': typeof EmployeesRoute
-  '/reset-password': typeof ResetPasswordRoute
   '/stock': typeof StockRoute
   '/unauthorized': typeof UnauthorizedRoute
   '/admin/users': typeof AdminUsersRoute
@@ -85,7 +77,6 @@ export interface FileRoutesById {
   '/assignments': typeof AssignmentsRoute
   '/dashboard': typeof DashboardRoute
   '/employees': typeof EmployeesRoute
-  '/reset-password': typeof ResetPasswordRoute
   '/stock': typeof StockRoute
   '/unauthorized': typeof UnauthorizedRoute
   '/admin/users': typeof AdminUsersRoute
@@ -97,7 +88,6 @@ export interface FileRouteTypes {
     | '/assignments'
     | '/dashboard'
     | '/employees'
-    | '/reset-password'
     | '/stock'
     | '/unauthorized'
     | '/admin/users'
@@ -107,7 +97,6 @@ export interface FileRouteTypes {
     | '/assignments'
     | '/dashboard'
     | '/employees'
-    | '/reset-password'
     | '/stock'
     | '/unauthorized'
     | '/admin/users'
@@ -117,7 +106,6 @@ export interface FileRouteTypes {
     | '/assignments'
     | '/dashboard'
     | '/employees'
-    | '/reset-password'
     | '/stock'
     | '/unauthorized'
     | '/admin/users'
@@ -128,7 +116,6 @@ export interface RootRouteChildren {
   AssignmentsRoute: typeof AssignmentsRoute
   DashboardRoute: typeof DashboardRoute
   EmployeesRoute: typeof EmployeesRoute
-  ResetPasswordRoute: typeof ResetPasswordRoute
   StockRoute: typeof StockRoute
   UnauthorizedRoute: typeof UnauthorizedRoute
   AdminUsersRoute: typeof AdminUsersRoute
@@ -148,13 +135,6 @@ declare module '@tanstack/react-router' {
       path: '/stock'
       fullPath: '/stock'
       preLoaderRoute: typeof StockRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/employees': {
@@ -200,7 +180,6 @@ const rootRouteChildren: RootRouteChildren = {
   AssignmentsRoute: AssignmentsRoute,
   DashboardRoute: DashboardRoute,
   EmployeesRoute: EmployeesRoute,
-  ResetPasswordRoute: ResetPasswordRoute,
   StockRoute: StockRoute,
   UnauthorizedRoute: UnauthorizedRoute,
   AdminUsersRoute: AdminUsersRoute,
