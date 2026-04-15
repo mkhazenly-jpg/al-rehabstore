@@ -197,6 +197,11 @@ export function StockContent() {
             <Download className="h-4 w-4 me-1" />{t('exportExcel')}
           </Button>
           {isAdmin && (
+            <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)}>
+              <Settings className="h-4 w-4" />
+            </Button>
+          )}
+          {isAdmin && (
             <Button size="sm" onClick={openAdd}>
               <Plus className="h-4 w-4 me-1" />{t('addStock')}
             </Button>
