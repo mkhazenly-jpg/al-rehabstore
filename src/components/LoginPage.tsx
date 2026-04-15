@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
-import { supabase } from '@/integrations/supabase/client';
+import { resetUserPassword } from '@/server/admin-actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,6 +17,7 @@ export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
@@ -38,13 +39,25 @@ export function LoginPage() {
         setSignupSuccess(true);
       }
     } else if (view === 'forgot') {
-      const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      if (err) {
-        setError(err.message);
-      } else {
-        setResetSent(true);
+      if (!newPassword || newPassword.length < 6) {
+        setError(t('password') + ' (min 6)');
+        setLoading(false);
+        return;
+      }
+      try {
+        await resetUserPassword({ data: { email, newPassword } });
+        // Auto-login after reset
+        const res = await signIn(email, newPassword);
+        if (res.error) {
+          setResetSent(true); // password changed but login failed
+        }
+      } catch (err: any) {
+        const msg = err?.message || '';
+        if (msg.includes('USER_NOT_FOUND')) {
+          setError(t('email') + ' - ' + 'Not found');
+        } else {
+          setError(msg);
+        }
       }
     }
     setLoading(false);
@@ -85,7 +98,7 @@ export function LoginPage() {
             </div>
           ) : resetSent ? (
             <div className="text-center space-y-3">
-              <p className="font-medium text-primary">{t('resetLinkSent')}</p>
+              <p className="font-medium text-primary">{t('passwordUpdated')}</p>
               <Button variant="outline" onClick={() => switchView('login')}>
                 {t('backToLogin')}
               </Button>
@@ -106,6 +119,12 @@ export function LoginPage() {
                 <div className="space-y-2">
                   <Label>{t('password')}</Label>
                   <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+                </div>
+              )}
+              {view === 'forgot' && (
+                <div className="space-y-2">
+                  <Label>{t('newPassword')}</Label>
+                  <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={6} />
                 </div>
               )}
               {view === 'login' && (
