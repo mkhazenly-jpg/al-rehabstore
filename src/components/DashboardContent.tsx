@@ -141,6 +141,35 @@ export function DashboardContent() {
     value: cost,
   }));
 
+  // Bar chart data - monthly purchases vs consumption for selected year
+  const barChartData = useMemo(() => {
+    if (selectedYear === 'all') return [];
+    const year = Number(selectedYear);
+    return Array.from({ length: 12 }, (_, i) => {
+      const monthAdditions = additions.filter(a => {
+        const d = new Date(a.added_at);
+        return d.getFullYear() === year && d.getMonth() === i;
+      });
+      const monthAssigns = assignments.filter(a => {
+        const d = new Date(a.created_at);
+        return d.getFullYear() === year && d.getMonth() === i;
+      });
+      const purchaseCost = monthAdditions.reduce((sum, a) => {
+        const item = stockItems.find(si => si.id === a.stock_item_id);
+        return sum + (item ? item.unit_price * a.quantity_added : 0);
+      }, 0);
+      const consumptionCost = monthAssigns.reduce((sum, a) => {
+        const item = stockItems.find(si => si.id === a.stock_item_id);
+        return sum + (item ? item.unit_price * a.quantity_assigned : 0);
+      }, 0);
+      return {
+        month: monthNames[String(i)],
+        [t('purchases')]: purchaseCost,
+        [t('consumption')]: consumptionCost,
+      };
+    });
+  }, [additions, assignments, stockItems, selectedYear, monthNames, t]);
+
   // Consumed by category for month view
   const consumedByCategory: Record<string, number> = {};
   filteredAssignments.forEach(a => {
