@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Check, X, Shield, Trash2 } from 'lucide-react';
+import { Check, X, Shield, Trash2, Lock } from 'lucide-react';
+
+const PROTECTED_EMAIL = 'm.khazenly@gmail.com';
 
 export function UserManagementContent() {
   const { t } = useLanguage();
