@@ -43,19 +43,16 @@ Deno.serve(async (req) => {
     if (action === "delete-user") {
       // Verify caller is admin via auth header
       const authHeader = req.headers.get("authorization");
-      if (!authHeader) {
+      const token = authHeader?.replace("Bearer ", "");
+      if (!token) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const userClient = createClient(supabaseUrl, anonKey, {
-        global: { headers: { authorization: authHeader } },
-      });
-      const { data: { user: caller } } = await userClient.auth.getUser();
-      if (!caller) {
+      const { data: { user: caller }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      if (authErr || !caller) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
