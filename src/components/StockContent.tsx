@@ -9,7 +9,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Pencil, Trash2, Download, Search, AlertTriangle, History, Info } from 'lucide-react';
+import { Plus, Pencil, Trash2, Download, Search, AlertTriangle, History, Info, Settings } from 'lucide-react';
+import { toast } from 'sonner';
 import { exportToExcel } from '@/lib/export';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { Tables } from '@/integrations/supabase/types';
@@ -41,8 +42,11 @@ export function StockContent() {
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [historyItem, setHistoryItem] = useState<StockItem | null>(null);
   const [additions, setAdditions] = useState<StockAddition[]>([]);
+  const [minThreshold, setMinThreshold] = useState(10);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [thresholdInput, setThresholdInput] = useState('10');
 
-  useEffect(() => { loadItems(); }, []);
+  useEffect(() => { loadItems(); loadSettings(); }, []);
 
   const loadItems = async () => {
     const [{ data }, { data: additionsData }] = await Promise.all([
@@ -56,6 +60,23 @@ export function StockContent() {
       totals[a.stock_item_id] = (totals[a.stock_item_id] || 0) + a.quantity_added;
     });
     setTotalAdded(totals);
+  };
+
+  const loadSettings = async () => {
+    const { data } = await supabase.from('app_settings').select('value').eq('key', 'min_stock_threshold').maybeSingle();
+    if (data) {
+      const val = parseInt(data.value);
+      setMinThreshold(val);
+      setThresholdInput(String(val));
+    }
+  };
+
+  const saveThreshold = async () => {
+    const val = parseInt(thresholdInput) || 10;
+    await supabase.from('app_settings').update({ value: String(val) }).eq('key', 'min_stock_threshold');
+    setMinThreshold(val);
+    setSettingsOpen(false);
+    toast.success(t('settingsSaved'));
   };
 
   const filtered = items.filter(i => {
