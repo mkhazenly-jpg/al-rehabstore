@@ -254,6 +254,13 @@ export const translations = {
     sendResetLink: 'Send Reset Link',
     deleteUser: 'Delete User',
     userNotFound: 'Email not found',
+    totalPurchaseCost: 'Total Purchase Cost',
+    categoryCost: 'Cost by Category',
+    consumptionOverview: 'Consumption Overview',
+    totalAdded: 'Total Added',
+    totalConsumed: 'Total Consumed',
+    remaining: 'Remaining',
+  },
   },
 } as const;
 
