@@ -398,7 +398,7 @@ export function AssignmentsContent() {
                         <SelectContent>
                           {stockItems.map(s => (
                             <SelectItem key={s.id} value={s.id}>
-                              {s.name} ({s.category}{s.size !== 'N/A' ? ` - ${s.size}` : ''}) - {s.quantity_in_stock}
+                              {s.name} ({s.category}{s.size !== 'N/A' ? ` - ${s.size}` : ''})
                             </SelectItem>
                           ))}
                         </SelectContent>
