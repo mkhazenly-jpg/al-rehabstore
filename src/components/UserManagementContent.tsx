@@ -103,7 +103,7 @@ export function UserManagementContent() {
                     </TableCell>
                     <TableCell>
                       {isProtected ? (
-                        <span className="text-xs text-muted-foreground">{t('protectedAccount') || 'محمي'}</span>
+                        <span className="text-xs text-muted-foreground">{t('protectedAccount')}</span>
                       ) : (
                       <div className="flex items-center gap-1">
                         <Button
