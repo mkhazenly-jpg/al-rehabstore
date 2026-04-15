@@ -124,6 +124,12 @@ export const translations = {
     sendResetLink: 'إرسال رابط الإعادة',
     deleteUser: 'حذف المستخدم',
     userNotFound: 'البريد الإلكتروني غير موجود',
+    totalPurchaseCost: 'إجمالي تكلفة المشتريات',
+    categoryCost: 'تكلفة حسب النوع',
+    consumptionOverview: 'نظرة عامة على الاستهلاك',
+    totalAdded: 'إجمالي الوارد',
+    totalConsumed: 'إجمالي المصروف',
+    remaining: 'المتبقي',
   },
   en: {
     appName: 'Al-Rahaba Warehouse',
@@ -248,6 +254,12 @@ export const translations = {
     sendResetLink: 'Send Reset Link',
     deleteUser: 'Delete User',
     userNotFound: 'Email not found',
+    totalPurchaseCost: 'Total Purchase Cost',
+    categoryCost: 'Cost by Category',
+    consumptionOverview: 'Consumption Overview',
+    totalAdded: 'Total Added',
+    totalConsumed: 'Total Consumed',
+    remaining: 'Remaining',
   },
 } as const;
 

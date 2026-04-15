@@ -2,39 +2,83 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/hooks/use-language';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Package, AlertTriangle, Users, ClipboardList } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Package, AlertTriangle, Users, ClipboardList, DollarSign, BarChart3 } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 
 export function DashboardContent() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [stats, setStats] = useState({ totalStock: 0, lowStock: 0, activeEmployees: 0, activeAssignments: 0, pendingAssignments: 0 });
   const [recentAssignments, setRecentAssignments] = useState<any[]>([]);
+  const [stockItems, setStockItems] = useState<any[]>([]);
+  const [additions, setAdditions] = useState<any[]>([]);
+  const [assignments, setAssignments] = useState<any[]>([]);
 
-  useEffect(() => {
-    loadStats();
-  }, []);
+  useEffect(() => { loadStats(); }, []);
 
   const loadStats = async () => {
-    const [stockRes, empRes, assignRes, recentRes] = await Promise.all([
-      supabase.from('stock_items').select('quantity_in_stock'),
+    const [stockRes, empRes, assignRes, recentRes, additionsRes, allAssignRes] = await Promise.all([
+      supabase.from('stock_items').select('*'),
       supabase.from('employees').select('status'),
       supabase.from('assignments').select('status'),
       supabase.from('assignments').select('*, employees(name), stock_items(name)').order('created_at', { ascending: false }).limit(5),
+      supabase.from('stock_additions').select('*'),
+      supabase.from('assignments').select('stock_item_id, quantity_assigned, status').in('status', ['approved', 'pending']),
     ]);
 
-    const stockItems = stockRes.data || [];
+    const items = stockRes.data || [];
     const employees = empRes.data || [];
-    const assignments = assignRes.data || [];
+    const allAssignments = assignRes.data || [];
 
     setStats({
-      totalStock: stockItems.length,
-      lowStock: stockItems.filter(i => i.quantity_in_stock < 5).length,
+      totalStock: items.length,
+      lowStock: items.filter(i => i.quantity_in_stock < 5).length,
       activeEmployees: employees.filter(e => e.status === 'active').length,
-      activeAssignments: assignments.filter(a => a.status === 'approved').length,
-      pendingAssignments: assignments.filter(a => a.status === 'pending').length,
+      activeAssignments: allAssignments.filter(a => a.status === 'approved').length,
+      pendingAssignments: allAssignments.filter(a => a.status === 'pending').length,
     });
 
     setRecentAssignments(recentRes.data || []);
+    setStockItems(items);
+    setAdditions(additionsRes.data || []);
+    setAssignments(allAssignRes.data || []);
   };
+
+  // Calculate total added per item
+  const totalAddedByItem: Record<string, number> = {};
+  additions.forEach(a => {
+    totalAddedByItem[a.stock_item_id] = (totalAddedByItem[a.stock_item_id] || 0) + a.quantity_added;
+  });
+
+  // Calculate total consumed (approved/pending assignments) per item
+  const totalConsumedByItem: Record<string, number> = {};
+  assignments.forEach(a => {
+    totalConsumedByItem[a.stock_item_id] = (totalConsumedByItem[a.stock_item_id] || 0) + a.quantity_assigned;
+  });
+
+  // Total purchase cost = sum(unit_price * total_added) for each item
+  const totalPurchaseCost = stockItems.reduce((sum, item) => {
+    const added = totalAddedByItem[item.id] || 0;
+    return sum + (item.unit_price * added);
+  }, 0);
+
+  // Cost by category
+  const costByCategory: Record<string, number> = {};
+  stockItems.forEach(item => {
+    const added = totalAddedByItem[item.id] || 0;
+    const cost = item.unit_price * added;
+    const cat = item.category;
+    costByCategory[cat] = (costByCategory[cat] || 0) + cost;
+  });
+
+  // Per-item consumption data
+  const itemConsumption = stockItems.map(item => {
+    const added = totalAddedByItem[item.id] || 0;
+    const consumed = totalConsumedByItem[item.id] || 0;
+    const remaining = item.quantity_in_stock;
+    const pct = added > 0 ? Math.round((consumed / added) * 100) : 0;
+    return { ...item, added, consumed, remaining, pct };
+  });
 
   const cards = [
     { title: t('totalStock'), value: stats.totalStock, icon: Package, gradient: 'from-primary to-primary/80' },
@@ -42,6 +86,13 @@ export function DashboardContent() {
     { title: t('activeEmployees'), value: stats.activeEmployees, icon: Users, gradient: 'from-success to-success/80' },
     { title: t('activeAssignments'), value: stats.activeAssignments, icon: ClipboardList, gradient: 'from-ring to-ring/80' },
   ];
+
+  const categoryNames: Record<string, string> = {
+    safety_shoes: t('safetyShoes'),
+    vests: t('vests'),
+    helmets: t('helmets'),
+    gloves: t('gloves'),
+  };
 
   return (
     <div className="space-y-6">
@@ -63,6 +114,83 @@ export function DashboardContent() {
         ))}
       </div>
 
+      {/* Total purchase cost */}
+      <Card className="overflow-hidden">
+        <div className="bg-gradient-to-br from-primary to-primary/70 p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-primary-foreground/80">{t('totalPurchaseCost')}</p>
+              <p className="text-3xl font-bold text-primary-foreground">{totalPurchaseCost.toLocaleString()} {t('currency')}</p>
+            </div>
+            <DollarSign className="h-10 w-10 text-primary-foreground/60" />
+          </div>
+        </div>
+      </Card>
+
+      {/* Cost by category */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5" />
+            {t('categoryCost')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {Object.entries(costByCategory).map(([cat, cost]) => (
+              <div key={cat} className="rounded-lg border p-4 space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">{categoryNames[cat] || cat}</p>
+                <p className="text-xl font-bold">{cost.toLocaleString()} {t('currency')}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Consumption overview per item */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('consumptionOverview')}</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('name')}</TableHead>
+                  <TableHead>{t('category')}</TableHead>
+                  <TableHead>{t('size')}</TableHead>
+                  <TableHead>{t('totalAdded')}</TableHead>
+                  <TableHead>{t('totalConsumed')}</TableHead>
+                  <TableHead>{t('remaining')}</TableHead>
+                  <TableHead>{t('totalPrice')}</TableHead>
+                  <TableHead className="w-32">%</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {itemConsumption.map(item => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">{item.name}</TableCell>
+                    <TableCell>{categoryNames[item.category] || item.category}</TableCell>
+                    <TableCell>{item.size !== 'N/A' ? item.size : '-'}</TableCell>
+                    <TableCell>{item.added}</TableCell>
+                    <TableCell>{item.consumed}</TableCell>
+                    <TableCell>{item.remaining}</TableCell>
+                    <TableCell>{(item.unit_price * item.added).toLocaleString()} {t('currency')}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Progress value={item.pct} className="h-2 flex-1" />
+                        <span className="text-xs text-muted-foreground w-8">{item.pct}%</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
       {stats.lowStock > 0 && (
         <Card className="border-accent">
           <CardHeader className="pb-2">
@@ -72,9 +200,7 @@ export function DashboardContent() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
-              {stats.lowStock} {t('stock')}
-            </p>
+            <p className="text-sm text-muted-foreground">{stats.lowStock} {t('stock')}</p>
           </CardContent>
         </Card>
       )}
@@ -88,9 +214,7 @@ export function DashboardContent() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
-              {stats.pendingAssignments} {t('assignments')}
-            </p>
+            <p className="text-sm text-muted-foreground">{stats.pendingAssignments} {t('assignments')}</p>
           </CardContent>
         </Card>
       )}
