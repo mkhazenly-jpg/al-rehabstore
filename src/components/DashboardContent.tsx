@@ -92,6 +92,15 @@ export function DashboardContent() {
     gloves: t('gloves'),
   };
 
+  const itemGradients = [
+    'from-primary to-primary/70',
+    'from-accent to-accent/70',
+    'from-success to-success/70',
+    'from-ring to-ring/70',
+    'from-primary/80 to-ring/60',
+    'from-accent/80 to-success/60',
+  ];
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">{t('overview')}</h1>
