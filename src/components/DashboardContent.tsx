@@ -1,9 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/hooks/use-language';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Package, Users, ClipboardList, DollarSign, BarChart3 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+
+const PIE_COLORS = ['#10b981', '#f59e0b', '#3b82f6', '#ef4444', '#8b5cf6', '#ec4899'];
 
 export function DashboardContent() {
   const { t, lang } = useLanguage();
@@ -12,15 +16,19 @@ export function DashboardContent() {
   const [additions, setAdditions] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
 
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState<string>('all');
+  const [selectedMonth, setSelectedMonth] = useState<string>('all');
+
   useEffect(() => { loadStats(); }, []);
 
   const loadStats = async () => {
     const [stockRes, empRes, assignRes, additionsRes, allAssignRes] = await Promise.all([
       supabase.from('stock_items').select('*'),
       supabase.from('employees').select('status'),
-      supabase.from('assignments').select('status'),
+      supabase.from('assignments').select('status, stock_item_id, quantity_assigned, created_at'),
       supabase.from('stock_additions').select('*'),
-      supabase.from('assignments').select('stock_item_id, quantity_assigned, status').in('status', ['approved', 'pending']),
+      supabase.from('assignments').select('stock_item_id, quantity_assigned, status, created_at').in('status', ['approved', 'pending']),
     ]);
 
     const items = stockRes.data || [];
@@ -38,53 +46,85 @@ export function DashboardContent() {
     setAssignments(allAssignRes.data || []);
   };
 
-  // Calculate total added per item
+  // Get available years from additions
+  const availableYears = useMemo(() => {
+    const years = new Set<number>();
+    additions.forEach(a => years.add(new Date(a.added_at).getFullYear()));
+    assignments.forEach(a => years.add(new Date(a.created_at).getFullYear()));
+    return Array.from(years).sort((a, b) => b - a);
+  }, [additions, assignments]);
+
+  const monthNames: Record<string, string> = {
+    '0': t('january'), '1': t('february'), '2': t('march'), '3': t('april'),
+    '4': t('may'), '5': t('june'), '6': t('july'), '7': t('august'),
+    '8': t('september'), '9': t('october'), '10': t('november'), '11': t('december'),
+  };
+
+  // Filter additions and assignments by selected date
+  const filteredAdditions = useMemo(() => {
+    return additions.filter(a => {
+      const d = new Date(a.added_at);
+      if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return false;
+      if (selectedMonth !== 'all' && d.getMonth() !== Number(selectedMonth)) return false;
+      return true;
+    });
+  }, [additions, selectedYear, selectedMonth]);
+
+  const filteredAssignments = useMemo(() => {
+    return assignments.filter(a => {
+      const d = new Date(a.created_at);
+      if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return false;
+      if (selectedMonth !== 'all' && d.getMonth() !== Number(selectedMonth)) return false;
+      return true;
+    });
+  }, [assignments, selectedYear, selectedMonth]);
+
+  // Calculate totals from filtered data
   const totalAddedByItem: Record<string, number> = {};
-  additions.forEach(a => {
+  filteredAdditions.forEach(a => {
     totalAddedByItem[a.stock_item_id] = (totalAddedByItem[a.stock_item_id] || 0) + a.quantity_added;
   });
 
-  // Calculate total consumed (approved/pending assignments) per item
   const totalConsumedByItem: Record<string, number> = {};
-  assignments.forEach(a => {
+  filteredAssignments.forEach(a => {
     totalConsumedByItem[a.stock_item_id] = (totalConsumedByItem[a.stock_item_id] || 0) + a.quantity_assigned;
   });
 
-  // Total purchase cost = sum(unit_price * total_added) for each item
   const totalPurchaseCost = stockItems.reduce((sum, item) => {
     const added = totalAddedByItem[item.id] || 0;
     return sum + (item.unit_price * added);
   }, 0);
 
-  // Cost by category
   const costByCategory: Record<string, number> = {};
   stockItems.forEach(item => {
     const added = totalAddedByItem[item.id] || 0;
     const cost = item.unit_price * added;
-    const cat = item.category;
-    costByCategory[cat] = (costByCategory[cat] || 0) + cost;
+    if (cost > 0) {
+      const cat = item.category;
+      costByCategory[cat] = (costByCategory[cat] || 0) + cost;
+    }
   });
 
-  // Per-item consumption data
   const itemConsumption = stockItems.map(item => {
     const added = totalAddedByItem[item.id] || 0;
     const consumed = totalConsumedByItem[item.id] || 0;
     const remaining = item.quantity_in_stock;
     const pct = added > 0 ? Math.round((consumed / added) * 100) : 0;
     return { ...item, added, consumed, remaining, pct };
-  });
+  }).filter(item => item.added > 0 || item.consumed > 0 || selectedYear === 'all');
+
+  const categoryNames: Record<string, string> = {
+    safety_shoes: t('safetyShoes'),
+    'safety shoes': t('safetyShoes'),
+    vests: t('vests'),
+    helmets: t('helmets'),
+    gloves: t('gloves'),
+  };
 
   const cards = [
     { title: t('totalStock'), value: stats.totalStock, icon: Package, gradient: 'from-primary to-primary/80' },
     { title: t('activeEmployees'), value: stats.totalEmployees, icon: Users, gradient: 'from-success to-success/80' },
   ];
-
-  const categoryNames: Record<string, string> = {
-    safety_shoes: t('safetyShoes'),
-    vests: t('vests'),
-    helmets: t('helmets'),
-    gloves: t('gloves'),
-  };
 
   const itemGradients = [
     'from-primary to-primary/70',
@@ -95,9 +135,55 @@ export function DashboardContent() {
     'from-accent/80 to-success/60',
   ];
 
+  // Pie chart data
+  const pieData = Object.entries(costByCategory).map(([cat, cost]) => ({
+    name: categoryNames[cat] || cat,
+    value: cost,
+  }));
+
+  // Consumed by category for month view
+  const consumedByCategory: Record<string, number> = {};
+  filteredAssignments.forEach(a => {
+    const item = stockItems.find(i => i.id === a.stock_item_id);
+    if (item) {
+      const cat = item.category;
+      consumedByCategory[cat] = (consumedByCategory[cat] || 0) + a.quantity_assigned;
+    }
+  });
+
+  const isFiltered = selectedYear !== 'all';
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">{t('overview')}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">{t('overview')}</h1>
+        <div className="flex items-center gap-2">
+          <Select value={selectedYear} onValueChange={(v) => { setSelectedYear(v); if (v === 'all') setSelectedMonth('all'); }}>
+            <SelectTrigger className="w-[130px]">
+              <SelectValue placeholder={t('year')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('allTime')}</SelectItem>
+              {availableYears.map(y => (
+                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {selectedYear !== 'all' && (
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="w-[130px]">
+                <SelectValue placeholder={t('month')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('allMonths')}</SelectItem>
+                {Array.from({ length: 12 }, (_, i) => (
+                  <SelectItem key={i} value={String(i)}>{monthNames[String(i)]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((card) => (
@@ -120,7 +206,9 @@ export function DashboardContent() {
         <div className="bg-gradient-to-br from-primary to-primary/70 p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-primary-foreground/80">{t('totalPurchaseCost')}</p>
+              <p className="text-sm font-medium text-primary-foreground/80">
+                {isFiltered ? t('monthlyPurchases') : t('totalPurchaseCost')}
+              </p>
               <p className="text-3xl font-bold text-primary-foreground">{totalPurchaseCost.toLocaleString()} {t('currency')}</p>
             </div>
             <DollarSign className="h-10 w-10 text-primary-foreground/60" />
@@ -144,9 +232,65 @@ export function DashboardContent() {
                 <p className="text-xl font-bold">{cost.toLocaleString()} {t('currency')}</p>
               </div>
             ))}
+            {Object.keys(costByCategory).length === 0 && (
+              <p className="text-sm text-muted-foreground col-span-full">-</p>
+            )}
           </div>
         </CardContent>
       </Card>
+
+      {/* Pie Chart */}
+      {pieData.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('costDistribution')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={4}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {pieData.map((_, idx) => (
+                      <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => `${value.toLocaleString()} ${t('currency')}`} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Monthly consumption by category (when filtered) */}
+      {isFiltered && Object.keys(consumedByCategory).length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('monthlyConsumption')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {Object.entries(consumedByCategory).map(([cat, qty]) => (
+                <Card key={cat} className="overflow-hidden">
+                  <div className="bg-gradient-to-br from-accent to-accent/70 p-4">
+                    <p className="text-sm font-medium text-primary-foreground/80">{categoryNames[cat] || cat}</p>
+                    <p className="text-2xl font-bold text-primary-foreground">{qty} {t('piece')}</p>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Consumption overview per item - colorful cards */}
       <div>
