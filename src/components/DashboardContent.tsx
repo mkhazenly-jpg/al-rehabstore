@@ -2,14 +2,12 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/hooks/use-language';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Package, AlertTriangle, Users, ClipboardList, DollarSign, BarChart3 } from 'lucide-react';
+import { Package, Users, ClipboardList, DollarSign, BarChart3 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
 export function DashboardContent() {
   const { t, lang } = useLanguage();
-  const [stats, setStats] = useState({ totalStock: 0, lowStock: 0, totalEmployees: 0, pendingAssignments: 0 });
-  const [recentAssignments, setRecentAssignments] = useState<any[]>([]);
+  const [stats, setStats] = useState({ totalStock: 0, totalEmployees: 0, pendingAssignments: 0 });
   const [stockItems, setStockItems] = useState<any[]>([]);
   const [additions, setAdditions] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
@@ -17,11 +15,10 @@ export function DashboardContent() {
   useEffect(() => { loadStats(); }, []);
 
   const loadStats = async () => {
-    const [stockRes, empRes, assignRes, recentRes, additionsRes, allAssignRes] = await Promise.all([
+    const [stockRes, empRes, assignRes, additionsRes, allAssignRes] = await Promise.all([
       supabase.from('stock_items').select('*'),
       supabase.from('employees').select('status'),
       supabase.from('assignments').select('status'),
-      supabase.from('assignments').select('*, employees(name), stock_items(name)').order('created_at', { ascending: false }).limit(5),
       supabase.from('stock_additions').select('*'),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, status').in('status', ['approved', 'pending']),
     ]);
@@ -32,12 +29,10 @@ export function DashboardContent() {
 
     setStats({
       totalStock: items.length,
-      lowStock: items.filter(i => i.quantity_in_stock < 5).length,
       totalEmployees: employees.length,
       pendingAssignments: allAssignments.filter(a => a.status === 'pending').length,
     });
 
-    setRecentAssignments(recentRes.data || []);
     setStockItems(items);
     setAdditions(additionsRes.data || []);
     setAssignments(allAssignRes.data || []);
@@ -81,7 +76,6 @@ export function DashboardContent() {
 
   const cards = [
     { title: t('totalStock'), value: stats.totalStock, icon: Package, gradient: 'from-primary to-primary/80' },
-    { title: t('lowStock'), value: stats.lowStock, icon: AlertTriangle, gradient: 'from-accent to-accent/80' },
     { title: t('activeEmployees'), value: stats.totalEmployees, icon: Users, gradient: 'from-success to-success/80' },
   ];
 
@@ -201,20 +195,6 @@ export function DashboardContent() {
         </div>
       </div>
 
-      {stats.lowStock > 0 && (
-        <Card className="border-accent">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-accent-foreground">
-              <AlertTriangle className="h-5 w-5" />
-              {t('lowStockWarning')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">{stats.lowStock} {t('stock')}</p>
-          </CardContent>
-        </Card>
-      )}
-
       {stats.pendingAssignments > 0 && (
         <Card className="border-ring">
           <CardHeader className="pb-2">
@@ -228,42 +208,6 @@ export function DashboardContent() {
           </CardContent>
         </Card>
       )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('recentActivity')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {recentAssignments.length === 0 ? (
-            <p className="text-sm text-muted-foreground">-</p>
-          ) : (
-            <div className="space-y-3">
-              {recentAssignments.map((a: any) => (
-                <div key={a.id} className="flex items-center justify-between rounded-lg border p-3">
-                  <div>
-                    <p className="text-sm font-medium">{a.employees?.name}</p>
-                    <p className="text-xs text-muted-foreground">{a.stock_items?.name} × {a.quantity_assigned}</p>
-                  </div>
-                  <StatusBadge status={a.status} t={t} />
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
-  );
-}
-
-function StatusBadge({ status, t }: { status: string; t: (k: any) => string }) {
-  const colors: Record<string, string> = {
-    pending: 'bg-accent/20 text-accent-foreground',
-    approved: 'bg-success/20 text-success',
-    returned: 'bg-muted text-muted-foreground',
-  };
-  return (
-    <span className={`rounded-full px-2 py-1 text-xs font-medium ${colors[status] || ''}`}>
-      {t(status as any)}
-    </span>
   );
 }
