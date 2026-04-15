@@ -15,11 +15,10 @@ export function DashboardContent() {
   useEffect(() => { loadStats(); }, []);
 
   const loadStats = async () => {
-    const [stockRes, empRes, assignRes, recentRes, additionsRes, allAssignRes] = await Promise.all([
+    const [stockRes, empRes, assignRes, additionsRes, allAssignRes] = await Promise.all([
       supabase.from('stock_items').select('*'),
       supabase.from('employees').select('status'),
       supabase.from('assignments').select('status'),
-      supabase.from('assignments').select('*, employees(name), stock_items(name)').order('created_at', { ascending: false }).limit(5),
       supabase.from('stock_additions').select('*'),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, status').in('status', ['approved', 'pending']),
     ]);
@@ -30,12 +29,10 @@ export function DashboardContent() {
 
     setStats({
       totalStock: items.length,
-      lowStock: items.filter(i => i.quantity_in_stock < 5).length,
       totalEmployees: employees.length,
       pendingAssignments: allAssignments.filter(a => a.status === 'pending').length,
     });
 
-    setRecentAssignments(recentRes.data || []);
     setStockItems(items);
     setAdditions(additionsRes.data || []);
     setAssignments(allAssignRes.data || []);
