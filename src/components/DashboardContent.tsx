@@ -153,11 +153,11 @@ export function DashboardContent() {
 
   const itemGradients = [
     'from-primary to-primary/70',
-    'from-accent to-accent/70',
     'from-success to-success/70',
     'from-ring to-ring/70',
     'from-primary/80 to-ring/60',
-    'from-accent/80 to-success/60',
+    'from-success/80 to-primary/60',
+    'from-ring/80 to-success/60',
   ];
 
   // Pie chart data
