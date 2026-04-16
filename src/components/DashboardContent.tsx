@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/hooks/use-language';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Package, Users, ClipboardList, DollarSign, BarChart3 } from 'lucide-react';
+import { Package, Users, ClipboardList, BarChart3 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 
@@ -240,7 +240,7 @@ export function DashboardContent() {
               </p>
               <p className="text-3xl font-bold text-primary-foreground">{totalPurchaseCost.toLocaleString()} {t('currency')}</p>
             </div>
-            <DollarSign className="h-10 w-10 text-primary-foreground/60" />
+            
           </div>
         </div>
       </Card>
@@ -256,7 +256,7 @@ export function DashboardContent() {
                   <p className="text-sm font-medium text-primary-foreground/80">{categoryNames[cat] || cat}</p>
                   <p className="text-3xl font-bold text-primary-foreground">{cost.toLocaleString()} {t('currency')}</p>
                 </div>
-                <DollarSign className="h-8 w-8 text-primary-foreground/60" />
+                
               </div>
             </div>
           </Card>
