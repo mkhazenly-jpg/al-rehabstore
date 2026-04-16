@@ -15,6 +15,7 @@ export function DashboardContent() {
   const [stockItems, setStockItems] = useState<any[]>([]);
   const [additions, setAdditions] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
+  const [damagedLostAssignments, setDamagedLostAssignments] = useState<any[]>([]);
 
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState<string>('all');
