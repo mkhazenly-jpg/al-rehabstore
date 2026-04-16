@@ -24,12 +24,13 @@ export function DashboardContent() {
   useEffect(() => { loadStats(); }, []);
 
   const loadStats = async () => {
-    const [stockRes, empRes, assignRes, additionsRes, allAssignRes] = await Promise.all([
+    const [stockRes, empRes, assignRes, additionsRes, allAssignRes, damagedLostRes] = await Promise.all([
       supabase.from('stock_items').select('*'),
       supabase.from('employees').select('status'),
       supabase.from('assignments').select('status, stock_item_id, quantity_assigned, created_at'),
       supabase.from('stock_additions').select('*'),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, status, created_at').in('status', ['approved', 'pending']),
+      supabase.from('assignments').select('stock_item_id, quantity_assigned, notes, created_at').not('notes', 'is', null),
     ]);
 
     const items = stockRes.data || [];
@@ -45,6 +46,7 @@ export function DashboardContent() {
     setStockItems(items);
     setAdditions(additionsRes.data || []);
     setAssignments(allAssignRes.data || []);
+    setDamagedLostAssignments(damagedLostRes.data || []);
   };
 
   // Get available years from additions
