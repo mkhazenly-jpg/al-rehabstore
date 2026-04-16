@@ -82,7 +82,29 @@ export function DashboardContent() {
     });
   }, [assignments, selectedYear, selectedMonth]);
 
-  // Calculate totals from filtered data
+  // Filter damaged/lost assignments by date
+  const filteredDamagedLost = useMemo(() => {
+    return damagedLostAssignments.filter(a => {
+      const d = new Date(a.created_at);
+      if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return false;
+      if (selectedMonth !== 'all' && d.getMonth() !== Number(selectedMonth)) return false;
+      return true;
+    });
+  }, [damagedLostAssignments, selectedYear, selectedMonth]);
+
+  // Damaged and lost per item
+  const damagedByItem: Record<string, number> = {};
+  const lostByItem: Record<string, number> = {};
+  filteredDamagedLost.forEach(a => {
+    if (a.notes?.includes(t('damaged'))) {
+      damagedByItem[a.stock_item_id] = (damagedByItem[a.stock_item_id] || 0) + a.quantity_assigned;
+    }
+    if (a.notes?.includes(t('lost'))) {
+      lostByItem[a.stock_item_id] = (lostByItem[a.stock_item_id] || 0) + a.quantity_assigned;
+    }
+  });
+
+
   const totalAddedByItem: Record<string, number> = {};
   filteredAdditions.forEach(a => {
     totalAddedByItem[a.stock_item_id] = (totalAddedByItem[a.stock_item_id] || 0) + a.quantity_added;
