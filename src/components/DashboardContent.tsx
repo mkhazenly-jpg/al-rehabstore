@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/hooks/use-language';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Package, Users, ClipboardList, DollarSign, BarChart3 } from 'lucide-react';
+import { Package, Users, ClipboardList, BarChart3 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 
