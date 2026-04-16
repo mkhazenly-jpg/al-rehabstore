@@ -240,7 +240,7 @@ export function DashboardContent() {
               </p>
               <p className="text-3xl font-bold text-primary-foreground">{totalPurchaseCost.toLocaleString()} {t('currency')}</p>
             </div>
-            <DollarSign className="h-10 w-10 text-primary-foreground/60" />
+            
           </div>
         </div>
       </Card>
@@ -256,7 +256,7 @@ export function DashboardContent() {
                   <p className="text-sm font-medium text-primary-foreground/80">{categoryNames[cat] || cat}</p>
                   <p className="text-3xl font-bold text-primary-foreground">{cost.toLocaleString()} {t('currency')}</p>
                 </div>
-                <DollarSign className="h-8 w-8 text-primary-foreground/60" />
+                
               </div>
             </div>
           </Card>
