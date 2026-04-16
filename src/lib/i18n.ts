@@ -155,6 +155,10 @@ export const translations = {
     settings: 'الإعدادات',
     minStockThreshold: 'الحد الأدنى للمخزون',
     settingsSaved: 'تم حفظ الإعدادات',
+    damagedItems: 'الأصناف التالفة',
+    lostItems: 'الأصناف المفقودة',
+    totalDamaged: 'إجمالي التالف',
+    totalLost: 'إجمالي المفقود',
   },
   en: {
     appName: 'Al-Rahaba Warehouse',
@@ -310,6 +314,10 @@ export const translations = {
     settings: 'Settings',
     minStockThreshold: 'Minimum Stock Threshold',
     settingsSaved: 'Settings saved',
+    damagedItems: 'Damaged Items',
+    lostItems: 'Lost Items',
+    totalDamaged: 'Total Damaged',
+    totalLost: 'Total Lost',
   },
 } as const;
 
