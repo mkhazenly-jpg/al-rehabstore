@@ -15,6 +15,7 @@ export function DashboardContent() {
   const [stockItems, setStockItems] = useState<any[]>([]);
   const [additions, setAdditions] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
+  const [damagedLostAssignments, setDamagedLostAssignments] = useState<any[]>([]);
 
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState<string>('all');
@@ -23,12 +24,13 @@ export function DashboardContent() {
   useEffect(() => { loadStats(); }, []);
 
   const loadStats = async () => {
-    const [stockRes, empRes, assignRes, additionsRes, allAssignRes] = await Promise.all([
+    const [stockRes, empRes, assignRes, additionsRes, allAssignRes, damagedLostRes] = await Promise.all([
       supabase.from('stock_items').select('*'),
       supabase.from('employees').select('status'),
       supabase.from('assignments').select('status, stock_item_id, quantity_assigned, created_at'),
       supabase.from('stock_additions').select('*'),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, status, created_at').in('status', ['approved', 'pending']),
+      supabase.from('assignments').select('stock_item_id, quantity_assigned, notes, created_at').not('notes', 'is', null),
     ]);
 
     const items = stockRes.data || [];
@@ -44,6 +46,7 @@ export function DashboardContent() {
     setStockItems(items);
     setAdditions(additionsRes.data || []);
     setAssignments(allAssignRes.data || []);
+    setDamagedLostAssignments(damagedLostRes.data || []);
   };
 
   // Get available years from additions
@@ -79,7 +82,29 @@ export function DashboardContent() {
     });
   }, [assignments, selectedYear, selectedMonth]);
 
-  // Calculate totals from filtered data
+  // Filter damaged/lost assignments by date
+  const filteredDamagedLost = useMemo(() => {
+    return damagedLostAssignments.filter(a => {
+      const d = new Date(a.created_at);
+      if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return false;
+      if (selectedMonth !== 'all' && d.getMonth() !== Number(selectedMonth)) return false;
+      return true;
+    });
+  }, [damagedLostAssignments, selectedYear, selectedMonth]);
+
+  // Damaged and lost per item
+  const damagedByItem: Record<string, number> = {};
+  const lostByItem: Record<string, number> = {};
+  filteredDamagedLost.forEach(a => {
+    if (a.notes?.includes(t('damaged'))) {
+      damagedByItem[a.stock_item_id] = (damagedByItem[a.stock_item_id] || 0) + a.quantity_assigned;
+    }
+    if (a.notes?.includes(t('lost'))) {
+      lostByItem[a.stock_item_id] = (lostByItem[a.stock_item_id] || 0) + a.quantity_assigned;
+    }
+  });
+
+
   const totalAddedByItem: Record<string, number> = {};
   filteredAdditions.forEach(a => {
     totalAddedByItem[a.stock_item_id] = (totalAddedByItem[a.stock_item_id] || 0) + a.quantity_added;
@@ -262,6 +287,56 @@ export function DashboardContent() {
           </Card>
         ))}
       </div>
+
+      {/* Damaged Items */}
+      {Object.keys(damagedByItem).length > 0 && (
+        <>
+          <h2 className="text-lg font-bold">{t('damagedItems')}</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {Object.entries(damagedByItem).map(([itemId, qty], idx) => {
+              const item = stockItems.find(i => i.id === itemId);
+              if (!item) return null;
+              return (
+                <Card key={itemId} className="overflow-hidden">
+                  <div className="bg-gradient-to-br from-amber-500 to-amber-600 p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-primary-foreground/80">{item.name}</p>
+                        <p className="text-3xl font-bold text-primary-foreground">{qty} {t('piece')}</p>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* Lost Items */}
+      {Object.keys(lostByItem).length > 0 && (
+        <>
+          <h2 className="text-lg font-bold">{t('lostItems')}</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {Object.entries(lostByItem).map(([itemId, qty], idx) => {
+              const item = stockItems.find(i => i.id === itemId);
+              if (!item) return null;
+              return (
+                <Card key={itemId} className="overflow-hidden">
+                  <div className="bg-gradient-to-br from-destructive to-destructive/80 p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-primary-foreground/80">{item.name}</p>
+                        <p className="text-3xl font-bold text-primary-foreground">{qty} {t('piece')}</p>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </>
+      )}
 
       {/* Pie Chart */}
       {pieData.length > 0 && (
