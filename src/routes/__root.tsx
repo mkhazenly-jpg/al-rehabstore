@@ -51,6 +51,10 @@ export const Route = createRootRoute({
         rel: "stylesheet",
         href: appCss,
       },
+      {
+        rel: "manifest",
+        href: "/manifest.json",
+      },
     ],
   }),
   shellComponent: RootShell,
