@@ -269,6 +269,8 @@ export const translations = {
     lowStockWarning: 'Warning: Low Stock',
     insufficientStock: 'Insufficient Stock',
     selectEmployee: 'Select Employee',
+    searchEmployee: 'Search employee...',
+    noEmployeeFound: 'No employee found',
     selectItem: 'Select Item',
     recentActivity: 'Recent Activity',
     allCategories: 'All Categories',
