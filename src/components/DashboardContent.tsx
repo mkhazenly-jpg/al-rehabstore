@@ -370,6 +370,31 @@ export function DashboardContent() {
         </>
       )}
 
+      {/* Renewal Needed Items */}
+      {Object.keys(renewalNeededByItem).length > 0 && (
+        <>
+          <h2 className="text-lg font-bold text-destructive">{t('renewalNeededItems')}</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {Object.entries(renewalNeededByItem).map(([itemId, qty]) => {
+              const item = stockItems.find(i => i.id === itemId);
+              if (!item) return null;
+              return (
+                <Card key={itemId} className="overflow-hidden border-destructive">
+                  <div className="bg-gradient-to-br from-destructive to-destructive/80 p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-primary-foreground/80">{item.name}</p>
+                        <p className="text-3xl font-bold text-primary-foreground">{qty} {t('piece')}</p>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </>
+      )}
+
       {/* Pie Chart */}
       {pieData.length > 0 && (
         <Card>
