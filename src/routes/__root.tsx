@@ -90,10 +90,12 @@ function RootComponent() {
   }
 
   return (
-    <LanguageProvider>
-      <AuthProvider>
-        <Outlet />
-      </AuthProvider>
-    </LanguageProvider>
+    <QueryClientProvider client={getQueryClient()}>
+      <LanguageProvider>
+        <AuthProvider>
+          <Outlet />
+        </AuthProvider>
+      </LanguageProvider>
+    </QueryClientProvider>
   );
 }
