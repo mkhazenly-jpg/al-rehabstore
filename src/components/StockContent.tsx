@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
+import { useDebounce } from '@/hooks/use-debounce';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { DataPagination } from '@/components/ui/data-pagination';
 import { Plus, Pencil, Trash2, Download, Search, AlertTriangle, History, Info, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import { exportToExcel } from '@/lib/export';
@@ -27,14 +30,21 @@ interface StockAddition {
 
 const CATEGORIES = ['safety shoes', 'vests', 'helmets', 'gloves', 'other'];
 const UNITS = ['pair', 'piece', 'box'];
+const PAGE_SIZE = 50;
 
 export function StockContent() {
   const { t, lang } = useLanguage();
   const { isAdmin } = useAuth();
-  const [items, setItems] = useState<StockItem[]>([]);
-  const [totalAdded, setTotalAdded] = useState<Record<string, number>>({});
+  const qc = useQueryClient();
+
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [page, setPage] = useState(0);
+  const debouncedSearch = useDebounce(search, 300);
+
+  // Reset to page 0 when filters change
+  useEffect(() => { setPage(0); }, [debouncedSearch, categoryFilter]);
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<StockItem | null>(null);
   const [form, setForm] = useState({ name: '', category: 'safety shoes', size: '', quantity_in_stock: 0, unit: 'piece', unit_price: 0 });
@@ -42,48 +52,76 @@ export function StockContent() {
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [historyItem, setHistoryItem] = useState<StockItem | null>(null);
   const [additions, setAdditions] = useState<StockAddition[]>([]);
-  const [minThreshold, setMinThreshold] = useState(10);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [thresholdInput, setThresholdInput] = useState('10');
 
-  useEffect(() => { loadItems(); loadSettings(); }, []);
-
-  const loadItems = async () => {
-    const [{ data }, { data: additionsData }] = await Promise.all([
-      supabase.from('stock_items').select('*').order('added_date', { ascending: false }),
-      supabase.from('stock_additions').select('stock_item_id, quantity_added'),
-    ]);
-    setItems(data || []);
-    // Calculate total quantities ever added per item
-    const totals: Record<string, number> = {};
-    (additionsData || []).forEach((a: any) => {
-      totals[a.stock_item_id] = (totals[a.stock_item_id] || 0) + a.quantity_added;
-    });
-    setTotalAdded(totals);
-  };
-
-  const loadSettings = async () => {
-    const { data } = await supabase.from('app_settings').select('value').eq('key', 'min_stock_threshold').maybeSingle();
-    if (data) {
-      const val = parseInt(data.value);
-      setMinThreshold(val);
-      setThresholdInput(String(val));
-    }
-  };
-
-  const saveThreshold = async () => {
-    const val = parseInt(thresholdInput) || 10;
-    await supabase.from('app_settings').update({ value: String(val) }).eq('key', 'min_stock_threshold');
-    setMinThreshold(val);
-    setSettingsOpen(false);
-    toast.success(t('settingsSaved'));
-  };
-
-  const filtered = items.filter(i => {
-    const matchSearch = i.name.toLowerCase().includes(search.toLowerCase());
-    const matchCat = categoryFilter === 'all' || i.category === categoryFilter;
-    return matchSearch && matchCat;
+  // Settings query
+  const { data: minThreshold = 10 } = useQuery({
+    queryKey: ['app_settings', 'min_stock_threshold'],
+    queryFn: async () => {
+      const { data } = await supabase.from('app_settings').select('value').eq('key', 'min_stock_threshold').maybeSingle();
+      const val = data ? parseInt(data.value) || 10 : 10;
+      return val;
+    },
   });
+
+  useEffect(() => { setThresholdInput(String(minThreshold)); }, [minThreshold]);
+
+  // Paginated stock items query — server-side filtering + pagination
+  const { data: stockData, isLoading } = useQuery({
+    queryKey: ['stock_items', { search: debouncedSearch, category: categoryFilter, page }],
+    queryFn: async () => {
+      let q = supabase.from('stock_items').select('*', { count: 'exact' });
+      if (debouncedSearch.trim()) q = q.ilike('name', `%${debouncedSearch.trim()}%`);
+      if (categoryFilter !== 'all') q = q.eq('category', categoryFilter);
+      const from = page * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      const { data, count } = await q.order('added_date', { ascending: false }).range(from, to);
+      return { items: (data || []) as StockItem[], total: count || 0 };
+    },
+  });
+
+  const items = stockData?.items || [];
+  const total = stockData?.total || 0;
+
+  // Total added per visible item only (lightweight)
+  const { data: totalAdded = {} } = useQuery({
+    queryKey: ['stock_additions_totals', items.map(i => i.id).sort().join(',')],
+    queryFn: async () => {
+      if (items.length === 0) return {};
+      const { data } = await supabase
+        .from('stock_additions')
+        .select('stock_item_id, quantity_added')
+        .in('stock_item_id', items.map(i => i.id));
+      const totals: Record<string, number> = {};
+      (data || []).forEach((a: any) => {
+        totals[a.stock_item_id] = (totals[a.stock_item_id] || 0) + a.quantity_added;
+      });
+      return totals;
+    },
+    enabled: items.length > 0,
+  });
+
+  const invalidateStock = () => {
+    qc.invalidateQueries({ queryKey: ['stock_items'] });
+    qc.invalidateQueries({ queryKey: ['stock_additions_totals'] });
+  };
+
+  const saveThresholdMut = useMutation({
+    mutationFn: async (val: number) => {
+      await supabase.from('app_settings').update({ value: String(val) }).eq('key', 'min_stock_threshold');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['app_settings'] });
+      setSettingsOpen(false);
+      toast.success(t('settingsSaved'));
+    },
+  });
+
+  const saveThreshold = () => {
+    const val = parseInt(thresholdInput) || 10;
+    saveThresholdMut.mutate(val);
+  };
 
   const openAdd = () => {
     setEditItem(null);
@@ -144,7 +182,6 @@ export function StockContent() {
         stock_item_id: stockItemId,
         quantity_added: form.quantity_in_stock,
       });
-
       if (additionError) {
         console.error('Failed to log stock addition', additionError);
         return;
@@ -153,12 +190,12 @@ export function StockContent() {
 
     setDialogOpen(false);
     setExistingMatch(null);
-    await loadItems();
+    invalidateStock();
   };
 
   const handleDelete = async (id: string) => {
     await supabase.from('stock_items').delete().eq('id', id);
-    loadItems();
+    invalidateStock();
   };
 
   const openHistory = async (item: StockItem) => {
@@ -172,15 +209,32 @@ export function StockContent() {
     setHistoryDialogOpen(true);
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
+    // Fetch all matching rows for export (bypass pagination)
+    let q = supabase.from('stock_items').select('*');
+    if (debouncedSearch.trim()) q = q.ilike('name', `%${debouncedSearch.trim()}%`);
+    if (categoryFilter !== 'all') q = q.eq('category', categoryFilter);
+    const { data: all } = await q.order('added_date', { ascending: false });
+    const rows = (all || []) as StockItem[];
+
+    // Get totals for these items
+    const { data: addsData } = await supabase
+      .from('stock_additions')
+      .select('stock_item_id, quantity_added')
+      .in('stock_item_id', rows.map(r => r.id));
+    const totals: Record<string, number> = {};
+    (addsData || []).forEach((a: any) => {
+      totals[a.stock_item_id] = (totals[a.stock_item_id] || 0) + a.quantity_added;
+    });
+
     exportToExcel(
-      filtered.map(i => ({
+      rows.map(i => ({
         [t('name')]: i.name,
         [t('category')]: i.category,
         [t('size')]: i.size,
         [t('quantity')]: i.quantity_in_stock,
         [t('unitPrice')]: (i as any).unit_price || 0,
-        [t('totalPrice')]: ((i as any).unit_price || 0) * (totalAdded[i.id] || i.quantity_in_stock),
+        [t('totalPrice')]: ((i as any).unit_price || 0) * (totals[i.id] || i.quantity_in_stock),
         [t('unit')]: i.unit,
         [t('addedDate')]: new Date(i.added_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US'),
       })),
@@ -243,7 +297,7 @@ export function StockContent() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map(item => (
+                {items.map(item => (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.name}</TableCell>
                     <TableCell>{item.category}</TableCell>
@@ -275,14 +329,17 @@ export function StockContent() {
                     )}
                   </TableRow>
                 ))}
-                {filtered.length === 0 && (
+                {items.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">-</TableCell>
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                      {isLoading ? t('loading') : '-'}
+                    </TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
           </div>
+          <DataPagination page={page} pageSize={PAGE_SIZE} total={total} onPageChange={setPage} />
         </CardContent>
       </Card>
 
