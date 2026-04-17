@@ -16,6 +16,7 @@ export function DashboardContent() {
   const [additions, setAdditions] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [damagedLostAssignments, setDamagedLostAssignments] = useState<any[]>([]);
+  const [allApprovedAssignments, setAllApprovedAssignments] = useState<any[]>([]);
 
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState<string>('all');
@@ -24,13 +25,14 @@ export function DashboardContent() {
   useEffect(() => { loadStats(); }, []);
 
   const loadStats = async () => {
-    const [stockRes, empRes, assignRes, additionsRes, allAssignRes, damagedLostRes] = await Promise.all([
+    const [stockRes, empRes, assignRes, additionsRes, allAssignRes, damagedLostRes, approvedAssignRes] = await Promise.all([
       supabase.from('stock_items').select('*'),
       supabase.from('employees').select('status'),
       supabase.from('assignments').select('status, stock_item_id, quantity_assigned, created_at'),
       supabase.from('stock_additions').select('*'),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, status, created_at').in('status', ['approved', 'pending']),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, notes, created_at').not('notes', 'is', null),
+      supabase.from('assignments').select('stock_item_id, quantity_assigned, status, assignment_date').eq('status', 'approved'),
     ]);
 
     const items = stockRes.data || [];
@@ -47,6 +49,7 @@ export function DashboardContent() {
     setAdditions(additionsRes.data || []);
     setAssignments(allAssignRes.data || []);
     setDamagedLostAssignments(damagedLostRes.data || []);
+    setAllApprovedAssignments(approvedAssignRes.data || []);
   };
 
   // Get available years from additions
@@ -91,6 +94,35 @@ export function DashboardContent() {
       return true;
     });
   }, [damagedLostAssignments, selectedYear, selectedMonth]);
+
+  // Filter approved assignments by date and calculate renewal needed
+  const filteredApprovedAssignments = useMemo(() => {
+    return allApprovedAssignments.filter(a => {
+      const d = new Date(a.assignment_date);
+      if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return false;
+      if (selectedMonth !== 'all' && d.getMonth() !== Number(selectedMonth)) return false;
+      return true;
+    });
+  }, [allApprovedAssignments, selectedYear, selectedMonth]);
+
+  // Calculate renewal needed by item (safety shoes: 12 months, gloves/vests: 4 months)
+  const renewalNeededByItem: Record<string, number> = {};
+  filteredApprovedAssignments.forEach(a => {
+    const item = stockItems.find(i => i.id === a.stock_item_id);
+    if (!item) return;
+    
+    const combined = (item.name + ' ' + item.category).toLowerCase();
+    const isShoes = /shoe|حذاء|بوت|boot|sيفتي/.test(combined);
+    const isGlovesOrVest = /glove|جوانتي|قفاز|vest|فيست|سترة/.test(combined);
+    
+    const monthsElapsed = (Date.now() - new Date(a.assignment_date).getTime()) / (1000 * 60 * 60 * 24 * 30.4375);
+    
+    const isExpired = (isShoes && monthsElapsed >= 12) || (isGlovesOrVest && monthsElapsed >= 4);
+    
+    if (isExpired) {
+      renewalNeededByItem[a.stock_item_id] = (renewalNeededByItem[a.stock_item_id] || 0) + a.quantity_assigned;
+    }
+  });
 
   // Damaged and lost per item
   const damagedByItem: Record<string, number> = {};
@@ -323,6 +355,31 @@ export function DashboardContent() {
               if (!item) return null;
               return (
                 <Card key={itemId} className="overflow-hidden">
+                  <div className="bg-gradient-to-br from-destructive to-destructive/80 p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-primary-foreground/80">{item.name}</p>
+                        <p className="text-3xl font-bold text-primary-foreground">{qty} {t('piece')}</p>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* Renewal Needed Items */}
+      {Object.keys(renewalNeededByItem).length > 0 && (
+        <>
+          <h2 className="text-lg font-bold text-destructive">{t('renewalNeededItems')}</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {Object.entries(renewalNeededByItem).map(([itemId, qty]) => {
+              const item = stockItems.find(i => i.id === itemId);
+              if (!item) return null;
+              return (
+                <Card key={itemId} className="overflow-hidden border-destructive">
                   <div className="bg-gradient-to-br from-destructive to-destructive/80 p-4">
                     <div className="flex items-center justify-between">
                       <div>

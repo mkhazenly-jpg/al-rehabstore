@@ -160,6 +160,8 @@ export const translations = {
     lostItems: 'الأصناف المفقودة',
     totalDamaged: 'إجمالي التالف',
     totalLost: 'إجمالي المفقود',
+    renewalNeeded: 'يحتاج تجديد',
+    renewalNeededItems: 'أصناف تحتاج تجديد',
   },
   en: {
     appName: 'Al-Rahaba Warehouse',
@@ -320,6 +322,8 @@ export const translations = {
     lostItems: 'Lost Items',
     totalDamaged: 'Total Damaged',
     totalLost: 'Total Lost',
+    renewalNeeded: 'Renewal Needed',
+    renewalNeededItems: 'Items Needing Renewal',
   },
 } as const;
 
