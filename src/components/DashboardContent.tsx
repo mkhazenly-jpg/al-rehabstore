@@ -95,6 +95,35 @@ export function DashboardContent() {
     });
   }, [damagedLostAssignments, selectedYear, selectedMonth]);
 
+  // Filter approved assignments by date and calculate renewal needed
+  const filteredApprovedAssignments = useMemo(() => {
+    return allApprovedAssignments.filter(a => {
+      const d = new Date(a.assignment_date);
+      if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return false;
+      if (selectedMonth !== 'all' && d.getMonth() !== Number(selectedMonth)) return false;
+      return true;
+    });
+  }, [allApprovedAssignments, selectedYear, selectedMonth]);
+
+  // Calculate renewal needed by item (safety shoes: 12 months, gloves/vests: 4 months)
+  const renewalNeededByItem: Record<string, number> = {};
+  filteredApprovedAssignments.forEach(a => {
+    const item = stockItems.find(i => i.id === a.stock_item_id);
+    if (!item) return;
+    
+    const combined = (item.name + ' ' + item.category).toLowerCase();
+    const isShoes = /shoe|حذاء|بوت|boot|sيفتي/.test(combined);
+    const isGlovesOrVest = /glove|جوانتي|قفاز|vest|فيست|سترة/.test(combined);
+    
+    const monthsElapsed = (Date.now() - new Date(a.assignment_date).getTime()) / (1000 * 60 * 60 * 24 * 30.4375);
+    
+    const isExpired = (isShoes && monthsElapsed >= 12) || (isGlovesOrVest && monthsElapsed >= 4);
+    
+    if (isExpired) {
+      renewalNeededByItem[a.stock_item_id] = (renewalNeededByItem[a.stock_item_id] || 0) + a.quantity_assigned;
+    }
+  });
+
   // Damaged and lost per item
   const damagedByItem: Record<string, number> = {};
   const lostByItem: Record<string, number> = {};
