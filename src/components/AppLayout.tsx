@@ -1,7 +1,7 @@
 import { Link, useLocation } from '@tanstack/react-router';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
-import { LayoutDashboard, Package, Users, ClipboardList, LogOut, Globe, Menu, X, Shield } from 'lucide-react';
+import { LayoutDashboard, Package, Users, ClipboardList, LogOut, Globe, Menu, X, Shield, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 
@@ -17,9 +17,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         { to: '/stock' as const, icon: Package, label: t('stock') },
         { to: '/employees' as const, icon: Users, label: t('employees') },
         { to: '/assignments' as const, icon: ClipboardList, label: t('assignments') },
+        { to: '/violations' as const, icon: AlertTriangle, label: t('violations') },
       ]
     : [
         { to: '/employees' as const, icon: Users, label: t('employees') },
+        { to: '/violations' as const, icon: AlertTriangle, label: t('violations') },
       ];
 
   const adminItems = isAdmin
