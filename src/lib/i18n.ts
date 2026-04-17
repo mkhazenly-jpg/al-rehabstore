@@ -383,6 +383,9 @@ export const translations = {
     violationVest: 'Not wearing vest',
     violationUnsafeAct: 'Unsafe act',
     violationUnsafeCondition: 'Unsafe condition',
+    showing: 'Showing',
+    of: 'of',
+    loading: 'Loading...',
   },
 } as const;
 
