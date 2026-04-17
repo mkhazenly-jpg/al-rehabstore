@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
-import { resetUserPassword } from '@/lib/admin-actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Globe, Warehouse } from 'lucide-react';
 
-type View = 'login' | 'signup' | 'forgot';
+type View = 'login' | 'signup';
 
 export function LoginPage() {
   const { t, lang, setLang } = useLanguage();
@@ -17,11 +16,9 @@ export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
-  const [resetSent, setResetSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,27 +35,6 @@ export function LoginPage() {
       } else {
         setSignupSuccess(true);
       }
-    } else if (view === 'forgot') {
-      if (!newPassword || newPassword.length < 6) {
-        setError(t('password') + ' (min 6)');
-        setLoading(false);
-        return;
-      }
-      try {
-        await resetUserPassword(email, newPassword);
-        // Auto-login after reset
-        const res = await signIn(email, newPassword);
-        if (res.error) {
-          setResetSent(true); // password changed but login failed
-        }
-      } catch (err: any) {
-        const msg = err?.message || '';
-        if (msg.includes('USER_NOT_FOUND')) {
-          setError(t('email') + ' - ' + 'Not found');
-        } else {
-          setError(msg);
-        }
-      }
     }
     setLoading(false);
   };
@@ -66,7 +42,6 @@ export function LoginPage() {
   const switchView = (v: View) => {
     setView(v);
     setError('');
-    setResetSent(false);
     setSignupSuccess(false);
   };
 
