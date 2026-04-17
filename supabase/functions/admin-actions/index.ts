@@ -5,6 +5,40 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+async function requireAdmin(req: Request, supabaseAdmin: any) {
+  const authHeader = req.headers.get("authorization");
+  const token = authHeader?.replace("Bearer ", "");
+  if (!token) {
+    return { error: new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    })};
+  }
+
+  const { data: { user: caller }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+  if (authErr || !caller) {
+    return { error: new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    })};
+  }
+
+  const { data: roleData } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", caller.id)
+    .maybeSingle();
+
+  if (roleData?.role !== "admin") {
+    return { error: new Response(JSON.stringify({ error: "Forbidden: admin role required" }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    })};
+  }
+
+  return { caller };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -18,6 +52,10 @@ Deno.serve(async (req) => {
     const { action, email, newPassword, userId } = await req.json();
 
     if (action === "reset-password") {
+      // SECURITY: require admin caller
+      const auth = await requireAdmin(req, supabaseAdmin);
+      if (auth.error) return auth.error;
+
       // Find user by email
       const { data: users, error: listErr } = await supabaseAdmin.auth.admin.listUsers();
       if (listErr) throw listErr;
@@ -43,6 +81,10 @@ Deno.serve(async (req) => {
     if (action === "delete-user") {
       const PROTECTED_EMAIL = "m.khazenly@gmail.com";
 
+      // Verify caller is admin
+      const auth = await requireAdmin(req, supabaseAdmin);
+      if (auth.error) return auth.error;
+
       // Check if target user is protected
       const { data: targetProfile } = await supabaseAdmin
         .from("profiles")
@@ -52,38 +94,6 @@ Deno.serve(async (req) => {
 
       if (targetProfile?.email === PROTECTED_EMAIL) {
         return new Response(JSON.stringify({ error: "PROTECTED_USER" }), {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      // Verify caller is admin via auth header
-      const authHeader = req.headers.get("authorization");
-      const token = authHeader?.replace("Bearer ", "");
-      if (!token) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const { data: { user: caller }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-      if (authErr || !caller) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      // Check admin role
-      const { data: roleData } = await supabaseAdmin
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", caller.id)
-        .maybeSingle();
-
-      if (roleData?.role !== "admin") {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });

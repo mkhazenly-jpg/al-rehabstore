@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
-import { resetUserPassword } from '@/lib/admin-actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Globe, Warehouse } from 'lucide-react';
 
-type View = 'login' | 'signup' | 'forgot';
+type View = 'login' | 'signup';
 
 export function LoginPage() {
   const { t, lang, setLang } = useLanguage();
@@ -17,11 +16,9 @@ export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
-  const [resetSent, setResetSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,27 +35,6 @@ export function LoginPage() {
       } else {
         setSignupSuccess(true);
       }
-    } else if (view === 'forgot') {
-      if (!newPassword || newPassword.length < 6) {
-        setError(t('password') + ' (min 6)');
-        setLoading(false);
-        return;
-      }
-      try {
-        await resetUserPassword(email, newPassword);
-        // Auto-login after reset
-        const res = await signIn(email, newPassword);
-        if (res.error) {
-          setResetSent(true); // password changed but login failed
-        }
-      } catch (err: any) {
-        const msg = err?.message || '';
-        if (msg.includes('USER_NOT_FOUND')) {
-          setError(t('email') + ' - ' + 'Not found');
-        } else {
-          setError(msg);
-        }
-      }
     }
     setLoading(false);
   };
@@ -66,7 +42,6 @@ export function LoginPage() {
   const switchView = (v: View) => {
     setView(v);
     setError('');
-    setResetSent(false);
     setSignupSuccess(false);
   };
 
@@ -85,7 +60,7 @@ export function LoginPage() {
           </div>
           <CardTitle className="text-2xl font-bold">{t('appName')}</CardTitle>
           <p className="text-sm text-muted-foreground">
-            {view === 'login' ? t('login') : view === 'signup' ? t('signup') : t('resetPassword')}
+            {view === 'login' ? t('login') : t('signup')}
           </p>
         </CardHeader>
         <CardContent>
@@ -94,13 +69,6 @@ export function LoginPage() {
               <p className="text-success font-medium">{t('pendingApprovalMsg')}</p>
               <Button variant="outline" onClick={() => switchView('login')}>
                 {t('login')}
-              </Button>
-            </div>
-          ) : resetSent ? (
-            <div className="text-center space-y-3">
-              <p className="font-medium text-primary">{t('passwordUpdated')}</p>
-              <Button variant="outline" onClick={() => switchView('login')}>
-                {t('backToLogin')}
               </Button>
             </div>
           ) : (
@@ -115,42 +83,19 @@ export function LoginPage() {
                 <Label>{t('email')}</Label>
                 <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
               </div>
-              {view !== 'forgot' && (
-                <div className="space-y-2">
-                  <Label>{t('password')}</Label>
-                  <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
-                </div>
-              )}
-              {view === 'forgot' && (
-                <div className="space-y-2">
-                  <Label>{t('newPassword')}</Label>
-                  <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={6} />
-                </div>
-              )}
-              {view === 'login' && (
-                <div className="text-end">
-                  <button type="button" className="text-sm text-primary underline" onClick={() => switchView('forgot')}>
-                    {t('forgotPassword')}
-                  </button>
-                </div>
-              )}
+              <div className="space-y-2">
+                <Label>{t('password')}</Label>
+                <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+              </div>
               {error && <p className="text-sm text-destructive">{error}</p>}
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? '...' : view === 'login' ? t('login') : view === 'signup' ? t('signup') : t('sendResetLink')}
+                {loading ? '...' : view === 'login' ? t('login') : t('signup')}
               </Button>
               <p className="text-center text-sm text-muted-foreground">
-                {view === 'forgot' ? (
-                  <button type="button" className="text-primary underline" onClick={() => switchView('login')}>
-                    {t('backToLogin')}
-                  </button>
-                ) : (
-                  <>
-                    {view === 'login' ? t('noAccount') : t('haveAccount')}{' '}
-                    <button type="button" className="text-primary underline" onClick={() => switchView(view === 'login' ? 'signup' : 'login')}>
-                      {view === 'login' ? t('signup') : t('login')}
-                    </button>
-                  </>
-                )}
+                {view === 'login' ? t('noAccount') : t('haveAccount')}{' '}
+                <button type="button" className="text-primary underline" onClick={() => switchView(view === 'login' ? 'signup' : 'login')}>
+                  {view === 'login' ? t('signup') : t('login')}
+                </button>
               </p>
             </form>
           )}
