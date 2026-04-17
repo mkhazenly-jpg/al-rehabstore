@@ -59,6 +59,23 @@ export function UserManagementContent() {
     setDeleting(null);
   };
 
+  const handleResetPassword = async () => {
+    if (!resetTarget || newPwd.length < 6) {
+      toast.error(t('passwordTooShort') || 'Password must be at least 6 characters');
+      return;
+    }
+    setResetting(true);
+    try {
+      await resetUserPassword(resetTarget.email, newPwd);
+      toast.success(t('passwordUpdated'));
+      setResetTarget(null);
+      setNewPwd('');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed');
+    }
+    setResetting(false);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
