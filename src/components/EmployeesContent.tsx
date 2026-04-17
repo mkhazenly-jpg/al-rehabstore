@@ -36,6 +36,7 @@ export function EmployeesContent() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [assignments, setAssignments] = useState<any[]>([]);
+  const [empViolations, setEmpViolations] = useState<any[]>([]);
   const [editItem, setEditItem] = useState<Employee | null>(null);
   const [form, setForm] = useState({ name: '', hire_date: '', status: 'active' as 'active' | 'resigned' | 'terminated', termination_date: '', department: '', notes: '', shift: '' as '' | 'morning' | 'night', mobile: '', job_title: '' });
 
@@ -78,12 +79,20 @@ export function EmployeesContent() {
 
   const viewDetails = async (emp: Employee) => {
     setSelectedEmployee(emp);
-    const { data } = await supabase
-      .from('assignments')
-      .select('*, stock_items(name, category, size, unit_price)')
-      .eq('employee_id', emp.id)
-      .order('assignment_date', { ascending: false });
-    setAssignments(data || []);
+    const [assignRes, violRes] = await Promise.all([
+      supabase
+        .from('assignments')
+        .select('*, stock_items(name, category, size, unit_price)')
+        .eq('employee_id', emp.id)
+        .order('assignment_date', { ascending: false }),
+      supabase
+        .from('employee_violations')
+        .select('*')
+        .eq('employee_id', emp.id)
+        .order('violation_date', { ascending: false }),
+    ]);
+    setAssignments(assignRes.data || []);
+    setEmpViolations(violRes.data || []);
     setDetailOpen(true);
   };
 
@@ -495,6 +504,65 @@ export function EmployeesContent() {
                       ) : null;
                     })()}
                   </>
+                )}
+              </div>
+
+              {/* Violations section */}
+              <div className="space-y-2">
+                <h3 className="font-semibold">{t('violationHistory')}</h3>
+                {empViolations.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t('noViolations')}</p>
+                ) : (
+                  <div className="max-h-60 overflow-y-auto space-y-2">
+                    {(() => {
+                      // Compute repeat numbers for this employee chronologically
+                      const sorted = [...empViolations].sort((a, b) =>
+                        new Date(a.violation_date).getTime() - new Date(b.violation_date).getTime()
+                      );
+                      const counters: Record<string, number> = {};
+                      const repeatById: Record<string, number> = {};
+                      sorted.forEach(v => {
+                        const key = v.violation_description.trim().toLowerCase().replace(/\s+/g, ' ');
+                        counters[key] = (counters[key] || 0) + 1;
+                        repeatById[v.id] = counters[key];
+                      });
+                      const getColor = (n: number) => {
+                        if (n <= 1) return 'bg-success/20 text-success';
+                        if (n === 2) return 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400';
+                        return 'bg-destructive text-destructive-foreground';
+                      };
+                      const actionColors: Record<string, string> = {
+                        warning: 'bg-accent/20 text-accent-foreground',
+                        verbal_warning: 'bg-muted text-muted-foreground',
+                        deduction: 'bg-primary/20 text-primary',
+                        suspension: 'bg-destructive/20 text-destructive',
+                        termination: 'bg-destructive text-destructive-foreground',
+                      };
+                      return empViolations.map((v: any) => {
+                        const repeat = repeatById[v.id] || 1;
+                        return (
+                          <div key={v.id} className={`rounded-lg border p-2 text-sm ${repeat >= 3 ? 'border-destructive bg-destructive/10' : repeat === 2 ? 'border-yellow-500/50 bg-yellow-500/5' : ''}`}>
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="font-medium flex-1">{v.violation_description}</p>
+                              <span className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${getColor(repeat)}`}>
+                                {repeat}
+                              </span>
+                            </div>
+                            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                              <span>{new Date(v.violation_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}</span>
+                              <span className={`rounded-full px-2 py-0.5 font-medium ${actionColors[v.action_taken]}`}>
+                                {t(v.action_taken as any)}
+                              </span>
+                              {Number(v.deduction_amount) > 0 && (
+                                <span>{t('deductionAmount')}: {v.deduction_amount} {t('currency')}</span>
+                              )}
+                            </div>
+                            {v.notes && <p className="mt-1 text-xs text-muted-foreground">{v.notes}</p>}
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
                 )}
               </div>
             </div>
