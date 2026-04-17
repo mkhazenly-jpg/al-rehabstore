@@ -36,6 +36,7 @@ export function EmployeesContent() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [assignments, setAssignments] = useState<any[]>([]);
+  const [empViolations, setEmpViolations] = useState<any[]>([]);
   const [editItem, setEditItem] = useState<Employee | null>(null);
   const [form, setForm] = useState({ name: '', hire_date: '', status: 'active' as 'active' | 'resigned' | 'terminated', termination_date: '', department: '', notes: '', shift: '' as '' | 'morning' | 'night', mobile: '', job_title: '' });
 
@@ -78,12 +79,20 @@ export function EmployeesContent() {
 
   const viewDetails = async (emp: Employee) => {
     setSelectedEmployee(emp);
-    const { data } = await supabase
-      .from('assignments')
-      .select('*, stock_items(name, category, size, unit_price)')
-      .eq('employee_id', emp.id)
-      .order('assignment_date', { ascending: false });
-    setAssignments(data || []);
+    const [assignRes, violRes] = await Promise.all([
+      supabase
+        .from('assignments')
+        .select('*, stock_items(name, category, size, unit_price)')
+        .eq('employee_id', emp.id)
+        .order('assignment_date', { ascending: false }),
+      supabase
+        .from('employee_violations')
+        .select('*')
+        .eq('employee_id', emp.id)
+        .order('violation_date', { ascending: false }),
+    ]);
+    setAssignments(assignRes.data || []);
+    setEmpViolations(violRes.data || []);
     setDetailOpen(true);
   };
 
