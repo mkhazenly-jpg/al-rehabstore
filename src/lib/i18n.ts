@@ -180,7 +180,6 @@ export const translations = {
     selectAction: 'اختر الإجراء',
     fromDate: 'من تاريخ',
     toDate: 'إلى تاريخ',
-    exportExcel: 'تصدير Excel',
     commonViolations: 'مخالفات شائعة',
     selectOrType: 'اختر أو اكتب...',
     customViolation: 'مخالفة مخصصة',
