@@ -61,7 +61,7 @@ export function UserManagementContent() {
 
   const handleResetPassword = async () => {
     if (!resetTarget || newPwd.length < 6) {
-      toast.error(t('passwordTooShort') || 'Password must be at least 6 characters');
+      toast.error('Password must be at least 6 characters');
       return;
     }
     setResetting(true);
