@@ -71,7 +71,12 @@ Deno.serve(async (req) => {
       const { error } = await supabaseAdmin.auth.admin.updateUserById(user.id, {
         password: newPassword,
       });
-      if (error) throw error;
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
