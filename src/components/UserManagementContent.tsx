@@ -153,6 +153,16 @@ export function UserManagementContent() {
                           <Trash2 className="h-4 w-4 me-1 text-destructive" />
                           {t('delete')}
                         </Button>
+                        {isProtectedAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => { setResetTarget({ email: user.email, name: user.full_name || user.email }); setNewPwd(''); }}
+                          >
+                            <Key className="h-4 w-4 me-1 text-primary" />
+                            {t('resetPassword')}
+                          </Button>
+                        )}
                       </div>
                       )}
                     </TableCell>
