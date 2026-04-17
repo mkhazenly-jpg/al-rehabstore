@@ -1,19 +1,29 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/hooks/use-language';
-import { deleteUserById } from '@/lib/admin-actions';
+import { useAuth } from '@/hooks/use-auth';
+import { deleteUserById, resetUserPassword } from '@/lib/admin-actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Check, X, Shield, Trash2, Lock } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
+import { Check, X, Shield, Trash2, Lock, Key } from 'lucide-react';
 
 const PROTECTED_EMAIL = 'm.khazenly@gmail.com';
 
 export function UserManagementContent() {
   const { t } = useLanguage();
+  const { profile } = useAuth();
+  const isProtectedAdmin = profile?.email === PROTECTED_EMAIL;
   const [users, setUsers] = useState<any[]>([]);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [resetTarget, setResetTarget] = useState<{ email: string; name: string } | null>(null);
+  const [newPwd, setNewPwd] = useState('');
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => { loadUsers(); }, []);
 
