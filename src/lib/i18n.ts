@@ -368,7 +368,6 @@ export const translations = {
     selectAction: 'Select Action',
     fromDate: 'From Date',
     toDate: 'To Date',
-    exportExcel: 'Export Excel',
     commonViolations: 'Common Violations',
     selectOrType: 'Select or type...',
     customViolation: 'Custom Violation',
