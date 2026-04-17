@@ -60,7 +60,7 @@ export function LoginPage() {
           </div>
           <CardTitle className="text-2xl font-bold">{t('appName')}</CardTitle>
           <p className="text-sm text-muted-foreground">
-            {view === 'login' ? t('login') : view === 'signup' ? t('signup') : t('resetPassword')}
+            {view === 'login' ? t('login') : t('signup')}
           </p>
         </CardHeader>
         <CardContent>
@@ -69,13 +69,6 @@ export function LoginPage() {
               <p className="text-success font-medium">{t('pendingApprovalMsg')}</p>
               <Button variant="outline" onClick={() => switchView('login')}>
                 {t('login')}
-              </Button>
-            </div>
-          ) : resetSent ? (
-            <div className="text-center space-y-3">
-              <p className="font-medium text-primary">{t('passwordUpdated')}</p>
-              <Button variant="outline" onClick={() => switchView('login')}>
-                {t('backToLogin')}
               </Button>
             </div>
           ) : (
@@ -90,42 +83,19 @@ export function LoginPage() {
                 <Label>{t('email')}</Label>
                 <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
               </div>
-              {view !== 'forgot' && (
-                <div className="space-y-2">
-                  <Label>{t('password')}</Label>
-                  <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
-                </div>
-              )}
-              {view === 'forgot' && (
-                <div className="space-y-2">
-                  <Label>{t('newPassword')}</Label>
-                  <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={6} />
-                </div>
-              )}
-              {view === 'login' && (
-                <div className="text-end">
-                  <button type="button" className="text-sm text-primary underline" onClick={() => switchView('forgot')}>
-                    {t('forgotPassword')}
-                  </button>
-                </div>
-              )}
+              <div className="space-y-2">
+                <Label>{t('password')}</Label>
+                <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+              </div>
               {error && <p className="text-sm text-destructive">{error}</p>}
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? '...' : view === 'login' ? t('login') : view === 'signup' ? t('signup') : t('sendResetLink')}
+                {loading ? '...' : view === 'login' ? t('login') : t('signup')}
               </Button>
               <p className="text-center text-sm text-muted-foreground">
-                {view === 'forgot' ? (
-                  <button type="button" className="text-primary underline" onClick={() => switchView('login')}>
-                    {t('backToLogin')}
-                  </button>
-                ) : (
-                  <>
-                    {view === 'login' ? t('noAccount') : t('haveAccount')}{' '}
-                    <button type="button" className="text-primary underline" onClick={() => switchView(view === 'login' ? 'signup' : 'login')}>
-                      {view === 'login' ? t('signup') : t('login')}
-                    </button>
-                  </>
-                )}
+                {view === 'login' ? t('noAccount') : t('haveAccount')}{' '}
+                <button type="button" className="text-primary underline" onClick={() => switchView(view === 'login' ? 'signup' : 'login')}>
+                  {view === 'login' ? t('signup') : t('login')}
+                </button>
               </p>
             </form>
           )}
