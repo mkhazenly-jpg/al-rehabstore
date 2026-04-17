@@ -43,6 +43,7 @@ export function AssignmentsContent() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [employeePopoverOpen, setEmployeePopoverOpen] = useState(false);
 
   useEffect(() => { loadAll(); }, []);
 
