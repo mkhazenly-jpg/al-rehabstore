@@ -16,6 +16,7 @@ export function DashboardContent() {
   const [additions, setAdditions] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [damagedLostAssignments, setDamagedLostAssignments] = useState<any[]>([]);
+  const [allApprovedAssignments, setAllApprovedAssignments] = useState<any[]>([]);
 
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState<string>('all');
@@ -24,13 +25,14 @@ export function DashboardContent() {
   useEffect(() => { loadStats(); }, []);
 
   const loadStats = async () => {
-    const [stockRes, empRes, assignRes, additionsRes, allAssignRes, damagedLostRes] = await Promise.all([
+    const [stockRes, empRes, assignRes, additionsRes, allAssignRes, damagedLostRes, approvedAssignRes] = await Promise.all([
       supabase.from('stock_items').select('*'),
       supabase.from('employees').select('status'),
       supabase.from('assignments').select('status, stock_item_id, quantity_assigned, created_at'),
       supabase.from('stock_additions').select('*'),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, status, created_at').in('status', ['approved', 'pending']),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, notes, created_at').not('notes', 'is', null),
+      supabase.from('assignments').select('stock_item_id, quantity_assigned, status, assignment_date').eq('status', 'approved'),
     ]);
 
     const items = stockRes.data || [];
@@ -47,6 +49,7 @@ export function DashboardContent() {
     setAdditions(additionsRes.data || []);
     setAssignments(allAssignRes.data || []);
     setDamagedLostAssignments(damagedLostRes.data || []);
+    setAllApprovedAssignments(approvedAssignRes.data || []);
   };
 
   // Get available years from additions
