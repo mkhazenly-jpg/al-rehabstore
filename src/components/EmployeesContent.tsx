@@ -438,29 +438,49 @@ export function EmployeesContent() {
                     <div className="max-h-60 overflow-y-auto space-y-2">
                       {assignments.map((a: any) => {
                         const price = (a.stock_items?.unit_price || 0) * a.quantity_assigned;
+                        const itemName = (a.stock_items?.name || '').toLowerCase();
+                        const itemCat = (a.stock_items?.category || '').toLowerCase();
+                        const combined = `${itemName} ${itemCat}`;
+                        const isShoes = /shoe|حذاء|بوت|boot|سيفتي/.test(combined);
+                        const isGlovesOrVest = /glove|جوانتي|قفاز|vest|فيست|سترة/.test(combined);
+                        const assignedAt = new Date(a.assignment_date).getTime();
+                        const now = Date.now();
+                        const monthsElapsed = (now - assignedAt) / (1000 * 60 * 60 * 24 * 30.4375);
+                        const isActive = a.status === 'approved';
+                        const isExpired = isActive && (
+                          (isShoes && monthsElapsed >= 12) ||
+                          (isGlovesOrVest && monthsElapsed >= 4)
+                        );
                         return (
-                          <div key={a.id} className="flex items-center justify-between rounded-lg border p-2 text-sm">
+                          <div key={a.id} className={`flex items-center justify-between rounded-lg border p-2 text-sm ${isExpired ? 'border-destructive bg-destructive/10' : ''}`}>
                             <div>
-                              <p className="font-medium">
+                              <p className={`font-medium ${isExpired ? 'text-destructive' : ''}`}>
                                 {a.stock_items?.name} ({a.stock_items?.category})
                                 {a.stock_items?.category?.toLowerCase().includes('safety') && a.stock_items?.size && a.stock_items.size !== 'N/A' && (
                                   <span className="ms-1 text-xs text-muted-foreground">- {t('size')}: {a.stock_items.size}</span>
                                 )}
                               </p>
-                              <p className="text-xs text-muted-foreground">
+                              <p className={`text-xs ${isExpired ? 'text-destructive/80' : 'text-muted-foreground'}`}>
                                 {t('quantity')}: {a.quantity_assigned} • {new Date(a.assignment_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}
                                 {a.stock_items?.unit_price > 0 && (
                                   <> • {t('unitPrice')}: {a.stock_items.unit_price} {t('currency')} • {t('totalPrice')}: {price} {t('currency')}</>
                                 )}
                               </p>
                             </div>
-                            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                              a.status === 'approved' ? 'bg-success/20 text-success' :
-                              a.status === 'pending' ? 'bg-accent/20 text-accent-foreground' :
-                              'bg-muted text-muted-foreground'
-                            }`}>
-                              {t(a.status as any)}
-                            </span>
+                            <div className="flex flex-col items-end gap-1">
+                              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                                a.status === 'approved' ? 'bg-success/20 text-success' :
+                                a.status === 'pending' ? 'bg-accent/20 text-accent-foreground' :
+                                'bg-muted text-muted-foreground'
+                              }`}>
+                                {t(a.status as any)}
+                              </span>
+                              {isExpired && (
+                                <span className="rounded-full bg-destructive px-2 py-0.5 text-xs font-medium text-destructive-foreground">
+                                  {t('renewalDue')}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         );
                       })}
