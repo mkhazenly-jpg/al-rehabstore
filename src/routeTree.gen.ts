@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ViolationsRouteImport } from './routes/violations'
 import { Route as UnauthorizedRouteImport } from './routes/unauthorized'
 import { Route as StockRouteImport } from './routes/stock'
 import { Route as EmployeesRouteImport } from './routes/employees'
@@ -17,6 +18,11 @@ import { Route as AssignmentsRouteImport } from './routes/assignments'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
 
+const ViolationsRoute = ViolationsRouteImport.update({
+  id: '/violations',
+  path: '/violations',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UnauthorizedRoute = UnauthorizedRouteImport.update({
   id: '/unauthorized',
   path: '/unauthorized',
@@ -60,6 +66,7 @@ export interface FileRoutesByFullPath {
   '/employees': typeof EmployeesRoute
   '/stock': typeof StockRoute
   '/unauthorized': typeof UnauthorizedRoute
+  '/violations': typeof ViolationsRoute
   '/admin/users': typeof AdminUsersRoute
 }
 export interface FileRoutesByTo {
@@ -69,6 +76,7 @@ export interface FileRoutesByTo {
   '/employees': typeof EmployeesRoute
   '/stock': typeof StockRoute
   '/unauthorized': typeof UnauthorizedRoute
+  '/violations': typeof ViolationsRoute
   '/admin/users': typeof AdminUsersRoute
 }
 export interface FileRoutesById {
@@ -79,6 +87,7 @@ export interface FileRoutesById {
   '/employees': typeof EmployeesRoute
   '/stock': typeof StockRoute
   '/unauthorized': typeof UnauthorizedRoute
+  '/violations': typeof ViolationsRoute
   '/admin/users': typeof AdminUsersRoute
 }
 export interface FileRouteTypes {
@@ -90,6 +99,7 @@ export interface FileRouteTypes {
     | '/employees'
     | '/stock'
     | '/unauthorized'
+    | '/violations'
     | '/admin/users'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -99,6 +109,7 @@ export interface FileRouteTypes {
     | '/employees'
     | '/stock'
     | '/unauthorized'
+    | '/violations'
     | '/admin/users'
   id:
     | '__root__'
@@ -108,6 +119,7 @@ export interface FileRouteTypes {
     | '/employees'
     | '/stock'
     | '/unauthorized'
+    | '/violations'
     | '/admin/users'
   fileRoutesById: FileRoutesById
 }
@@ -118,11 +130,19 @@ export interface RootRouteChildren {
   EmployeesRoute: typeof EmployeesRoute
   StockRoute: typeof StockRoute
   UnauthorizedRoute: typeof UnauthorizedRoute
+  ViolationsRoute: typeof ViolationsRoute
   AdminUsersRoute: typeof AdminUsersRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/violations': {
+      id: '/violations'
+      path: '/violations'
+      fullPath: '/violations'
+      preLoaderRoute: typeof ViolationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/unauthorized': {
       id: '/unauthorized'
       path: '/unauthorized'
@@ -182,6 +202,7 @@ const rootRouteChildren: RootRouteChildren = {
   EmployeesRoute: EmployeesRoute,
   StockRoute: StockRoute,
   UnauthorizedRoute: UnauthorizedRoute,
+  ViolationsRoute: ViolationsRoute,
   AdminUsersRoute: AdminUsersRoute,
 }
 export const routeTree = rootRouteImport
