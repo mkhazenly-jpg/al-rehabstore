@@ -174,6 +174,33 @@ export function UserManagementContent() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={!!resetTarget} onOpenChange={(o) => !o && setResetTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('resetPassword')} — {resetTarget?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="new-pwd">{t('newPassword')}</Label>
+            <Input
+              id="new-pwd"
+              type="password"
+              value={newPwd}
+              onChange={(e) => setNewPwd(e.target.value)}
+              minLength={6}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResetTarget(null)} disabled={resetting}>
+              {t('cancel')}
+            </Button>
+            <Button onClick={handleResetPassword} disabled={resetting || newPwd.length < 6}>
+              {resetting ? '...' : t('save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
