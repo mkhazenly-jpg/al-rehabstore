@@ -2,8 +2,6 @@ import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
-import { useDebounce } from '@/hooks/use-debounce';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,8 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { DataPagination } from '@/components/ui/data-pagination';
-import { Plus, Download, RotateCcw, Trash2, CalendarIcon, AlertTriangle, Pencil, Check, ChevronsUpDown, Search } from 'lucide-react';
+import { Plus, Download, RotateCcw, Trash2, CalendarIcon, AlertTriangle, Pencil, Check, ChevronsUpDown } from 'lucide-react';
 import { exportToExcel } from '@/lib/export';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -31,19 +28,12 @@ interface AssignmentLine {
   reassign_reason: string;
 }
 
-const PAGE_SIZE = 50;
-
 export function AssignmentsContent() {
   const { t, lang } = useLanguage();
   const { isAdmin } = useAuth();
-  const qc = useQueryClient();
-
-  // Filters
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(0);
-  const debouncedSearch = useDebounce(search, 300);
-  useEffect(() => { setPage(0); }, [debouncedSearch]);
-
+  const [assignments, setAssignments] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [stockItems, setStockItems] = useState<StockItem[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<any>(null);
   const [employeeId, setEmployeeId] = useState('');
@@ -55,72 +45,28 @@ export function AssignmentsContent() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [employeePopoverOpen, setEmployeePopoverOpen] = useState(false);
 
-  // Active employees — small list, cache long
-  const { data: employees = [] } = useQuery({
-    queryKey: ['employees_active'],
-    queryFn: async () => {
-      const { data } = await supabase.from('employees').select('*').eq('status', 'active').order('name');
-      return (data || []) as Employee[];
-    },
-    staleTime: 60_000,
-  });
+  useEffect(() => { loadAll(); }, []);
 
-  // Stock items — cache long
-  const { data: stockItems = [] } = useQuery({
-    queryKey: ['stock_items_all'],
-    queryFn: async () => {
-      const { data } = await supabase.from('stock_items').select('*').order('name');
-      return (data || []) as StockItem[];
-    },
-    staleTime: 60_000,
-  });
-
-  // Paginated assignments — server-side search by joining employee/stock names is complex via PostgREST,
-  // so we filter on the client over the current page, but search will trigger a refetch to apply broader filter via .or() on text fields.
-  // Using a cleaner approach: fetch all on filtered employee/item ids matching search, OR just paginate without name search.
-  // Compromise: paginate by date desc; search filters the visible page only.
-  const { data: assignData, isLoading: assignmentsLoading } = useQuery({
-    queryKey: ['assignments', { page }],
-    queryFn: async () => {
-      const from = page * PAGE_SIZE;
-      const to = from + PAGE_SIZE - 1;
-      const { data, count } = await supabase
-        .from('assignments')
-        .select('*, employees(name), stock_items(name, category, size, quantity_in_stock)', { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range(from, to);
-      return { items: data || [], total: count || 0 };
-    },
-  });
-
-  const allAssignments = assignData?.items || [];
-  const total = assignData?.total || 0;
-
-  // Local filter on the page by name (employee or stock item)
-  const assignments = useMemo(() => {
-    if (!debouncedSearch.trim()) return allAssignments;
-    const s = debouncedSearch.toLowerCase();
-    return allAssignments.filter((a: any) =>
-      (a.employees?.name || '').toLowerCase().includes(s) ||
-      (a.stock_items?.name || '').toLowerCase().includes(s)
-    );
-  }, [allAssignments, debouncedSearch]);
-
-  const invalidateAll = () => {
-    qc.invalidateQueries({ queryKey: ['assignments'] });
-    qc.invalidateQueries({ queryKey: ['stock_items'] });
-    qc.invalidateQueries({ queryKey: ['stock_items_all'] });
+  const loadAll = async () => {
+    const [aRes, eRes, sRes] = await Promise.all([
+      supabase.from('assignments').select('*, employees(name), stock_items(name, category, size, quantity_in_stock)').order('created_at', { ascending: false }),
+      supabase.from('employees').select('*').eq('status', 'active'),
+      supabase.from('stock_items').select('*'),
+    ]);
+    setAssignments(aRes.data || []);
+    setEmployees(eRes.data || []);
+    setStockItems(sRes.data || []);
   };
 
   // Track which stock items the selected employee currently has (approved status)
   const employeeActiveItems = useMemo(() => {
     if (!employeeId) return new Set<string>();
     return new Set(
-      allAssignments
+      assignments
         .filter((a: any) => a.employee_id === employeeId && a.status === 'approved')
         .map((a: any) => a.stock_item_id)
     );
-  }, [employeeId, allAssignments]);
+  }, [employeeId, assignments]);
 
   const openDialog = (assignment?: any) => {
     if (assignment) {
@@ -158,6 +104,7 @@ export function AssignmentsContent() {
     setError('');
 
     if (editingAssignment) {
+      // Edit mode - single item update
       const line = lines[0];
       if (!line.stock_item_id || !employeeId) return;
       if (line.quantity_assigned < 1) return;
@@ -189,7 +136,7 @@ export function AssignmentsContent() {
         if (appErr) { setError(appErr.message); setSaving(false); return; }
 
         setDialogOpen(false);
-        invalidateAll();
+        await loadAll();
       } catch (e) {
         setError(String(e));
       } finally {
@@ -198,6 +145,7 @@ export function AssignmentsContent() {
       return;
     }
 
+    // Create mode
     for (const line of lines) {
       if (!line.stock_item_id) continue;
       const stock = stockItems.find(s => s.id === line.stock_item_id);
@@ -247,7 +195,7 @@ export function AssignmentsContent() {
         }
       }
       setDialogOpen(false);
-      invalidateAll();
+      await loadAll();
     } catch (e) {
       setError(String(e));
     } finally {
@@ -257,7 +205,7 @@ export function AssignmentsContent() {
 
   const handleReturn = async (id: string) => {
     await supabase.rpc('return_assignment', { _assignment_id: id });
-    invalidateAll();
+    loadAll();
   };
 
   const getReasonFromNotes = (notes: string | null) => {
@@ -267,16 +215,9 @@ export function AssignmentsContent() {
     return '-';
   };
 
-  const handleExport = async () => {
-    // Export ALL assignments, not just current page
-    const { data } = await supabase
-      .from('assignments')
-      .select('*, employees(name), stock_items(name, category, size, quantity_in_stock)')
-      .order('created_at', { ascending: false });
-    const all = (data || []) as any[];
-
+  const handleExport = () => {
     exportToExcel(
-      all.map((a: any) => ({
+      assignments.map((a: any) => ({
         [t('employee')]: a.employees?.name,
         [t('stockItem')]: a.stock_items?.name,
         [t('quantityAssigned')]: a.quantity_assigned,
@@ -291,12 +232,13 @@ export function AssignmentsContent() {
 
   const handleDelete = async (assignment: any) => {
     try {
+      // If approved, return stock first
       if (assignment.status === 'approved') {
         await supabase.rpc('return_assignment', { _assignment_id: assignment.id });
       }
       await supabase.from('assignments').delete().eq('id', assignment.id);
       setDeleteConfirmId(null);
-      invalidateAll();
+      await loadAll();
     } catch (e) {
       console.error(e);
     }
@@ -323,11 +265,6 @@ export function AssignmentsContent() {
             <Plus className="h-4 w-4 me-1" />{t('newAssignment')}
           </Button>
         </div>
-      </div>
-
-      <div className="relative">
-        <Search className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input className="ps-9" placeholder={t('search')} value={search} onChange={e => setSearch(e.target.value)} />
       </div>
 
       <Card>
@@ -393,15 +330,12 @@ export function AssignmentsContent() {
                 ))}
                 {assignments.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                      {assignmentsLoading ? t('loading') : '-'}
-                    </TableCell>
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">-</TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
           </div>
-          <DataPagination page={page} pageSize={PAGE_SIZE} total={total} onPageChange={setPage} />
         </CardContent>
       </Card>
 
@@ -411,6 +345,7 @@ export function AssignmentsContent() {
             <DialogTitle>{editingAssignment ? t('edit') : t('newAssignment')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Employee select */}
             <div className="space-y-2">
               <Label>{t('employee')}</Label>
               <Popover open={employeePopoverOpen} onOpenChange={setEmployeePopoverOpen}>
@@ -453,6 +388,7 @@ export function AssignmentsContent() {
               </Popover>
             </div>
 
+            {/* Assignment date picker */}
             <div className="space-y-2">
               <Label>{t('assignmentDateLabel')}</Label>
               <Popover>
@@ -474,6 +410,7 @@ export function AssignmentsContent() {
               </Popover>
             </div>
 
+            {/* Items */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label>{t('items')}</Label>
@@ -561,6 +498,7 @@ export function AssignmentsContent() {
         </DialogContent>
       </Dialog>
 
+      {/* Delete confirmation dialog */}
       <Dialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -570,7 +508,7 @@ export function AssignmentsContent() {
           <div className="flex gap-2 justify-end">
             <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>{t('cancel')}</Button>
             <Button variant="destructive" onClick={() => {
-              const a = allAssignments.find((x: any) => x.id === deleteConfirmId);
+              const a = assignments.find((x: any) => x.id === deleteConfirmId);
               if (a) handleDelete(a);
             }}>{t('delete')}</Button>
           </div>

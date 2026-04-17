@@ -2,8 +2,6 @@ import { useEffect, useState, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
-import { useDebounce } from '@/hooks/use-debounce';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,7 +10,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-import { DataPagination } from '@/components/ui/data-pagination';
 import { Plus, Pencil, Trash2, Search, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { exportToExcel } from '@/lib/export';
@@ -31,8 +28,6 @@ const ACTION_COLORS: Record<string, string> = {
   termination: 'bg-destructive text-destructive-foreground',
 };
 
-const PAGE_SIZE = 50;
-
 export function getRepeatBadgeClass(repeatNumber: number): string {
   if (repeatNumber <= 1) return 'bg-success/20 text-success';
   if (repeatNumber === 2) return 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400';
@@ -46,17 +41,12 @@ function normalizeDescription(desc: string): string {
 export function ViolationsContent() {
   const { t, lang } = useLanguage();
   const { isAdmin } = useAuth();
-  const qc = useQueryClient();
-
+  const [violations, setViolations] = useState<Violation[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [search, setSearch] = useState('');
   const [filterEmployee, setFilterEmployee] = useState('all');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
-  const [page, setPage] = useState(0);
-  const debouncedSearch = useDebounce(search, 300);
-
-  useEffect(() => { setPage(0); }, [debouncedSearch, filterEmployee, fromDate, toDate]);
-
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<Violation | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -70,6 +60,7 @@ export function ViolationsContent() {
     notes: '',
   });
 
+  // Preset common violations
   const presets = useMemo(() => [
     t('violationGloves'),
     t('violationShoes'),
@@ -78,56 +69,7 @@ export function ViolationsContent() {
     t('violationUnsafeCondition'),
   ], [t]);
 
-  // Employees — full list, cached
-  const { data: employees = [] } = useQuery({
-    queryKey: ['employees_all'],
-    queryFn: async () => {
-      const { data } = await supabase.from('employees').select('*').order('name');
-      return (data || []) as Employee[];
-    },
-    staleTime: 60_000,
-  });
-
-  // All violation descriptions (small text only) for repeat counting + autocomplete
-  // Cached for 1 min, lightweight
-  const { data: allDescriptions = [] } = useQuery({
-    queryKey: ['violation_descriptions'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('employee_violations')
-        .select('id, employee_id, violation_description, violation_date');
-      return (data || []) as Pick<Violation, 'id' | 'employee_id' | 'violation_description' | 'violation_date'>[];
-    },
-    staleTime: 60_000,
-  });
-
-  // Paginated violations
-  const { data: vData, isLoading } = useQuery({
-    queryKey: ['violations', { search: debouncedSearch, employee: filterEmployee, from: fromDate, to: toDate, page }],
-    queryFn: async () => {
-      let q = supabase.from('employee_violations').select('*', { count: 'exact' });
-      if (debouncedSearch.trim()) q = q.ilike('violation_description', `%${debouncedSearch.trim()}%`);
-      if (filterEmployee !== 'all') q = q.eq('employee_id', filterEmployee);
-      if (fromDate) q = q.gte('violation_date', new Date(fromDate).toISOString());
-      if (toDate) {
-        const end = new Date(toDate);
-        end.setHours(23, 59, 59, 999);
-        q = q.lte('violation_date', end.toISOString());
-      }
-      const from = page * PAGE_SIZE;
-      const to = from + PAGE_SIZE - 1;
-      const { data, count } = await q.order('violation_date', { ascending: false }).range(from, to);
-      return { items: (data || []) as Violation[], total: count || 0 };
-    },
-  });
-
-  const violations = vData?.items || [];
-  const total = vData?.total || 0;
-
-  const invalidate = () => {
-    qc.invalidateQueries({ queryKey: ['violations'] });
-    qc.invalidateQueries({ queryKey: ['violation_descriptions'] });
-  };
+  useEffect(() => { loadData(); }, []);
 
   // Close suggestions on click outside
   useEffect(() => {
@@ -140,18 +82,29 @@ export function ViolationsContent() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  const loadData = async () => {
+    const [v, e] = await Promise.all([
+      supabase.from('employee_violations').select('*').order('violation_date', { ascending: false }),
+      supabase.from('employees').select('*').order('name'),
+    ]);
+    setViolations(v.data || []);
+    setEmployees(e.data || []);
+  };
+
   const empMap = useMemo(() => {
     const m: Record<string, Employee> = {};
     employees.forEach(e => { m[e.id] = e; });
     return m;
   }, [employees]);
 
+  // Unique past descriptions for autocomplete (history)
   const historyDescriptions = useMemo(() => {
     const set = new Set<string>();
-    allDescriptions.forEach(v => set.add(v.violation_description.trim()));
+    violations.forEach(v => set.add(v.violation_description.trim()));
     return Array.from(set);
-  }, [allDescriptions]);
+  }, [violations]);
 
+  // Combined suggestions filtered by what user is typing
   const suggestions = useMemo(() => {
     const typed = form.violation_description.trim().toLowerCase();
     const all = Array.from(new Set([...presets, ...historyDescriptions]));
@@ -159,9 +112,8 @@ export function ViolationsContent() {
     return all.filter(s => s.toLowerCase().includes(typed) && s.toLowerCase() !== typed).slice(0, 8);
   }, [form.violation_description, presets, historyDescriptions]);
 
-  // Repeat counting based on FULL dataset (small fields only), accurate across pages
   const repeatMap = useMemo(() => {
-    const sorted = [...allDescriptions].sort((a, b) =>
+    const sorted = [...violations].sort((a, b) =>
       new Date(a.violation_date).getTime() - new Date(b.violation_date).getTime()
     );
     const counters: Record<string, number> = {};
@@ -172,7 +124,20 @@ export function ViolationsContent() {
       result[v.id] = counters[key];
     });
     return result;
-  }, [allDescriptions]);
+  }, [violations]);
+
+  const filtered = violations.filter(v => {
+    const empName = empMap[v.employee_id]?.name || '';
+    if (search && !empName.toLowerCase().includes(search.toLowerCase()) && !v.violation_description.toLowerCase().includes(search.toLowerCase())) return false;
+    if (filterEmployee !== 'all' && v.employee_id !== filterEmployee) return false;
+    if (fromDate && new Date(v.violation_date) < new Date(fromDate)) return false;
+    if (toDate) {
+      const end = new Date(toDate);
+      end.setHours(23, 59, 59, 999);
+      if (new Date(v.violation_date) > end) return false;
+    }
+    return true;
+  });
 
   const openAdd = () => {
     setEditItem(null);
@@ -223,35 +188,22 @@ export function ViolationsContent() {
       toast.success(lang === 'ar' ? 'تم الإضافة' : 'Added');
     }
     setDialogOpen(false);
-    invalidate();
+    loadData();
   };
 
   const handleDelete = async (id: string) => {
     const { error } = await supabase.from('employee_violations').delete().eq('id', id);
     if (error) { toast.error(error.message); return; }
     toast.success(lang === 'ar' ? 'تم الحذف' : 'Deleted');
-    invalidate();
+    loadData();
   };
 
-  const handleExport = async () => {
-    // Export ALL filtered (not just current page)
-    let q = supabase.from('employee_violations').select('*');
-    if (debouncedSearch.trim()) q = q.ilike('violation_description', `%${debouncedSearch.trim()}%`);
-    if (filterEmployee !== 'all') q = q.eq('employee_id', filterEmployee);
-    if (fromDate) q = q.gte('violation_date', new Date(fromDate).toISOString());
-    if (toDate) {
-      const end = new Date(toDate);
-      end.setHours(23, 59, 59, 999);
-      q = q.lte('violation_date', end.toISOString());
-    }
-    const { data } = await q.order('violation_date', { ascending: false });
-    const all = (data || []) as Violation[];
-
-    if (all.length === 0) {
+  const handleExport = () => {
+    if (filtered.length === 0) {
       toast.error(lang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export');
       return;
     }
-    const rows = all.map(v => ({
+    const rows = filtered.map(v => ({
       [t('employee')]: empMap[v.employee_id]?.name || '-',
       [t('violationDescription')]: v.violation_description,
       [t('repeatCount')]: repeatMap[v.id] || 1,
@@ -317,7 +269,7 @@ export function ViolationsContent() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {violations.map(v => {
+                {filtered.map(v => {
                   const repeat = repeatMap[v.id] || 1;
                   return (
                     <TableRow key={v.id}>
@@ -350,17 +302,16 @@ export function ViolationsContent() {
                     </TableRow>
                   );
                 })}
-                {violations.length === 0 && (
+                {filtered.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={isAdmin ? 7 : 6} className="text-center text-muted-foreground py-8">
-                      {isLoading ? t('loading') : t('noViolations')}
+                      {t('noViolations')}
                     </TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
           </div>
-          <DataPagination page={page} pageSize={PAGE_SIZE} total={total} onPageChange={setPage} />
         </CardContent>
       </Card>
 

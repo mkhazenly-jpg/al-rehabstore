@@ -2,8 +2,6 @@ import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
-import { useDebounce } from '@/hooks/use-debounce';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,7 +10,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-import { DataPagination } from '@/components/ui/data-pagination';
 import { Plus, Pencil, Trash2, Download, Search, Eye, Upload } from 'lucide-react';
 import { exportToExcel } from '@/lib/export';
 import { toast } from 'sonner';
@@ -27,22 +24,14 @@ const STATUS_COLORS: Record<string, string> = {
   terminated: 'bg-destructive/20 text-destructive',
 };
 
-const PAGE_SIZE = 50;
-
 export function EmployeesContent() {
   const { t, lang } = useLanguage();
   const { isAdmin } = useAuth();
-  const qc = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [search, setSearch] = useState('');
   const [filterShift, setFilterShift] = useState('all');
   const [filterDept, setFilterDept] = useState('all');
-  const [page, setPage] = useState(0);
-  const debouncedSearch = useDebounce(search, 300);
-
-  useEffect(() => { setPage(0); }, [debouncedSearch, filterShift, filterDept]);
-
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
@@ -51,38 +40,20 @@ export function EmployeesContent() {
   const [editItem, setEditItem] = useState<Employee | null>(null);
   const [form, setForm] = useState({ name: '', hire_date: '', status: 'active' as 'active' | 'resigned' | 'terminated', termination_date: '', department: '', notes: '', shift: '' as '' | 'morning' | 'night', mobile: '', job_title: '' });
 
-  // Departments list — small, cache long
-  const { data: departments = [] } = useQuery({
-    queryKey: ['employees_departments'],
-    queryFn: async () => {
-      const { data } = await supabase.from('employees').select('department').not('department', 'is', null);
-      return [...new Set((data || []).map((e: any) => e.department).filter(Boolean))] as string[];
-    },
-    staleTime: 5 * 60_000,
-  });
+  useEffect(() => { loadEmployees(); }, []);
 
-  // Paginated employees
-  const { data: empData, isLoading } = useQuery({
-    queryKey: ['employees', { search: debouncedSearch, shift: filterShift, dept: filterDept, page }],
-    queryFn: async () => {
-      let q = supabase.from('employees').select('*', { count: 'exact' });
-      if (debouncedSearch.trim()) q = q.ilike('name', `%${debouncedSearch.trim()}%`);
-      if (filterShift !== 'all') q = q.eq('shift', filterShift);
-      if (filterDept !== 'all') q = q.eq('department', filterDept);
-      const from = page * PAGE_SIZE;
-      const to = from + PAGE_SIZE - 1;
-      const { data, count } = await q.order('created_at', { ascending: false }).range(from, to);
-      return { items: (data || []) as Employee[], total: count || 0 };
-    },
-  });
-
-  const employees = empData?.items || [];
-  const total = empData?.total || 0;
-
-  const invalidateEmployees = () => {
-    qc.invalidateQueries({ queryKey: ['employees'] });
-    qc.invalidateQueries({ queryKey: ['employees_departments'] });
+  const loadEmployees = async () => {
+    const { data } = await supabase.from('employees').select('*').order('created_at', { ascending: false });
+    setEmployees(data || []);
   };
+
+  const departments = [...new Set(employees.map(e => e.department).filter(Boolean))];
+  const filtered = employees.filter(e => {
+    if (!e.name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (filterShift !== 'all' && (e as any).shift !== filterShift) return false;
+    if (filterDept !== 'all' && e.department !== filterDept) return false;
+    return true;
+  });
 
   const openAdd = () => {
     setEditItem(null);
@@ -143,40 +114,35 @@ export function EmployeesContent() {
       await supabase.from('employees').insert(payload);
     }
     setDialogOpen(false);
-    invalidateEmployees();
+    loadEmployees();
   };
 
   const handleDelete = async (id: string) => {
     await supabase.from('employees').delete().eq('id', id);
-    invalidateEmployees();
+    loadEmployees();
   };
 
   const handleExport = async () => {
-    // Export ALL filtered rows (not just current page)
-    let q = supabase.from('employees').select('*');
-    if (debouncedSearch.trim()) q = q.ilike('name', `%${debouncedSearch.trim()}%`);
-    if (filterShift !== 'all') q = q.eq('shift', filterShift);
-    if (filterDept !== 'all') q = q.eq('department', filterDept);
-    const { data: dataToExport } = await q.order('created_at', { ascending: false });
-    const rows0 = (dataToExport || []) as Employee[];
-
-    if (rows0.length === 0) {
+    const dataToExport = filtered.length > 0 ? filtered : employees;
+    if (dataToExport.length === 0) {
       toast.error(lang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export');
       return;
     }
 
+    // Fetch all assignments with stock item details
     const { data: allAssignments } = await supabase
       .from('assignments')
       .select('*, stock_items(name, category, size)')
-      .in('employee_id', rows0.map(e => e.id));
+      .in('employee_id', dataToExport.map(e => e.id));
 
+    // Group assignments by employee
     const assignmentsByEmp: Record<string, any[]> = {};
     (allAssignments || []).forEach((a: any) => {
       if (!assignmentsByEmp[a.employee_id]) assignmentsByEmp[a.employee_id] = [];
       assignmentsByEmp[a.employee_id].push(a);
     });
 
-    const rows = rows0.flatMap(e => {
+    const rows = dataToExport.flatMap(e => {
       const empAssignments = assignmentsByEmp[e.id] || [];
       if (empAssignments.length === 0) {
         return [{
@@ -217,7 +183,7 @@ export function EmployeesContent() {
     });
 
     exportToExcel(rows, 'employees');
-    toast.success(lang === 'ar' ? `تم تصدير ${rows0.length} موظف` : `Exported ${rows0.length} employees`);
+    toast.success(lang === 'ar' ? `تم تصدير ${dataToExport.length} موظف` : `Exported ${dataToExport.length} employees`);
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -263,7 +229,7 @@ export function EmployeesContent() {
       }
 
       toast.success(lang === 'ar' ? `تم استيراد ${imported} موظف` : `Imported ${imported} employees`);
-      invalidateEmployees();
+      loadEmployees();
     } catch {
       toast.error(lang === 'ar' ? 'خطأ في قراءة الملف' : 'Error reading file');
     }
@@ -307,7 +273,7 @@ export function EmployeesContent() {
           <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder={t('department')} /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('department')}: {t('allCategories')}</SelectItem>
-            {departments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+            {departments.map(d => <SelectItem key={d} value={d!}>{d}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -327,7 +293,7 @@ export function EmployeesContent() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {employees.map(emp => (
+                {filtered.map(emp => (
                   <TableRow key={emp.id}>
                     <TableCell>
                       <button className="font-medium text-primary hover:underline" onClick={() => viewDetails(emp)}>
@@ -361,17 +327,14 @@ export function EmployeesContent() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {employees.length === 0 && (
+                {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                      {isLoading ? t('loading') : '-'}
-                    </TableCell>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">-</TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
           </div>
-          <DataPagination page={page} pageSize={PAGE_SIZE} total={total} onPageChange={setPage} />
         </CardContent>
       </Card>
 
@@ -443,73 +406,165 @@ export function EmployeesContent() {
 
       {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{selectedEmployee?.name}</DialogTitle>
+            <DialogTitle>{selectedEmployee?.name} - {t('details')}</DialogTitle>
           </DialogHeader>
           {selectedEmployee && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div><span className="text-muted-foreground">{t('jobTitle')}:</span> {(selectedEmployee as any).job_title || '-'}</div>
-                <div><span className="text-muted-foreground">{t('department')}:</span> {selectedEmployee.department || '-'}</div>
-                <div><span className="text-muted-foreground">{t('shift')}:</span> {(selectedEmployee as any).shift ? t((selectedEmployee as any).shift as any) : '-'}</div>
-                <div><span className="text-muted-foreground">{t('mobile')}:</span> {(selectedEmployee as any).mobile || '-'}</div>
-                <div><span className="text-muted-foreground">{t('hireDate')}:</span> {selectedEmployee.hire_date}</div>
-                <div><span className="text-muted-foreground">{t('status')}:</span> {t(selectedEmployee.status as any)}</div>
-              </div>
-              <div>
-                <h3 className="mb-2 font-semibold">{t('assignments')}</h3>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{t('stockItem')}</TableHead>
-                        <TableHead>{t('quantityAssigned')}</TableHead>
-                        <TableHead>{t('assignmentDate')}</TableHead>
-                        <TableHead>{t('returnDate')}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {assignments.map((a: any) => (
-                        <TableRow key={a.id}>
-                          <TableCell>{a.stock_items?.name} {a.stock_items?.size !== 'N/A' ? `(${a.stock_items?.size})` : ''}</TableCell>
-                          <TableCell>{a.quantity_assigned}</TableCell>
-                          <TableCell>{new Date(a.assignment_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}</TableCell>
-                          <TableCell>{a.return_date ? new Date(a.return_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US') : '-'}</TableCell>
-                        </TableRow>
-                      ))}
-                      {assignments.length === 0 && (
-                        <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-4">-</TableCell></TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+              <div className="space-y-2">
+                <h3 className="font-semibold">{t('personalInfo')}</h3>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <span className="text-muted-foreground">{t('status')}:</span>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium w-fit ${STATUS_COLORS[selectedEmployee.status]}`}>
+                    {t(selectedEmployee.status as any)}
+                  </span>
+                  <span className="text-muted-foreground">{t('hireDate')}:</span>
+                  <span>{selectedEmployee.hire_date}</span>
+                  {selectedEmployee.termination_date && (
+                    <>
+                      <span className="text-muted-foreground">{t('terminationDate')}:</span>
+                      <span>{selectedEmployee.termination_date}</span>
+                    </>
+                  )}
+                  <span className="text-muted-foreground">{t('department')}:</span>
+                  <span>{selectedEmployee.department || '-'}</span>
+                  <span className="text-muted-foreground">{t('jobTitle')}:</span>
+                  <span>{(selectedEmployee as any).job_title || '-'}</span>
+                  <span className="text-muted-foreground">{t('mobile')}:</span>
+                  <span>{(selectedEmployee as any).mobile || '-'}</span>
+                  <span className="text-muted-foreground">{t('shift')}:</span>
+                  <span>{(selectedEmployee as any).shift ? t((selectedEmployee as any).shift as any) : '-'}</span>
                 </div>
               </div>
-              {empViolations.length > 0 && (
-                <div>
-                  <h3 className="mb-2 font-semibold">{t('violationHistory')}</h3>
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>{t('violationDescription')}</TableHead>
-                          <TableHead>{t('actionTaken')}</TableHead>
-                          <TableHead>{t('violationDate')}</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {empViolations.map((v: any) => (
-                          <TableRow key={v.id}>
-                            <TableCell>{v.violation_description}</TableCell>
-                            <TableCell>{t(v.action_taken as any)}</TableCell>
-                            <TableCell>{new Date(v.violation_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+
+              <div className="space-y-2">
+                <h3 className="font-semibold">{t('assignmentHistory')}</h3>
+                {assignments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">-</p>
+                ) : (
+                  <>
+                    <div className="max-h-60 overflow-y-auto space-y-2">
+                      {assignments.map((a: any) => {
+                        const price = (a.stock_items?.unit_price || 0) * a.quantity_assigned;
+                        const itemName = (a.stock_items?.name || '').toLowerCase();
+                        const itemCat = (a.stock_items?.category || '').toLowerCase();
+                        const combined = `${itemName} ${itemCat}`;
+                        const isShoes = /shoe|حذاء|بوت|boot|سيفتي/.test(combined);
+                        const isGlovesOrVest = /glove|جوانتي|قفاز|vest|فيست|سترة/.test(combined);
+                        const assignedAt = new Date(a.assignment_date).getTime();
+                        const now = Date.now();
+                        const monthsElapsed = (now - assignedAt) / (1000 * 60 * 60 * 24 * 30.4375);
+                        const isActive = a.status === 'approved';
+                        const isExpired = isActive && (
+                          (isShoes && monthsElapsed >= 12) ||
+                          (isGlovesOrVest && monthsElapsed >= 4)
+                        );
+                        return (
+                          <div key={a.id} className={`flex items-center justify-between rounded-lg border p-2 text-sm ${isExpired ? 'border-destructive bg-destructive/10' : ''}`}>
+                            <div>
+                              <p className={`font-medium ${isExpired ? 'text-destructive' : ''}`}>
+                                {a.stock_items?.name} ({a.stock_items?.category})
+                                {a.stock_items?.category?.toLowerCase().includes('safety') && a.stock_items?.size && a.stock_items.size !== 'N/A' && (
+                                  <span className="ms-1 text-xs text-muted-foreground">- {t('size')}: {a.stock_items.size}</span>
+                                )}
+                              </p>
+                              <p className={`text-xs ${isExpired ? 'text-destructive/80' : 'text-muted-foreground'}`}>
+                                {t('quantity')}: {a.quantity_assigned} • {new Date(a.assignment_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}
+                                {a.stock_items?.unit_price > 0 && (
+                                  <> • {t('unitPrice')}: {a.stock_items.unit_price} {t('currency')} • {t('totalPrice')}: {price} {t('currency')}</>
+                                )}
+                              </p>
+                            </div>
+                            <div className="flex flex-col items-end gap-1">
+                              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                                a.status === 'approved' ? 'bg-success/20 text-success' :
+                                a.status === 'pending' ? 'bg-accent/20 text-accent-foreground' :
+                                'bg-muted text-muted-foreground'
+                              }`}>
+                                {t(a.status as any)}
+                              </span>
+                              {isExpired && (
+                                <span className="rounded-full bg-destructive px-2 py-0.5 text-xs font-medium text-destructive-foreground">
+                                  {t('renewalDue')}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {(() => {
+                      const grandTotal = assignments.reduce((sum: number, a: any) => sum + ((a.stock_items?.unit_price || 0) * a.quantity_assigned), 0);
+                      return grandTotal > 0 ? (
+                        <div className="flex justify-between items-center rounded-lg bg-muted p-2 text-sm font-semibold">
+                          <span>{t('totalPrice')}</span>
+                          <span>{grandTotal} {t('currency')}</span>
+                        </div>
+                      ) : null;
+                    })()}
+                  </>
+                )}
+              </div>
+
+              {/* Violations section */}
+              <div className="space-y-2">
+                <h3 className="font-semibold">{t('violationHistory')}</h3>
+                {empViolations.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t('noViolations')}</p>
+                ) : (
+                  <div className="max-h-60 overflow-y-auto space-y-2">
+                    {(() => {
+                      // Compute repeat numbers for this employee chronologically
+                      const sorted = [...empViolations].sort((a, b) =>
+                        new Date(a.violation_date).getTime() - new Date(b.violation_date).getTime()
+                      );
+                      const counters: Record<string, number> = {};
+                      const repeatById: Record<string, number> = {};
+                      sorted.forEach(v => {
+                        const key = v.violation_description.trim().toLowerCase().replace(/\s+/g, ' ');
+                        counters[key] = (counters[key] || 0) + 1;
+                        repeatById[v.id] = counters[key];
+                      });
+                      const getColor = (n: number) => {
+                        if (n <= 1) return 'bg-success/20 text-success';
+                        if (n === 2) return 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400';
+                        return 'bg-destructive text-destructive-foreground';
+                      };
+                      const actionColors: Record<string, string> = {
+                        warning: 'bg-accent/20 text-accent-foreground',
+                        verbal_warning: 'bg-muted text-muted-foreground',
+                        deduction: 'bg-primary/20 text-primary',
+                        suspension: 'bg-destructive/20 text-destructive',
+                        termination: 'bg-destructive text-destructive-foreground',
+                      };
+                      return empViolations.map((v: any) => {
+                        const repeat = repeatById[v.id] || 1;
+                        return (
+                          <div key={v.id} className={`rounded-lg border p-2 text-sm ${repeat >= 3 ? 'border-destructive bg-destructive/10' : repeat === 2 ? 'border-yellow-500/50 bg-yellow-500/5' : ''}`}>
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="font-medium flex-1">{v.violation_description}</p>
+                              <span className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${getColor(repeat)}`}>
+                                {repeat}
+                              </span>
+                            </div>
+                            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                              <span>{new Date(v.violation_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}</span>
+                              <span className={`rounded-full px-2 py-0.5 font-medium ${actionColors[v.action_taken]}`}>
+                                {t(v.action_taken as any)}
+                              </span>
+                              {Number(v.deduction_amount) > 0 && (
+                                <span>{t('deductionAmount')}: {v.deduction_amount} {t('currency')}</span>
+                              )}
+                            </div>
+                            {v.notes && <p className="mt-1 text-xs text-muted-foreground">{v.notes}</p>}
+                          </div>
+                        );
+                      });
+                    })()}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
         </DialogContent>
