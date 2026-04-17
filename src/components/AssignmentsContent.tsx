@@ -12,7 +12,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Plus, Download, RotateCcw, Trash2, CalendarIcon, AlertTriangle, Pencil } from 'lucide-react';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Plus, Download, RotateCcw, Trash2, CalendarIcon, AlertTriangle, Pencil, Check, ChevronsUpDown } from 'lucide-react';
 import { exportToExcel } from '@/lib/export';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
