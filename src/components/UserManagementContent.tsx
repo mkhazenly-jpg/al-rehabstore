@@ -71,7 +71,12 @@ export function UserManagementContent() {
       setResetTarget(null);
       setNewPwd('');
     } catch (err: any) {
-      toast.error(err.message || 'Failed');
+      const msg = err.message || 'Failed';
+      if (msg.toLowerCase().includes('weak') || msg.toLowerCase().includes('pwned')) {
+        toast.error('كلمة المرور ضعيفة أو مسربة. استخدم كلمة أقوى (8+ أحرف، أرقام ورموز).');
+      } else {
+        toast.error(msg);
+      }
     }
     setResetting(false);
   };
