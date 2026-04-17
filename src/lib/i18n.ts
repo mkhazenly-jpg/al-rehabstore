@@ -79,6 +79,8 @@ export const translations = {
     lowStockWarning: 'تحذير: المخزون منخفض',
     insufficientStock: 'الكمية غير كافية',
     selectEmployee: 'اختر الموظف',
+    searchEmployee: 'ابحث عن موظف...',
+    noEmployeeFound: 'لا يوجد موظف',
     selectItem: 'اختر الصنف',
     recentActivity: 'النشاط الأخير',
     allCategories: 'جميع الفئات',
