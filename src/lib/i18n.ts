@@ -190,6 +190,9 @@ export const translations = {
     violationVest: 'عدم ارتداء فيست',
     violationUnsafeAct: 'تصرف غير آمن',
     violationUnsafeCondition: 'وضع غير آمن',
+    showing: 'عرض',
+    of: 'من',
+    loading: 'جاري التحميل...',
   },
   en: {
     appName: 'Al-Rahaba Warehouse',
