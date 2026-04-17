@@ -367,6 +367,17 @@ export const translations = {
     violationHistory: 'Violation History',
     noViolations: 'No violations',
     selectAction: 'Select Action',
+    fromDate: 'From Date',
+    toDate: 'To Date',
+    exportExcel: 'Export Excel',
+    commonViolations: 'Common Violations',
+    selectOrType: 'Select or type...',
+    customViolation: 'Custom Violation',
+    violationGloves: 'Not wearing gloves at work',
+    violationShoes: 'Not wearing safety shoes',
+    violationVest: 'Not wearing vest',
+    violationUnsafeAct: 'Unsafe act',
+    violationUnsafeCondition: 'Unsafe condition',
   },
 } as const;
 
