@@ -348,12 +348,44 @@ export function AssignmentsContent() {
             {/* Employee select */}
             <div className="space-y-2">
               <Label>{t('employee')}</Label>
-              <Select value={employeeId} onValueChange={v => { setEmployeeId(v); setLines(prev => prev.map(l => ({ ...l, reassign_reason: '' }))); }}>
-                <SelectTrigger><SelectValue placeholder={t('selectEmployee')} /></SelectTrigger>
-                <SelectContent>
-                  {employees.map(e => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Popover open={employeePopoverOpen} onOpenChange={setEmployeePopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className={cn("w-full justify-between font-normal", !employeeId && "text-muted-foreground")}
+                  >
+                    {employeeId
+                      ? employees.find(e => e.id === employeeId)?.name
+                      : t('selectEmployee')}
+                    <ChevronsUpDown className="h-4 w-4 opacity-50 ms-2 shrink-0" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder={t('searchEmployee')} />
+                    <CommandList>
+                      <CommandEmpty>{t('noEmployeeFound')}</CommandEmpty>
+                      <CommandGroup>
+                        {employees.map(e => (
+                          <CommandItem
+                            key={e.id}
+                            value={e.name}
+                            onSelect={() => {
+                              setEmployeeId(e.id);
+                              setLines(prev => prev.map(l => ({ ...l, reassign_reason: '' })));
+                              setEmployeePopoverOpen(false);
+                            }}
+                          >
+                            <Check className={cn("h-4 w-4 me-2", employeeId === e.id ? "opacity-100" : "opacity-0")} />
+                            {e.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* Assignment date picker */}
