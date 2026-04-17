@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
@@ -10,8 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Pencil, Trash2, Search } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Download } from 'lucide-react';
 import { toast } from 'sonner';
+import { exportToExcel } from '@/lib/export';
 import type { Tables as DBTables } from '@/integrations/supabase/types';
 
 type Violation = DBTables<'employee_violations'>;
@@ -27,14 +28,12 @@ const ACTION_COLORS: Record<string, string> = {
   termination: 'bg-destructive text-destructive-foreground',
 };
 
-// Compute repeat-count badge color based on occurrence number
 export function getRepeatBadgeClass(repeatNumber: number): string {
   if (repeatNumber <= 1) return 'bg-success/20 text-success';
   if (repeatNumber === 2) return 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400';
   return 'bg-destructive text-destructive-foreground';
 }
 
-// Normalize description for repeat detection (case + whitespace)
 function normalizeDescription(desc: string): string {
   return desc.trim().toLowerCase().replace(/\s+/g, ' ');
 }
@@ -46,8 +45,12 @@ export function ViolationsContent() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [search, setSearch] = useState('');
   const [filterEmployee, setFilterEmployee] = useState('all');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<Violation | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const inputWrapRef = useRef<HTMLDivElement>(null);
   const [form, setForm] = useState({
     employee_id: '',
     violation_description: '',
@@ -57,7 +60,27 @@ export function ViolationsContent() {
     notes: '',
   });
 
+  // Preset common violations
+  const presets = useMemo(() => [
+    t('violationGloves'),
+    t('violationShoes'),
+    t('violationVest'),
+    t('violationUnsafeAct'),
+    t('violationUnsafeCondition'),
+  ], [t]);
+
   useEffect(() => { loadData(); }, []);
+
+  // Close suggestions on click outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (inputWrapRef.current && !inputWrapRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const loadData = async () => {
     const [v, e] = await Promise.all([
@@ -74,7 +97,21 @@ export function ViolationsContent() {
     return m;
   }, [employees]);
 
-  // Compute repeat numbers per (employee, normalized description) chronologically
+  // Unique past descriptions for autocomplete (history)
+  const historyDescriptions = useMemo(() => {
+    const set = new Set<string>();
+    violations.forEach(v => set.add(v.violation_description.trim()));
+    return Array.from(set);
+  }, [violations]);
+
+  // Combined suggestions filtered by what user is typing
+  const suggestions = useMemo(() => {
+    const typed = form.violation_description.trim().toLowerCase();
+    const all = Array.from(new Set([...presets, ...historyDescriptions]));
+    if (!typed) return all.slice(0, 8);
+    return all.filter(s => s.toLowerCase().includes(typed) && s.toLowerCase() !== typed).slice(0, 8);
+  }, [form.violation_description, presets, historyDescriptions]);
+
   const repeatMap = useMemo(() => {
     const sorted = [...violations].sort((a, b) =>
       new Date(a.violation_date).getTime() - new Date(b.violation_date).getTime()
@@ -93,6 +130,12 @@ export function ViolationsContent() {
     const empName = empMap[v.employee_id]?.name || '';
     if (search && !empName.toLowerCase().includes(search.toLowerCase()) && !v.violation_description.toLowerCase().includes(search.toLowerCase())) return false;
     if (filterEmployee !== 'all' && v.employee_id !== filterEmployee) return false;
+    if (fromDate && new Date(v.violation_date) < new Date(fromDate)) return false;
+    if (toDate) {
+      const end = new Date(toDate);
+      end.setHours(23, 59, 59, 999);
+      if (new Date(v.violation_date) > end) return false;
+    }
     return true;
   });
 
@@ -155,27 +198,59 @@ export function ViolationsContent() {
     loadData();
   };
 
+  const handleExport = () => {
+    if (filtered.length === 0) {
+      toast.error(lang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export');
+      return;
+    }
+    const rows = filtered.map(v => ({
+      [t('employee')]: empMap[v.employee_id]?.name || '-',
+      [t('violationDescription')]: v.violation_description,
+      [t('repeatCount')]: repeatMap[v.id] || 1,
+      [t('actionTaken')]: t(v.action_taken as never) as string,
+      [t('deductionAmount')]: Number(v.deduction_amount) || 0,
+      [t('violationDate')]: new Date(v.violation_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US'),
+      [t('notes')]: v.notes || '',
+    }));
+    const stamp = new Date().toISOString().split('T')[0];
+    exportToExcel(rows, `violations_${stamp}`);
+    toast.success(lang === 'ar' ? 'تم التصدير' : 'Exported');
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">{t('violations')}</h1>
-        <Button size="sm" onClick={openAdd}>
-          <Plus className="h-4 w-4 me-1" />{t('addViolation')}
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={handleExport}>
+            <Download className="h-4 w-4 me-1" />{t('exportExcel')}
+          </Button>
+          <Button size="sm" onClick={openAdd}>
+            <Plus className="h-4 w-4 me-1" />{t('addViolation')}
+          </Button>
+        </div>
       </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <div className="relative flex-1">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="relative">
           <Search className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input className="ps-9" placeholder={t('search')} value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <Select value={filterEmployee} onValueChange={setFilterEmployee}>
-          <SelectTrigger className="w-full sm:w-56"><SelectValue /></SelectTrigger>
+          <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('employees')}: {t('allCategories')}</SelectItem>
             {employees.map(e => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
           </SelectContent>
         </Select>
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">{t('fromDate')}</Label>
+          <Input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">{t('toDate')}</Label>
+          <Input type="date" value={toDate} onChange={e => setToDate(e.target.value)} />
+        </div>
       </div>
 
       <Card>
@@ -207,7 +282,7 @@ export function ViolationsContent() {
                       </TableCell>
                       <TableCell>
                         <span className={`rounded-full px-2 py-1 text-xs font-medium ${ACTION_COLORS[v.action_taken]}`}>
-                          {t(v.action_taken as any)}
+                          {t(v.action_taken as never) as string}
                         </span>
                       </TableCell>
                       <TableCell>{Number(v.deduction_amount) > 0 ? `${v.deduction_amount} ${t('currency')}` : '-'}</TableCell>
@@ -255,10 +330,46 @@ export function ViolationsContent() {
                 </SelectContent>
               </Select>
             </div>
+
             <div className="space-y-2">
-              <Label>{t('violationDescription')}</Label>
-              <Textarea value={form.violation_description} onChange={e => setForm({ ...form, violation_description: e.target.value })} placeholder={lang === 'ar' ? 'مثال: عدم ارتداء جوانتي أثناء العمل' : 'e.g. Not wearing gloves while working'} />
+              <Label>{t('commonViolations')}</Label>
+              <Select
+                value=""
+                onValueChange={(v) => setForm(f => ({ ...f, violation_description: v }))}
+              >
+                <SelectTrigger><SelectValue placeholder={t('selectOrType')} /></SelectTrigger>
+                <SelectContent>
+                  {presets.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
+
+            <div className="space-y-2" ref={inputWrapRef}>
+              <Label>{t('violationDescription')}</Label>
+              <div className="relative">
+                <Textarea
+                  value={form.violation_description}
+                  onChange={e => { setForm({ ...form, violation_description: e.target.value }); setShowSuggestions(true); }}
+                  onFocus={() => setShowSuggestions(true)}
+                  placeholder={lang === 'ar' ? 'مثال: عدم ارتداء جوانتي أثناء العمل' : 'e.g. Not wearing gloves while working'}
+                />
+                {showSuggestions && suggestions.length > 0 && (
+                  <div className="absolute z-50 mt-1 max-h-48 w-full overflow-auto rounded-md border bg-popover shadow-md">
+                    {suggestions.map(s => (
+                      <button
+                        key={s}
+                        type="button"
+                        className="block w-full px-3 py-2 text-start text-sm hover:bg-accent hover:text-accent-foreground"
+                        onClick={() => { setForm(f => ({ ...f, violation_description: s })); setShowSuggestions(false); }}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label>{t('violationDate')}</Label>
               <Input type="date" value={form.violation_date} onChange={e => setForm({ ...form, violation_date: e.target.value })} />
