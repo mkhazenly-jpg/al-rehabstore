@@ -89,6 +89,53 @@ export type Database = {
           },
         ]
       }
+      employee_violations: {
+        Row: {
+          action_taken: Database["public"]["Enums"]["violation_action"]
+          created_at: string
+          created_by: string | null
+          deduction_amount: number
+          employee_id: string
+          id: string
+          notes: string | null
+          updated_at: string
+          violation_date: string
+          violation_description: string
+        }
+        Insert: {
+          action_taken?: Database["public"]["Enums"]["violation_action"]
+          created_at?: string
+          created_by?: string | null
+          deduction_amount?: number
+          employee_id: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          violation_date?: string
+          violation_description: string
+        }
+        Update: {
+          action_taken?: Database["public"]["Enums"]["violation_action"]
+          created_at?: string
+          created_by?: string | null
+          deduction_amount?: number
+          employee_id?: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          violation_date?: string
+          violation_description?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_violations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           created_at: string
@@ -287,6 +334,12 @@ export type Database = {
         | "damaged"
         | "lost"
       employee_status: "active" | "resigned" | "terminated"
+      violation_action:
+        | "warning"
+        | "deduction"
+        | "suspension"
+        | "termination"
+        | "verbal_warning"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -417,6 +470,13 @@ export const Constants = {
       app_role: ["admin", "staff"],
       assignment_status: ["pending", "approved", "returned", "damaged", "lost"],
       employee_status: ["active", "resigned", "terminated"],
+      violation_action: [
+        "warning",
+        "deduction",
+        "suspension",
+        "termination",
+        "verbal_warning",
+      ],
     },
   },
 } as const
