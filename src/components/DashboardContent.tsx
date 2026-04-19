@@ -128,10 +128,11 @@ export function DashboardContent() {
   const damagedByItem: Record<string, number> = {};
   const lostByItem: Record<string, number> = {};
   filteredDamagedLost.forEach(a => {
-    if (a.notes?.includes(t('damaged'))) {
+    const notes = (a.notes || '').toLowerCase();
+    if (notes.includes('تالف') || notes.includes('damaged')) {
       damagedByItem[a.stock_item_id] = (damagedByItem[a.stock_item_id] || 0) + a.quantity_assigned;
     }
-    if (a.notes?.includes(t('lost'))) {
+    if (notes.includes('فقدان') || notes.includes('مفقود') || notes.includes('lost')) {
       lostByItem[a.stock_item_id] = (lostByItem[a.stock_item_id] || 0) + a.quantity_assigned;
     }
   });
