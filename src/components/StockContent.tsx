@@ -165,11 +165,12 @@ export function StockContent() {
 
   const handleSave = async () => {
     const sizeVal = form.category === 'safety shoes' ? form.size.trim() : 'N/A';
+    const nameVal = form.category;
     let stockItemId: string | null = editItem?.id ?? existingMatch?.id ?? null;
     let stockError = null;
 
     if (editItem) {
-      const { error } = await supabase.from('stock_items').update({ ...form, size: sizeVal }).eq('id', editItem.id);
+      const { error } = await supabase.from('stock_items').update({ ...form, name: nameVal, size: sizeVal }).eq('id', editItem.id);
       stockError = error;
     } else if (existingMatch) {
       const updatePayload: { quantity_in_stock: number; unit_price?: number } = {
@@ -185,7 +186,7 @@ export function StockContent() {
         .eq('id', existingMatch.id);
       stockError = error;
     } else {
-      const { data, error } = await supabase.from('stock_items').insert({ ...form, size: sizeVal }).select('id').single();
+      const { data, error } = await supabase.from('stock_items').insert({ ...form, name: nameVal, size: sizeVal }).select('id').single();
       stockError = error;
       stockItemId = data?.id ?? null;
     }
