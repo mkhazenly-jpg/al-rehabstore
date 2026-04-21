@@ -86,9 +86,10 @@ export function DashboardContent() {
       const d = new Date(a.created_at);
       if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return false;
       if (selectedMonth !== 'all' && d.getMonth() !== Number(selectedMonth)) return false;
+      if (selectedLocation !== 'all' && a.employees?.location !== selectedLocation) return false;
       return true;
     });
-  }, [assignments, selectedYear, selectedMonth]);
+  }, [assignments, selectedYear, selectedMonth, selectedLocation]);
 
   // Filter damaged/lost assignments by date
   const filteredDamagedLost = useMemo(() => {
@@ -96,9 +97,10 @@ export function DashboardContent() {
       const d = new Date(a.created_at);
       if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return false;
       if (selectedMonth !== 'all' && d.getMonth() !== Number(selectedMonth)) return false;
+      if (selectedLocation !== 'all' && a.employees?.location !== selectedLocation) return false;
       return true;
     });
-  }, [damagedLostAssignments, selectedYear, selectedMonth]);
+  }, [damagedLostAssignments, selectedYear, selectedMonth, selectedLocation]);
 
   // Filter approved assignments by date and calculate renewal needed
   const filteredApprovedAssignments = useMemo(() => {
@@ -106,9 +108,10 @@ export function DashboardContent() {
       const d = new Date(a.assignment_date);
       if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return false;
       if (selectedMonth !== 'all' && d.getMonth() !== Number(selectedMonth)) return false;
+      if (selectedLocation !== 'all' && a.employees?.location !== selectedLocation) return false;
       return true;
     });
-  }, [allApprovedAssignments, selectedYear, selectedMonth]);
+  }, [allApprovedAssignments, selectedYear, selectedMonth, selectedLocation]);
 
   // Calculate renewal needed by item (safety shoes: 12 months, gloves/vests: 4 months)
   const renewalNeededByItem: Record<string, number> = {};
