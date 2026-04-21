@@ -219,6 +219,7 @@ export type Database = {
           notes: string | null
           quantity_added: number
           stock_item_id: string
+          unit_price_at_addition: number
         }
         Insert: {
           added_at?: string
@@ -227,6 +228,7 @@ export type Database = {
           notes?: string | null
           quantity_added?: number
           stock_item_id: string
+          unit_price_at_addition?: number
         }
         Update: {
           added_at?: string
@@ -235,6 +237,7 @@ export type Database = {
           notes?: string | null
           quantity_added?: number
           stock_item_id?: string
+          unit_price_at_addition?: number
         }
         Relationships: [
           {
