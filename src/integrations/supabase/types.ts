@@ -381,6 +381,7 @@ export type Database = {
         Returns: undefined
       }
       return_with_fifo: { Args: { _assignment_id: string }; Returns: undefined }
+      wipe_all_data: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "staff"
