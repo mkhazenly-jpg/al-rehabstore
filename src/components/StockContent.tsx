@@ -327,11 +327,11 @@ export function StockContent() {
             )}
             <div className="space-y-2">
               <Label>{existingMatch && !editItem ? t('quantityAdded') : t('quantity')}</Label>
-              <Input type="number" min={0} value={form.quantity_in_stock} onChange={e => setForm({ ...form, quantity_in_stock: parseInt(e.target.value) || 0 })} />
+              <Input type="number" min={0} value={form.quantity_in_stock === 0 ? '' : form.quantity_in_stock} onChange={e => setForm({ ...form, quantity_in_stock: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 })} />
             </div>
             <div className="space-y-2">
               <Label>{t('unitPrice')} ({t('currency')})</Label>
-              <Input type="number" min={0} step="0.01" value={form.unit_price} onChange={e => setForm({ ...form, unit_price: parseFloat(e.target.value) || 0 })} />
+              <Input type="number" min={0} step="0.01" value={form.unit_price === 0 ? '' : form.unit_price} onChange={e => setForm({ ...form, unit_price: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0 })} />
             </div>
             <div className="space-y-2">
               <Select value={form.unit} onValueChange={v => setForm({ ...form, unit: v })}>
