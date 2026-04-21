@@ -32,13 +32,14 @@ export function EmployeesContent() {
   const [search, setSearch] = useState('');
   const [filterShift, setFilterShift] = useState('all');
   const [filterDept, setFilterDept] = useState('all');
+  const [filterLocation, setFilterLocation] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [empViolations, setEmpViolations] = useState<any[]>([]);
   const [editItem, setEditItem] = useState<Employee | null>(null);
-  const [form, setForm] = useState({ name: '', hire_date: '', status: 'active' as 'active' | 'resigned' | 'terminated', termination_date: '', department: '', notes: '', shift: '' as '' | 'morning' | 'night', mobile: '', job_title: '' });
+  const [form, setForm] = useState({ name: '', hire_date: '', status: 'active' as 'active' | 'resigned' | 'terminated', termination_date: '', department: '', notes: '', shift: '' as '' | 'morning' | 'night', mobile: '', job_title: '', location: '' as '' | 'RDC' | 'SDS' });
 
   useEffect(() => { loadEmployees(); }, []);
 
@@ -52,12 +53,13 @@ export function EmployeesContent() {
     if (!e.name.toLowerCase().includes(search.toLowerCase())) return false;
     if (filterShift !== 'all' && (e as any).shift !== filterShift) return false;
     if (filterDept !== 'all' && e.department !== filterDept) return false;
+    if (filterLocation !== 'all' && (e as any).location !== filterLocation) return false;
     return true;
   });
 
   const openAdd = () => {
     setEditItem(null);
-    setForm({ name: '', hire_date: new Date().toISOString().split('T')[0], status: 'active', termination_date: '', department: '', notes: '', shift: '', mobile: '', job_title: '' });
+    setForm({ name: '', hire_date: new Date().toISOString().split('T')[0], status: 'active', termination_date: '', department: '', notes: '', shift: '', mobile: '', job_title: '', location: '' });
     setDialogOpen(true);
   };
 
@@ -73,6 +75,7 @@ export function EmployeesContent() {
       shift: (emp as any).shift || '',
       mobile: (emp as any).mobile || '',
       job_title: (emp as any).job_title || '',
+      location: (emp as any).location || '',
     });
     setDialogOpen(true);
   };
@@ -108,6 +111,7 @@ export function EmployeesContent() {
       shift: form.shift || null,
       mobile: form.mobile || null,
       job_title: form.job_title || null,
+      location: form.location || null,
     };
     if (editItem) {
       await supabase.from('employees').update(payload).eq('id', editItem.id);
@@ -151,6 +155,7 @@ export function EmployeesContent() {
           [t('jobTitle')]: e.job_title || '-',
           [t('status')]: t(e.status as any),
           [t('shift')]: e.shift ? t(e.shift as any) : '-',
+          [t('location')]: (e as any).location || '-',
           [t('department')]: e.department || '-',
           [t('mobile')]: e.mobile || '-',
           [t('hireDate')]: e.hire_date,
@@ -172,6 +177,7 @@ export function EmployeesContent() {
         [t('jobTitle')]: i === 0 ? (e.job_title || '-') : '',
         [t('status')]: i === 0 ? t(e.status as any) : '',
         [t('shift')]: i === 0 ? (e.shift ? t(e.shift as any) : '-') : '',
+        [t('location')]: i === 0 ? ((e as any).location || '-') : '',
         [t('department')]: i === 0 ? (e.department || '-') : '',
         [t('mobile')]: i === 0 ? (e.mobile || '-') : '',
         [t('hireDate')]: i === 0 ? e.hire_date : '',
@@ -214,8 +220,12 @@ export function EmployeesContent() {
           job_title: (row[t('jobTitle')] || row['Job Title'] || row['الوظيفة'] || '').toString().trim() || null,
           mobile: (row[t('mobile')] || row['Mobile'] || row['رقم الموبايل'] || '').toString().trim() || null,
           shift: null as string | null,
+          location: null as string | null,
           notes: (row[t('notes')] || row['Notes'] || row['ملاحظات'] || '').toString().trim() || null,
         };
+
+        const locVal = (row[t('location')] || row['Location'] || row['الموقع'] || '').toString().trim().toUpperCase();
+        if (locVal === 'RDC' || locVal === 'SDS') payload.location = locVal;
 
         const shiftVal = (row[t('shift')] || row['Shift'] || row['الشفت'] || '').toString().trim().toLowerCase();
         if (shiftVal.includes('morning') || shiftVal.includes('صباح')) payload.shift = 'morning';
@@ -277,6 +287,14 @@ export function EmployeesContent() {
             {departments.map(d => <SelectItem key={d} value={d!}>{d}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select value={filterLocation} onValueChange={setFilterLocation}>
+          <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder={t('location')} /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('location')}: {t('allLocations')}</SelectItem>
+            <SelectItem value="RDC">RDC</SelectItem>
+            <SelectItem value="SDS">SDS</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <Card>
@@ -289,6 +307,7 @@ export function EmployeesContent() {
                   <TableHead>{t('jobTitle')}</TableHead>
                   <TableHead>{t('status')}</TableHead>
                   <TableHead>{t('shift')}</TableHead>
+                  <TableHead>{t('location')}</TableHead>
                   <TableHead>{t('department')}</TableHead>
                   <TableHead>{t('actions')}</TableHead>
                 </TableRow>
@@ -308,6 +327,7 @@ export function EmployeesContent() {
                       </span>
                     </TableCell>
                     <TableCell className="text-xs">{(emp as any).shift ? t((emp as any).shift as any) : '-'}</TableCell>
+                    <TableCell className="text-xs">{(emp as any).location || '-'}</TableCell>
                     <TableCell className="text-xs">{emp.department || '-'}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
@@ -330,7 +350,7 @@ export function EmployeesContent() {
                 ))}
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">-</TableCell>
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">-</TableCell>
                   </TableRow>
                 )}
               </TableBody>
@@ -420,6 +440,16 @@ export function EmployeesContent() {
               </Select>
             </div>
             <div className="space-y-2">
+              <Label>{t('location')}</Label>
+              <Select value={form.location} onValueChange={(v: any) => setForm({ ...form, location: v })}>
+                <SelectTrigger><SelectValue placeholder="-" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="RDC">RDC</SelectItem>
+                  <SelectItem value="SDS">SDS</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label>{t('notes')}</Label>
               <Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
             </div>
@@ -462,6 +492,8 @@ export function EmployeesContent() {
                   <span>{(selectedEmployee as any).mobile || '-'}</span>
                   <span className="text-muted-foreground">{t('shift')}:</span>
                   <span>{(selectedEmployee as any).shift ? t((selectedEmployee as any).shift as any) : '-'}</span>
+                  <span className="text-muted-foreground">{t('location')}:</span>
+                  <span>{(selectedEmployee as any).location || '-'}</span>
                 </div>
               </div>
 

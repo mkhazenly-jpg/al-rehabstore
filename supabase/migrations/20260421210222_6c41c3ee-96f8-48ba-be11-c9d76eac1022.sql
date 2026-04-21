@@ -1,0 +1,1 @@
+ALTER TABLE public.employees ADD COLUMN IF NOT EXISTS location text CHECK (location IN ('RDC', 'SDS'));

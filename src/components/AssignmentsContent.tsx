@@ -52,7 +52,7 @@ export function AssignmentsContent() {
 
   const loadAll = async () => {
     const [aRes, eRes, sRes] = await Promise.all([
-      supabase.from('assignments').select('*, employees(name), stock_items(name, category, size, quantity_in_stock)').order('created_at', { ascending: false }),
+      supabase.from('assignments').select('*, employees(name, location), stock_items(name, category, size, quantity_in_stock)').order('created_at', { ascending: false }),
       supabase.from('employees').select('*').eq('status', 'active'),
       supabase.from('stock_items').select('*'),
     ]);
@@ -259,6 +259,7 @@ export function AssignmentsContent() {
         const price = a.unit_price_at_assignment || 0;
         return {
           [t('employee')]: a.employees?.name,
+          [t('location')]: a.employees?.location || '-',
           [t('stockItem')]: a.stock_items?.name,
           [t('quantityAssigned')]: a.quantity_assigned,
           [t('priceAtAssignment')]: price,
@@ -317,6 +318,7 @@ export function AssignmentsContent() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('employee')}</TableHead>
+                  <TableHead>{t('location')}</TableHead>
                   <TableHead>{t('stockItem')}</TableHead>
                   <TableHead>{t('quantityAssigned')}</TableHead>
                   <TableHead>{t('priceAtAssignment')}</TableHead>
@@ -332,6 +334,11 @@ export function AssignmentsContent() {
                 {assignments.map((a: any) => (
                   <TableRow key={a.id}>
                     <TableCell className="font-medium">{a.employees?.name}</TableCell>
+                    <TableCell>
+                      {a.employees?.location ? (
+                        <span className="rounded-full bg-primary/15 text-primary px-2 py-0.5 text-xs font-semibold">{a.employees.location}</span>
+                      ) : '-'}
+                    </TableCell>
                     <TableCell>{a.stock_items?.name} {a.stock_items?.size !== 'N/A' ? `(${a.stock_items?.size})` : ''}</TableCell>
                     <TableCell>{a.quantity_assigned}</TableCell>
                     <TableCell>{a.unit_price_at_assignment > 0 ? `${a.unit_price_at_assignment} ${t('currency')}` : '-'}</TableCell>
@@ -383,7 +390,7 @@ export function AssignmentsContent() {
                 ))}
                 {assignments.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center text-muted-foreground py-8">-</TableCell>
+                    <TableCell colSpan={11} className="text-center text-muted-foreground py-8">-</TableCell>
                   </TableRow>
                 )}
               </TableBody>
@@ -423,7 +430,7 @@ export function AssignmentsContent() {
                         {employees.map(e => (
                           <CommandItem
                             key={e.id}
-                            value={e.name}
+                            value={`${e.name} ${(e as any).location || ''}`}
                             onSelect={() => {
                               setEmployeeId(e.id);
                               setLines(prev => prev.map(l => ({ ...l, reassign_reason: '' })));
@@ -431,7 +438,12 @@ export function AssignmentsContent() {
                             }}
                           >
                             <Check className={cn("h-4 w-4 me-2", employeeId === e.id ? "opacity-100" : "opacity-0")} />
-                            {e.name}
+                            <span className="flex-1">{e.name}</span>
+                            {(e as any).location && (
+                              <span className="ms-2 rounded-full bg-primary/15 text-primary px-2 py-0.5 text-xs font-semibold">
+                                {(e as any).location}
+                              </span>
+                            )}
                           </CommandItem>
                         ))}
                       </CommandGroup>
@@ -439,6 +451,16 @@ export function AssignmentsContent() {
                   </Command>
                 </PopoverContent>
               </Popover>
+              {employeeId && (() => {
+                const emp = employees.find(e => e.id === employeeId) as any;
+                if (!emp?.location) return null;
+                return (
+                  <div className="flex items-center gap-2 rounded-md border bg-primary/5 px-3 py-2 text-sm">
+                    <span className="text-muted-foreground">{t('employeeLocation')}:</span>
+                    <span className="rounded-full bg-primary/15 text-primary px-2 py-0.5 text-xs font-semibold">{emp.location}</span>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Assignment date picker */}

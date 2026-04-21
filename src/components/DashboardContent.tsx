@@ -11,7 +11,7 @@ const PIE_COLORS = ['#10b981', '#f59e0b', '#3b82f6', '#ef4444', '#8b5cf6', '#ec4
 
 export function DashboardContent() {
   const { t, lang } = useLanguage();
-  const [stats, setStats] = useState({ totalStock: 0, totalEmployees: 0, pendingAssignments: 0 });
+  const [allEmployees, setAllEmployees] = useState<any[]>([]);
   const [stockItems, setStockItems] = useState<any[]>([]);
   const [additions, setAdditions] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
@@ -21,36 +21,41 @@ export function DashboardContent() {
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState<string>('all');
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
+  const [selectedLocation, setSelectedLocation] = useState<string>('all');
 
   useEffect(() => { loadStats(); }, []);
 
   const loadStats = async () => {
     const [stockRes, empRes, assignRes, additionsRes, allAssignRes, damagedLostRes, approvedAssignRes] = await Promise.all([
       supabase.from('stock_items').select('*'),
-      supabase.from('employees').select('status'),
-      supabase.from('assignments').select('status, stock_item_id, quantity_assigned, created_at'),
+      supabase.from('employees').select('status, location'),
+      supabase.from('assignments').select('status, stock_item_id, quantity_assigned, created_at, employee_id, employees(location)'),
       supabase.from('stock_additions').select('*'),
-      supabase.from('assignments').select('stock_item_id, quantity_assigned, status, created_at').in('status', ['approved', 'pending']),
-      supabase.from('assignments').select('stock_item_id, quantity_assigned, notes, created_at, status').not('notes', 'is', null),
-      supabase.from('assignments').select('stock_item_id, quantity_assigned, status, assignment_date').eq('status', 'approved'),
+      supabase.from('assignments').select('stock_item_id, quantity_assigned, status, created_at, employee_id, employees(location)').in('status', ['approved', 'pending']),
+      supabase.from('assignments').select('stock_item_id, quantity_assigned, notes, created_at, status, employee_id, employees(location)').not('notes', 'is', null),
+      supabase.from('assignments').select('stock_item_id, quantity_assigned, status, assignment_date, employee_id, employees(location)').eq('status', 'approved'),
     ]);
 
     const items = stockRes.data || [];
     const employees = empRes.data || [];
-    const allAssignments = assignRes.data || [];
 
-    setStats({
-      totalStock: items.length,
-      totalEmployees: employees.length,
-      pendingAssignments: allAssignments.filter(a => a.status === 'pending').length,
-    });
-
+    setAllEmployees(employees);
     setStockItems(items);
     setAdditions(additionsRes.data || []);
     setAssignments(allAssignRes.data || []);
     setDamagedLostAssignments(damagedLostRes.data || []);
     setAllApprovedAssignments(approvedAssignRes.data || []);
   };
+
+  const stats = useMemo(() => {
+    const filteredEmployees = allEmployees.filter((e: any) => selectedLocation === 'all' || e.location === selectedLocation);
+    const pending = assignments.filter((a: any) => a.status === 'pending' && (selectedLocation === 'all' || a.employees?.location === selectedLocation));
+    return {
+      totalStock: stockItems.length,
+      totalEmployees: filteredEmployees.length,
+      pendingAssignments: pending.length,
+    };
+  }, [allEmployees, stockItems, assignments, selectedLocation]);
 
   // Get available years from additions
   const availableYears = useMemo(() => {
@@ -81,9 +86,10 @@ export function DashboardContent() {
       const d = new Date(a.created_at);
       if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return false;
       if (selectedMonth !== 'all' && d.getMonth() !== Number(selectedMonth)) return false;
+      if (selectedLocation !== 'all' && a.employees?.location !== selectedLocation) return false;
       return true;
     });
-  }, [assignments, selectedYear, selectedMonth]);
+  }, [assignments, selectedYear, selectedMonth, selectedLocation]);
 
   // Filter damaged/lost assignments by date
   const filteredDamagedLost = useMemo(() => {
@@ -91,9 +97,10 @@ export function DashboardContent() {
       const d = new Date(a.created_at);
       if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return false;
       if (selectedMonth !== 'all' && d.getMonth() !== Number(selectedMonth)) return false;
+      if (selectedLocation !== 'all' && a.employees?.location !== selectedLocation) return false;
       return true;
     });
-  }, [damagedLostAssignments, selectedYear, selectedMonth]);
+  }, [damagedLostAssignments, selectedYear, selectedMonth, selectedLocation]);
 
   // Filter approved assignments by date and calculate renewal needed
   const filteredApprovedAssignments = useMemo(() => {
@@ -101,9 +108,10 @@ export function DashboardContent() {
       const d = new Date(a.assignment_date);
       if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return false;
       if (selectedMonth !== 'all' && d.getMonth() !== Number(selectedMonth)) return false;
+      if (selectedLocation !== 'all' && a.employees?.location !== selectedLocation) return false;
       return true;
     });
-  }, [allApprovedAssignments, selectedYear, selectedMonth]);
+  }, [allApprovedAssignments, selectedYear, selectedMonth, selectedLocation]);
 
   // Calculate renewal needed by item (safety shoes: 12 months, gloves/vests: 4 months)
   const renewalNeededByItem: Record<string, number> = {};
@@ -211,6 +219,7 @@ export function DashboardContent() {
       });
       const monthAssigns = assignments.filter(a => {
         const d = new Date(a.created_at);
+        if (selectedLocation !== 'all' && a.employees?.location !== selectedLocation) return false;
         return d.getFullYear() === year && d.getMonth() === i;
       });
       const purchaseCost = monthAdditions.reduce((sum, a) => {
@@ -227,7 +236,7 @@ export function DashboardContent() {
         [t('consumption')]: consumptionCost,
       };
     });
-  }, [additions, assignments, stockItems, selectedYear, monthNames, t]);
+  }, [additions, assignments, stockItems, selectedYear, monthNames, t, selectedLocation]);
 
   // Consumed by category for month view
   const consumedByCategory: Record<string, number> = {};
@@ -270,6 +279,16 @@ export function DashboardContent() {
               </SelectContent>
             </Select>
           )}
+          <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+            <SelectTrigger className="w-[130px]">
+              <SelectValue placeholder={t('location')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('allLocations')}</SelectItem>
+              <SelectItem value="RDC">RDC</SelectItem>
+              <SelectItem value="SDS">SDS</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
