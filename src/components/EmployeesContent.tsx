@@ -60,12 +60,14 @@ export function EmployeesContent() {
 
   const openAdd = () => {
     setEditItem(null);
+    setIsAddingDept(false);
     setForm({ name: '', hire_date: new Date().toISOString().split('T')[0], status: 'active', termination_date: '', department: '', notes: '', shift: '', mobile: '', job_title: '', location: '' });
     setDialogOpen(true);
   };
 
   const openEdit = (emp: Employee) => {
     setEditItem(emp);
+    setIsAddingDept(false);
     setForm({
       name: emp.name,
       hire_date: emp.hire_date,
