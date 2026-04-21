@@ -11,7 +11,7 @@ const PIE_COLORS = ['#10b981', '#f59e0b', '#3b82f6', '#ef4444', '#8b5cf6', '#ec4
 
 export function DashboardContent() {
   const { t, lang } = useLanguage();
-  const [stats, setStats] = useState({ totalStock: 0, totalEmployees: 0, pendingAssignments: 0 });
+  const [allEmployees, setAllEmployees] = useState<any[]>([]);
   const [stockItems, setStockItems] = useState<any[]>([]);
   const [additions, setAdditions] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
