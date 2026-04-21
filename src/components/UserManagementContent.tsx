@@ -11,14 +11,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Check, X, Shield, Trash2, Lock, Key, AlertTriangle } from 'lucide-react';
+import { Check, X, Shield, Trash2, Lock, Key, AlertTriangle, Download } from 'lucide-react';
+import { exportFullBackup } from '@/lib/backup-export';
 
 const PROTECTED_EMAIL = 'm.khazenly@gmail.com';
 
 export function UserManagementContent() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { profile } = useAuth();
   const isProtectedAdmin = profile?.email === PROTECTED_EMAIL;
+  const [backingUp, setBackingUp] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [resetTarget, setResetTarget] = useState<{ email: string; name: string } | null>(null);
@@ -41,6 +43,17 @@ export function UserManagementContent() {
       toast.error(err.message || 'Failed');
     }
     setWiping(false);
+  };
+
+  const handleBackup = async () => {
+    setBackingUp(true);
+    try {
+      await exportFullBackup({ lang, t: t as (k: string) => string });
+      toast.success(t('backupSuccess'));
+    } catch (err: any) {
+      toast.error(err?.message || t('backupError'));
+    }
+    setBackingUp(false);
   };
 
   useEffect(() => { loadUsers(); }, []);
@@ -105,6 +118,22 @@ export function UserManagementContent() {
         <Shield className="h-6 w-6 text-primary" />
         <h1 className="text-2xl font-bold">{t('userManagement')}</h1>
       </div>
+
+      <Card className="border-primary/30">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <Download className="h-6 w-6 text-primary shrink-0 mt-1" />
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg font-bold text-primary">{t('fullBackup')}</h2>
+              <p className="text-sm text-muted-foreground mt-1">{t('fullBackupDesc')}</p>
+            </div>
+            <Button onClick={handleBackup} disabled={backingUp}>
+              <Download className="h-4 w-4 me-1" />
+              {backingUp ? t('preparingBackup') : t('downloadBackup')}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className="p-0">

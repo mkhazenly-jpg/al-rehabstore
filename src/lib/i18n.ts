@@ -214,6 +214,12 @@ export const translations = {
     location: 'الموقع',
     allLocations: 'كل المواقع',
     employeeLocation: 'موقع الموظف',
+    fullBackup: 'نسخة احتياطية شاملة',
+    fullBackupDesc: 'تحميل ملف Excel يحتوي على جميع بيانات الموقع (المخزون، الموظفون، التسليمات، المخالفات) في صفحات منسقة بألوان الموقع.',
+    downloadBackup: 'تحميل النسخة الاحتياطية',
+    backupSuccess: 'تم تحميل النسخة الاحتياطية بنجاح',
+    backupError: 'فشل تحميل النسخة الاحتياطية',
+    preparingBackup: 'جارٍ تجهيز الملف...',
   },
   en: {
     appName: 'Al-Rahaba Warehouse',
@@ -428,6 +434,12 @@ export const translations = {
     location: 'Location',
     allLocations: 'All Locations',
     employeeLocation: 'Employee Location',
+    fullBackup: 'Full Data Backup',
+    fullBackupDesc: 'Download an Excel file containing all site data (stock, employees, assignments, violations) across themed sheets matching the site colors.',
+    downloadBackup: 'Download Backup',
+    backupSuccess: 'Backup downloaded successfully',
+    backupError: 'Failed to download backup',
+    preparingBackup: 'Preparing file...',
   },
 } as const;
 
