@@ -286,7 +286,7 @@ export function DashboardContent() {
             <SelectContent>
               <SelectItem value="all">{t('allLocations')}</SelectItem>
               <SelectItem value="RDC">RDC</SelectItem>
-              <SelectItem value="SDS">SDS</SelectItem>
+              <SelectItem value="SDC">SDC</SelectItem>
             </SelectContent>
           </Select>
         </div>

@@ -39,7 +39,7 @@ export function EmployeesContent() {
   const [assignments, setAssignments] = useState<any[]>([]);
   const [empViolations, setEmpViolations] = useState<any[]>([]);
   const [editItem, setEditItem] = useState<Employee | null>(null);
-  const [form, setForm] = useState({ name: '', hire_date: '', status: 'active' as 'active' | 'resigned' | 'terminated', termination_date: '', department: '', notes: '', shift: '' as '' | 'morning' | 'night', mobile: '', job_title: '', location: '' as '' | 'RDC' | 'SDS' });
+  const [form, setForm] = useState({ name: '', hire_date: '', status: 'active' as 'active' | 'resigned' | 'terminated', termination_date: '', department: '', notes: '', shift: '' as '' | 'morning' | 'night', mobile: '', job_title: '', location: '' as '' | 'RDC' | 'SDC' });
 
   useEffect(() => { loadEmployees(); }, []);
 
@@ -225,7 +225,7 @@ export function EmployeesContent() {
         };
 
         const locVal = (row[t('location')] || row['Location'] || row['الموقع'] || '').toString().trim().toUpperCase();
-        if (locVal === 'RDC' || locVal === 'SDS') payload.location = locVal;
+        if (locVal === 'RDC' || locVal === 'SDC') payload.location = locVal;
 
         const shiftVal = (row[t('shift')] || row['Shift'] || row['الشفت'] || '').toString().trim().toLowerCase();
         if (shiftVal.includes('morning') || shiftVal.includes('صباح')) payload.shift = 'morning';
@@ -292,7 +292,7 @@ export function EmployeesContent() {
           <SelectContent>
             <SelectItem value="all">{t('location')}: {t('allLocations')}</SelectItem>
             <SelectItem value="RDC">RDC</SelectItem>
-            <SelectItem value="SDS">SDS</SelectItem>
+            <SelectItem value="SDC">SDC</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -445,7 +445,7 @@ export function EmployeesContent() {
                 <SelectTrigger><SelectValue placeholder="-" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="RDC">RDC</SelectItem>
-                  <SelectItem value="SDS">SDS</SelectItem>
+                  <SelectItem value="SDC">SDC</SelectItem>
                 </SelectContent>
               </Select>
             </div>
