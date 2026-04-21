@@ -505,12 +505,6 @@ export async function exportFullBackup({ lang, t }: BackupOptions): Promise<void
     },
     {
       name: lang === 'ar' ? 'الموظفون' : 'Employees',
-      title: t('employees'),
-      headers: [t('name'), t('jobTitle'), t('department'), t('location'), t('shift'), t('mobile'), t('hireDate'), t('status'), t('terminationDate'), t('notes')],
-      rows: empsRows,
-    },
-    {
-      name: lang === 'ar' ? 'تفاصيل الموظفين' : 'Employee Details',
       title: lang === 'ar' ? 'تفاصيل الموظفين والأصناف المسلمة' : 'Employee Details & Assigned Items',
       headers: empDetailsHeaders,
       rows: empDetailsRows,
