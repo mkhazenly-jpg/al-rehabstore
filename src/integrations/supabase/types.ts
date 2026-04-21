@@ -46,6 +46,7 @@ export type Database = {
           return_date: string | null
           status: Database["public"]["Enums"]["assignment_status"]
           stock_item_id: string
+          unit_price_at_assignment: number
           updated_at: string
         }
         Insert: {
@@ -58,6 +59,7 @@ export type Database = {
           return_date?: string | null
           status?: Database["public"]["Enums"]["assignment_status"]
           stock_item_id: string
+          unit_price_at_assignment?: number
           updated_at?: string
         }
         Update: {
@@ -70,6 +72,7 @@ export type Database = {
           return_date?: string | null
           status?: Database["public"]["Enums"]["assignment_status"]
           stock_item_id?: string
+          unit_price_at_assignment?: number
           updated_at?: string
         }
         Relationships: [
