@@ -434,6 +434,16 @@ export function EmployeesContent() {
               </Select>
             </div>
             <div className="space-y-2">
+              <Label>{t('location')}</Label>
+              <Select value={form.location} onValueChange={(v: any) => setForm({ ...form, location: v })}>
+                <SelectTrigger><SelectValue placeholder="-" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="RDC">RDC</SelectItem>
+                  <SelectItem value="SDS">SDS</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label>{t('notes')}</Label>
               <Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
             </div>
@@ -476,6 +486,8 @@ export function EmployeesContent() {
                   <span>{(selectedEmployee as any).mobile || '-'}</span>
                   <span className="text-muted-foreground">{t('shift')}:</span>
                   <span>{(selectedEmployee as any).shift ? t((selectedEmployee as any).shift as any) : '-'}</span>
+                  <span className="text-muted-foreground">{t('location')}:</span>
+                  <span>{(selectedEmployee as any).location || '-'}</span>
                 </div>
               </div>
 
