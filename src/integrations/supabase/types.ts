@@ -333,6 +333,7 @@ export type Database = {
         | "returned"
         | "damaged"
         | "lost"
+        | "replaced"
       employee_status: "active" | "resigned" | "terminated"
       violation_action:
         | "warning"
@@ -468,7 +469,14 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "staff"],
-      assignment_status: ["pending", "approved", "returned", "damaged", "lost"],
+      assignment_status: [
+        "pending",
+        "approved",
+        "returned",
+        "damaged",
+        "lost",
+        "replaced",
+      ],
       employee_status: ["active", "resigned", "terminated"],
       violation_action: [
         "warning",
