@@ -1,0 +1,2 @@
+ALTER TABLE public.stock_additions ADD COLUMN IF NOT EXISTS unit_price_at_addition numeric NOT NULL DEFAULT 0;
+UPDATE public.stock_additions sa SET unit_price_at_addition = si.unit_price FROM public.stock_items si WHERE sa.stock_item_id = si.id AND sa.unit_price_at_addition = 0;
