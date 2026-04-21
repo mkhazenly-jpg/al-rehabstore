@@ -281,6 +281,14 @@ export function EmployeesContent() {
             {departments.map(d => <SelectItem key={d} value={d!}>{d}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select value={filterLocation} onValueChange={setFilterLocation}>
+          <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder={t('location')} /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('location')}: {t('allLocations')}</SelectItem>
+            <SelectItem value="RDC">RDC</SelectItem>
+            <SelectItem value="SDS">SDS</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <Card>
@@ -293,6 +301,7 @@ export function EmployeesContent() {
                   <TableHead>{t('jobTitle')}</TableHead>
                   <TableHead>{t('status')}</TableHead>
                   <TableHead>{t('shift')}</TableHead>
+                  <TableHead>{t('location')}</TableHead>
                   <TableHead>{t('department')}</TableHead>
                   <TableHead>{t('actions')}</TableHead>
                 </TableRow>
@@ -312,6 +321,7 @@ export function EmployeesContent() {
                       </span>
                     </TableCell>
                     <TableCell className="text-xs">{(emp as any).shift ? t((emp as any).shift as any) : '-'}</TableCell>
+                    <TableCell className="text-xs">{(emp as any).location || '-'}</TableCell>
                     <TableCell className="text-xs">{emp.department || '-'}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
@@ -334,7 +344,7 @@ export function EmployeesContent() {
                 ))}
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">-</TableCell>
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">-</TableCell>
                   </TableRow>
                 )}
               </TableBody>
