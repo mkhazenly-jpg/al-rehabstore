@@ -123,9 +123,16 @@ export function StockContent() {
       const { error } = await supabase.from('stock_items').update({ ...form, size: sizeVal }).eq('id', editItem.id);
       stockError = error;
     } else if (existingMatch) {
+      const updatePayload: { quantity_in_stock: number; unit_price?: number } = {
+        quantity_in_stock: existingMatch.quantity_in_stock + form.quantity_in_stock,
+      };
+      // Update unit price if a new price was entered (> 0)
+      if (form.unit_price > 0) {
+        updatePayload.unit_price = form.unit_price;
+      }
       const { error } = await supabase
         .from('stock_items')
-        .update({ quantity_in_stock: existingMatch.quantity_in_stock + form.quantity_in_stock })
+        .update(updatePayload)
         .eq('id', existingMatch.id);
       stockError = error;
     } else {
