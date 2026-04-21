@@ -318,11 +318,16 @@ export function StockContent() {
               <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
             </div>
             <div className="space-y-2">
-              <Label>{t('category')}</Label>
+              <div className="flex items-center justify-between">
+                <Label>{t('category')}</Label>
+                <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => { setNewCategoryName(''); setAddCategoryOpen(true); }}>
+                  <Plus className="h-3 w-3 me-1" />{t('addCategory')}
+                </Button>
+              </div>
               <Select value={form.category} onValueChange={v => setForm({ ...form, category: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  {categoryOptions.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
