@@ -195,13 +195,17 @@ export function AssignmentsContent() {
           ? `[${line.reassign_reason === 'lost' ? t('lost') : t('damaged')}] ${notes || ''}`
           : (notes || null);
 
+        const currentStock = stockItems.find(s => s.id === line.stock_item_id);
+        const priceAtAssignment = (currentStock as any)?.unit_price || 0;
+
         const { data: assignment, error: insertErr } = await supabase.from('assignments').insert({
           employee_id: employeeId,
           stock_item_id: line.stock_item_id,
           quantity_assigned: line.quantity_assigned,
           notes: reasonNote,
           assignment_date: assignmentDate.toISOString(),
-        }).select('id').single();
+          unit_price_at_assignment: priceAtAssignment,
+        } as any).select('id').single();
 
         if (insertErr) {
           setError(insertErr.message);
