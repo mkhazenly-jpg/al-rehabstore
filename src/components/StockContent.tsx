@@ -359,10 +359,6 @@ export function StockContent() {
               </Alert>
             )}
             <div className="space-y-2">
-              <Label>{t('name')}</Label>
-              <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
-            </div>
-            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>{t('category')}</Label>
                 <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => { setNewCategoryName(''); setAddCategoryOpen(true); }}>
