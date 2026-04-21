@@ -26,7 +26,7 @@ interface StockAddition {
   unit_price_at_addition: number;
 }
 
-const CATEGORIES = ['safety shoes', 'vests', 'helmets', 'gloves', 'other'];
+const DEFAULT_CATEGORIES = ['safety shoes', 'vests', 'helmets', 'gloves'];
 const UNITS = ['pair', 'piece', 'box'];
 
 export function StockContent() {
@@ -46,6 +46,11 @@ export function StockContent() {
   const [minThreshold, setMinThreshold] = useState(10);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [thresholdInput, setThresholdInput] = useState('10');
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
+  const [addCategoryOpen, setAddCategoryOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+
+  const categoryOptions = [...DEFAULT_CATEGORIES, ...customCategories];
 
   useEffect(() => { loadItems(); loadSettings(); }, []);
 
@@ -64,12 +69,19 @@ export function StockContent() {
   };
 
   const loadSettings = async () => {
-    const { data } = await supabase.from('app_settings').select('value').eq('key', 'min_stock_threshold').maybeSingle();
-    if (data) {
-      const val = parseInt(data.value);
-      setMinThreshold(val);
-      setThresholdInput(String(val));
-    }
+    const { data } = await supabase.from('app_settings').select('key, value').in('key', ['min_stock_threshold', 'custom_stock_categories']);
+    (data || []).forEach((row: any) => {
+      if (row.key === 'min_stock_threshold') {
+        const val = parseInt(row.value);
+        setMinThreshold(val);
+        setThresholdInput(String(val));
+      } else if (row.key === 'custom_stock_categories') {
+        try {
+          const parsed = JSON.parse(row.value);
+          if (Array.isArray(parsed)) setCustomCategories(parsed);
+        } catch { /* ignore */ }
+      }
+    });
   };
 
   const saveThreshold = async () => {
@@ -78,6 +90,44 @@ export function StockContent() {
     setMinThreshold(val);
     setSettingsOpen(false);
     toast.success(t('settingsSaved'));
+  };
+
+  const saveNewCategory = async () => {
+    const name = newCategoryName.trim();
+    if (!name) return;
+    if (categoryOptions.some(c => c.toLowerCase() === name.toLowerCase())) {
+      toast.error(t('categoryExists'));
+      return;
+    }
+    const next = [...customCategories, name];
+    const { error } = await supabase
+      .from('app_settings')
+      .upsert({ key: 'custom_stock_categories', value: JSON.stringify(next) }, { onConflict: 'key' });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setCustomCategories(next);
+    setForm(f => ({ ...f, category: name }));
+    setAddCategoryOpen(false);
+    setNewCategoryName('');
+    toast.success(t('categoryAdded'));
+  };
+
+  const deleteCustomCategory = async (cat: string) => {
+    if (items.some(i => i.category === cat)) {
+      toast.error(t('categoryInUse'));
+      return;
+    }
+    const next = customCategories.filter(c => c !== cat);
+    const { error } = await supabase
+      .from('app_settings')
+      .upsert({ key: 'custom_stock_categories', value: JSON.stringify(next) }, { onConflict: 'key' });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setCustomCategories(next);
   };
 
   const filtered = items.filter(i => {
@@ -229,7 +279,7 @@ export function StockContent() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('allCategories')}</SelectItem>
-            {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            {categoryOptions.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -313,11 +363,16 @@ export function StockContent() {
               <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
             </div>
             <div className="space-y-2">
-              <Label>{t('category')}</Label>
+              <div className="flex items-center justify-between">
+                <Label>{t('category')}</Label>
+                <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => { setNewCategoryName(''); setAddCategoryOpen(true); }}>
+                  <Plus className="h-3 w-3 me-1" />{t('addCategory')}
+                </Button>
+              </div>
               <Select value={form.category} onValueChange={v => setForm({ ...form, category: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  {categoryOptions.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -415,7 +470,51 @@ export function StockContent() {
                 {lang === 'ar' ? 'الأصناف التي تصل لهذا الرقم أو أقل ستظهر بعلامة تحذير حمراء' : 'Items at or below this number will show a red warning'}
               </p>
             </div>
+            {customCategories.length > 0 && (
+              <div className="space-y-2">
+                <Label>{t('addCategory')}</Label>
+                <div className="flex flex-wrap gap-2">
+                  {customCategories.map(c => (
+                    <div key={c} className="flex items-center gap-1 rounded-md border px-2 py-1 text-sm bg-muted/50">
+                      <span>{c}</span>
+                      <button
+                        type="button"
+                        onClick={() => deleteCustomCategory(c)}
+                        title={t('deleteCategory')}
+                        className="text-destructive hover:text-destructive/80"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <Button onClick={saveThreshold} className="w-full">{t('save')}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Category Dialog */}
+      <Dialog open={addCategoryOpen} onOpenChange={setAddCategoryOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t('addCategory')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>{t('newCategoryName')}</Label>
+              <Input
+                value={newCategoryName}
+                onChange={e => setNewCategoryName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') saveNewCategory(); }}
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setAddCategoryOpen(false)}>{t('cancel')}</Button>
+              <Button onClick={saveNewCategory}>{t('save')}</Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
