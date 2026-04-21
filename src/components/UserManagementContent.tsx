@@ -119,6 +119,22 @@ export function UserManagementContent() {
         <h1 className="text-2xl font-bold">{t('userManagement')}</h1>
       </div>
 
+      <Card className="border-primary/30">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <Download className="h-6 w-6 text-primary shrink-0 mt-1" />
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg font-bold text-primary">{t('fullBackup')}</h2>
+              <p className="text-sm text-muted-foreground mt-1">{t('fullBackupDesc')}</p>
+            </div>
+            <Button onClick={handleBackup} disabled={backingUp}>
+              <Download className="h-4 w-4 me-1" />
+              {backingUp ? t('preparingBackup') : t('downloadBackup')}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
