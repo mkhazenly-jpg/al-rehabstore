@@ -279,6 +279,16 @@ export function DashboardContent() {
               </SelectContent>
             </Select>
           )}
+          <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+            <SelectTrigger className="w-[130px]">
+              <SelectValue placeholder={t('location')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('allLocations')}</SelectItem>
+              <SelectItem value="RDC">RDC</SelectItem>
+              <SelectItem value="SDS">SDS</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
