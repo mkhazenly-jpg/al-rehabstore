@@ -40,6 +40,7 @@ export function EmployeesContent() {
   const [empViolations, setEmpViolations] = useState<any[]>([]);
   const [editItem, setEditItem] = useState<Employee | null>(null);
   const [form, setForm] = useState({ name: '', hire_date: '', status: 'active' as 'active' | 'resigned' | 'terminated', termination_date: '', department: '', notes: '', shift: '' as '' | 'morning' | 'night', mobile: '', job_title: '', location: '' as '' | 'RDC' | 'SDC' });
+  const [isAddingDept, setIsAddingDept] = useState(false);
 
   useEffect(() => { loadEmployees(); }, []);
 
