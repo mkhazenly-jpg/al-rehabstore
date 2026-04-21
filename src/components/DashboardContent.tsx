@@ -38,20 +38,24 @@ export function DashboardContent() {
 
     const items = stockRes.data || [];
     const employees = empRes.data || [];
-    const allAssignments = assignRes.data || [];
 
-    setStats({
-      totalStock: items.length,
-      totalEmployees: employees.filter((e: any) => selectedLocation === 'all' || e.location === selectedLocation).length,
-      pendingAssignments: allAssignments.filter((a: any) => a.status === 'pending' && (selectedLocation === 'all' || a.employees?.location === selectedLocation)).length,
-    });
-
+    setAllEmployees(employees);
     setStockItems(items);
     setAdditions(additionsRes.data || []);
     setAssignments(allAssignRes.data || []);
     setDamagedLostAssignments(damagedLostRes.data || []);
     setAllApprovedAssignments(approvedAssignRes.data || []);
   };
+
+  const stats = useMemo(() => {
+    const filteredEmployees = allEmployees.filter((e: any) => selectedLocation === 'all' || e.location === selectedLocation);
+    const pending = assignments.filter((a: any) => a.status === 'pending' && (selectedLocation === 'all' || a.employees?.location === selectedLocation));
+    return {
+      totalStock: stockItems.length,
+      totalEmployees: filteredEmployees.length,
+      pendingAssignments: pending.length,
+    };
+  }, [allEmployees, stockItems, assignments, selectedLocation]);
 
   // Get available years from additions
   const availableYears = useMemo(() => {
