@@ -33,7 +33,7 @@ export function StockContent() {
   const { t, lang } = useLanguage();
   const { isAdmin } = useAuth();
   const [items, setItems] = useState<StockItem[]>([]);
-  const [totalAdded, setTotalAdded] = useState<Record<string, number>>({});
+  const [totalValue, setTotalValue] = useState<Record<string, number>>({});
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -52,15 +52,15 @@ export function StockContent() {
   const loadItems = async () => {
     const [{ data }, { data: additionsData }] = await Promise.all([
       supabase.from('stock_items').select('*').order('added_date', { ascending: false }),
-      supabase.from('stock_additions').select('stock_item_id, quantity_added'),
+      supabase.from('stock_additions').select('stock_item_id, quantity_added, unit_price_at_addition'),
     ]);
     setItems(data || []);
-    // Calculate total quantities ever added per item
+    // Calculate total value per item based on each addition's price at the time
     const totals: Record<string, number> = {};
     (additionsData || []).forEach((a: any) => {
-      totals[a.stock_item_id] = (totals[a.stock_item_id] || 0) + a.quantity_added;
+      totals[a.stock_item_id] = (totals[a.stock_item_id] || 0) + (a.quantity_added * (a.unit_price_at_addition || 0));
     });
-    setTotalAdded(totals);
+    setTotalValue(totals);
   };
 
   const loadSettings = async () => {
@@ -151,6 +151,7 @@ export function StockContent() {
       const { error: additionError } = await supabase.from('stock_additions').insert({
         stock_item_id: stockItemId,
         quantity_added: form.quantity_in_stock,
+        unit_price_at_addition: form.unit_price,
       });
 
       if (additionError) {
@@ -188,7 +189,7 @@ export function StockContent() {
         [t('size')]: i.size,
         [t('quantity')]: i.quantity_in_stock,
         [t('unitPrice')]: (i as any).unit_price || 0,
-        [t('totalPrice')]: ((i as any).unit_price || 0) * (totalAdded[i.id] || i.quantity_in_stock),
+        [t('totalPrice')]: totalValue[i.id] || 0,
         [t('unit')]: i.unit,
         [t('addedDate')]: new Date(i.added_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US'),
       })),
@@ -263,7 +264,7 @@ export function StockContent() {
                       </span>
                     </TableCell>
                     <TableCell>{(item as any).unit_price > 0 ? `${(item as any).unit_price} ${t('currency')}` : '-'}</TableCell>
-                    <TableCell>{(item as any).unit_price > 0 ? `${(item as any).unit_price * (totalAdded[item.id] || item.quantity_in_stock)} ${t('currency')}` : '-'}</TableCell>
+                    <TableCell>{totalValue[item.id] > 0 ? `${totalValue[item.id]} ${t('currency')}` : '-'}</TableCell>
                     <TableCell>{item.unit}</TableCell>
                     <TableCell>{new Date(item.added_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}</TableCell>
                     {isAdmin && (
@@ -368,7 +369,7 @@ export function StockContent() {
               </TableHeader>
               <TableBody>
                 {additions.map(a => {
-                  const price = (historyItem as any)?.unit_price || 0;
+                  const price = a.unit_price_at_addition || 0;
                   return (
                     <TableRow key={a.id}>
                       <TableCell className="font-medium">+{a.quantity_added}</TableCell>
@@ -386,10 +387,10 @@ export function StockContent() {
               </TableBody>
             </Table>
           </div>
-          {additions.length > 0 && (historyItem as any)?.unit_price > 0 && (
+          {additions.length > 0 && additions.some(a => a.unit_price_at_addition > 0) && (
             <div className="mt-3 p-3 rounded-lg bg-muted text-sm font-medium flex justify-between">
               <span>{t('totalPrice')}</span>
-              <span>{(historyItem as any).unit_price * additions.reduce((s, a) => s + a.quantity_added, 0)} {t('currency')}</span>
+              <span>{additions.reduce((s, a) => s + (a.quantity_added * (a.unit_price_at_addition || 0)), 0)} {t('currency')}</span>
             </div>
           )}
         </DialogContent>
