@@ -245,15 +245,20 @@ export function AssignmentsContent() {
 
   const handleExport = () => {
     exportToExcel(
-      assignments.map((a: any) => ({
-        [t('employee')]: a.employees?.name,
-        [t('stockItem')]: a.stock_items?.name,
-        [t('quantityAssigned')]: a.quantity_assigned,
-        [t('status')]: t(a.status as any),
-        [t('assignmentDate')]: new Date(a.assignment_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US'),
-        [t('reassignReason')]: getReasonFromNotes(a.notes),
-        [t('returnDate')]: a.return_date ? new Date(a.return_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US') : '-',
-      })),
+      assignments.map((a: any) => {
+        const price = a.unit_price_at_assignment || 0;
+        return {
+          [t('employee')]: a.employees?.name,
+          [t('stockItem')]: a.stock_items?.name,
+          [t('quantityAssigned')]: a.quantity_assigned,
+          [t('priceAtAssignment')]: price,
+          [t('totalPrice')]: price * a.quantity_assigned,
+          [t('status')]: t(a.status as any),
+          [t('assignmentDate')]: new Date(a.assignment_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US'),
+          [t('reassignReason')]: getReasonFromNotes(a.notes),
+          [t('returnDate')]: a.return_date ? new Date(a.return_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US') : '-',
+        };
+      }),
       'assignments'
     );
   };
@@ -304,6 +309,8 @@ export function AssignmentsContent() {
                   <TableHead>{t('employee')}</TableHead>
                   <TableHead>{t('stockItem')}</TableHead>
                   <TableHead>{t('quantityAssigned')}</TableHead>
+                  <TableHead>{t('priceAtAssignment')}</TableHead>
+                  <TableHead>{t('totalPrice')}</TableHead>
                   <TableHead>{t('status')}</TableHead>
                   <TableHead>{t('assignmentDate')}</TableHead>
                   <TableHead>{t('reassignReason')}</TableHead>
@@ -317,6 +324,8 @@ export function AssignmentsContent() {
                     <TableCell className="font-medium">{a.employees?.name}</TableCell>
                     <TableCell>{a.stock_items?.name} {a.stock_items?.size !== 'N/A' ? `(${a.stock_items?.size})` : ''}</TableCell>
                     <TableCell>{a.quantity_assigned}</TableCell>
+                    <TableCell>{a.unit_price_at_assignment > 0 ? `${a.unit_price_at_assignment} ${t('currency')}` : '-'}</TableCell>
+                    <TableCell>{a.unit_price_at_assignment > 0 ? `${a.unit_price_at_assignment * a.quantity_assigned} ${t('currency')}` : '-'}</TableCell>
                     <TableCell>
                       <span className={`rounded-full px-2 py-1 text-xs font-medium ${
                         a.status === 'approved' ? 'bg-success/20 text-success' :
