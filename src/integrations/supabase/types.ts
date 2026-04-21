@@ -35,6 +35,48 @@ export type Database = {
         }
         Relationships: []
       }
+      assignment_batches: {
+        Row: {
+          assignment_id: string
+          created_at: string
+          id: string
+          quantity: number
+          stock_addition_id: string
+          unit_price: number
+        }
+        Insert: {
+          assignment_id: string
+          created_at?: string
+          id?: string
+          quantity: number
+          stock_addition_id: string
+          unit_price?: number
+        }
+        Update: {
+          assignment_id?: string
+          created_at?: string
+          id?: string
+          quantity?: number
+          stock_addition_id?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignment_batches_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignment_batches_stock_addition_id_fkey"
+            columns: ["stock_addition_id"]
+            isOneToOne: false
+            referencedRelation: "stock_additions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assignments: {
         Row: {
           assignment_date: string
@@ -221,6 +263,7 @@ export type Database = {
           id: string
           notes: string | null
           quantity_added: number
+          remaining_quantity: number
           stock_item_id: string
           unit_price_at_addition: number
         }
@@ -230,6 +273,7 @@ export type Database = {
           id?: string
           notes?: string | null
           quantity_added?: number
+          remaining_quantity?: number
           stock_item_id: string
           unit_price_at_addition?: number
         }
@@ -239,6 +283,7 @@ export type Database = {
           id?: string
           notes?: string | null
           quantity_added?: number
+          remaining_quantity?: number
           stock_item_id?: string
           unit_price_at_addition?: number
         }
@@ -318,6 +363,7 @@ export type Database = {
         Args: { _assignment_id: string }
         Returns: undefined
       }
+      assign_with_fifo: { Args: { _assignment_id: string }; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -330,6 +376,7 @@ export type Database = {
         Args: { _assignment_id: string }
         Returns: undefined
       }
+      return_with_fifo: { Args: { _assignment_id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "staff"
