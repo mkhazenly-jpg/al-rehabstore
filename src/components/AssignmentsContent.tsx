@@ -52,7 +52,7 @@ export function AssignmentsContent() {
 
   const loadAll = async () => {
     const [aRes, eRes, sRes] = await Promise.all([
-      supabase.from('assignments').select('*, employees(name), stock_items(name, category, size, quantity_in_stock)').order('created_at', { ascending: false }),
+      supabase.from('assignments').select('*, employees(name, location), stock_items(name, category, size, quantity_in_stock)').order('created_at', { ascending: false }),
       supabase.from('employees').select('*').eq('status', 'active'),
       supabase.from('stock_items').select('*'),
     ]);
