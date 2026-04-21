@@ -40,6 +40,7 @@ export function EmployeesContent() {
   const [empViolations, setEmpViolations] = useState<any[]>([]);
   const [editItem, setEditItem] = useState<Employee | null>(null);
   const [form, setForm] = useState({ name: '', hire_date: '', status: 'active' as 'active' | 'resigned' | 'terminated', termination_date: '', department: '', notes: '', shift: '' as '' | 'morning' | 'night', mobile: '', job_title: '', location: '' as '' | 'RDC' | 'SDC' });
+  const [isAddingDept, setIsAddingDept] = useState(false);
 
   useEffect(() => { loadEmployees(); }, []);
 
@@ -59,12 +60,14 @@ export function EmployeesContent() {
 
   const openAdd = () => {
     setEditItem(null);
+    setIsAddingDept(false);
     setForm({ name: '', hire_date: new Date().toISOString().split('T')[0], status: 'active', termination_date: '', department: '', notes: '', shift: '', mobile: '', job_title: '', location: '' });
     setDialogOpen(true);
   };
 
   const openEdit = (emp: Employee) => {
     setEditItem(emp);
+    setIsAddingDept(false);
     setForm({
       name: emp.name,
       hire_date: emp.hire_date,
@@ -393,10 +396,17 @@ export function EmployeesContent() {
             )}
             <div className="space-y-2">
               <Label>{t('department')}</Label>
-              {departments.length > 0 && form.department !== '__new__' ? (
+              {departments.length > 0 && !isAddingDept ? (
                 <Select
                   value={form.department || '__none__'}
-                  onValueChange={v => setForm({ ...form, department: v === '__new__' ? '__new__' : (v === '__none__' ? '' : v) })}
+                  onValueChange={v => {
+                    if (v === '__new__') {
+                      setIsAddingDept(true);
+                      setForm({ ...form, department: '' });
+                    } else {
+                      setForm({ ...form, department: v === '__none__' ? '' : v });
+                    }
+                  }}
                 >
                   <SelectTrigger><SelectValue placeholder="-" /></SelectTrigger>
                   <SelectContent>
@@ -409,12 +419,12 @@ export function EmployeesContent() {
                 <div className="flex gap-2">
                   <Input
                     placeholder={t('newDepartmentName')}
-                    value={form.department === '__new__' ? '' : form.department}
+                    value={form.department}
                     onChange={e => setForm({ ...form, department: e.target.value })}
-                    autoFocus={form.department === '__new__'}
+                    autoFocus
                   />
                   {departments.length > 0 && (
-                    <Button type="button" variant="outline" size="sm" onClick={() => setForm({ ...form, department: '' })}>
+                    <Button type="button" variant="outline" size="sm" onClick={() => { setIsAddingDept(false); setForm({ ...form, department: '' }); }}>
                       {t('cancel')}
                     </Button>
                   )}
