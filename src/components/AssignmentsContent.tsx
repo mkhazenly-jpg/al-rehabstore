@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Plus, Download, RotateCcw, Trash2, CalendarIcon, AlertTriangle, Pencil, Check, ChevronsUpDown } from 'lucide-react';
+import { Plus, Download, RotateCcw, Trash2, CalendarIcon, AlertTriangle, Pencil, Check, ChevronsUpDown, Layers } from 'lucide-react';
 import { exportToExcel } from '@/lib/export';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -44,6 +44,9 @@ export function AssignmentsContent() {
   const [saving, setSaving] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [employeePopoverOpen, setEmployeePopoverOpen] = useState(false);
+  const [batchesDialogOpen, setBatchesDialogOpen] = useState(false);
+  const [batchesAssignment, setBatchesAssignment] = useState<any>(null);
+  const [batchesData, setBatchesData] = useState<any[]>([]);
 
   useEffect(() => { loadAll(); }, []);
 
@@ -124,7 +127,7 @@ export function AssignmentsContent() {
 
         const oldA = editingAssignment;
         if (oldA.status === 'approved') {
-          const { error: retErr } = await supabase.rpc('return_assignment', { _assignment_id: oldA.id });
+          const { error: retErr } = await supabase.rpc('return_with_fifo', { _assignment_id: oldA.id });
           if (retErr) { setError(retErr.message); setSaving(false); return; }
         }
 
@@ -139,7 +142,7 @@ export function AssignmentsContent() {
 
         if (updErr) { setError(updErr.message); setSaving(false); return; }
 
-        const { error: appErr } = await supabase.rpc('approve_assignment', { _assignment_id: oldA.id });
+        const { error: appErr } = await supabase.rpc('assign_with_fifo', { _assignment_id: oldA.id });
         if (appErr) { setError(appErr.message); setSaving(false); return; }
 
         setDialogOpen(false);
@@ -183,8 +186,8 @@ export function AssignmentsContent() {
         );
 
         for (const oldA of oldDamagedLost) {
-          // Return the stock first (restores quantity, sets status='returned')
-          const { error: retErr } = await supabase.rpc('return_assignment', { _assignment_id: oldA.id });
+          // Return the stock first (restores quantity to original batches, sets status='returned')
+          const { error: retErr } = await supabase.rpc('return_with_fifo', { _assignment_id: oldA.id });
           if (retErr) { setError(retErr.message); setSaving(false); return; }
           // Then mark it as 'replaced'
           const { error: updErr } = await supabase.from('assignments').update({ status: 'replaced' }).eq('id', oldA.id);
@@ -195,17 +198,13 @@ export function AssignmentsContent() {
           ? `[${line.reassign_reason === 'lost' ? t('lost') : t('damaged')}] ${notes || ''}`
           : (notes || null);
 
-        const currentStock = stockItems.find(s => s.id === line.stock_item_id);
-        const priceAtAssignment = (currentStock as any)?.unit_price || 0;
-
         const { data: assignment, error: insertErr } = await supabase.from('assignments').insert({
           employee_id: employeeId,
           stock_item_id: line.stock_item_id,
           quantity_assigned: line.quantity_assigned,
           notes: reasonNote,
           assignment_date: assignmentDate.toISOString(),
-          unit_price_at_assignment: priceAtAssignment,
-        } as any).select('id').single();
+        }).select('id').single();
 
         if (insertErr) {
           setError(insertErr.message);
@@ -214,7 +213,9 @@ export function AssignmentsContent() {
         }
 
         if (assignment) {
-          const { error: approveErr } = await supabase.rpc('approve_assignment', { _assignment_id: assignment.id });
+          // FIFO assign: pulls from oldest batches first, sets unit_price_at_assignment
+          // automatically as weighted average of pulled batches.
+          const { error: approveErr } = await supabase.rpc('assign_with_fifo', { _assignment_id: assignment.id });
           if (approveErr) {
             setError(approveErr.message);
             setSaving(false);
@@ -232,8 +233,19 @@ export function AssignmentsContent() {
   };
 
   const handleReturn = async (id: string) => {
-    await supabase.rpc('return_assignment', { _assignment_id: id });
+    await supabase.rpc('return_with_fifo', { _assignment_id: id });
     loadAll();
+  };
+
+  const openBatches = async (a: any) => {
+    setBatchesAssignment(a);
+    setBatchesDialogOpen(true);
+    const { data } = await supabase
+      .from('assignment_batches' as any)
+      .select('*, stock_additions(added_at)')
+      .eq('assignment_id', a.id)
+      .order('created_at', { ascending: true });
+    setBatchesData((data as any[]) || []);
   };
 
   const getReasonFromNotes = (notes: string | null) => {
@@ -265,9 +277,9 @@ export function AssignmentsContent() {
 
   const handleDelete = async (assignment: any) => {
     try {
-      // If approved, return stock first
+      // If approved, return stock first (FIFO: returns to original batches)
       if (assignment.status === 'approved') {
-        await supabase.rpc('return_assignment', { _assignment_id: assignment.id });
+        await supabase.rpc('return_with_fifo', { _assignment_id: assignment.id });
       }
       await supabase.from('assignments').delete().eq('id', assignment.id);
       setDeleteConfirmId(null);
@@ -350,6 +362,11 @@ export function AssignmentsContent() {
                     {isAdmin && (
                       <TableCell>
                         <div className="flex gap-1">
+                          {(a.status === 'approved' || a.status === 'returned' || a.status === 'replaced') && (
+                            <Button variant="ghost" size="icon" onClick={() => openBatches(a)} title={t('batchDetails')}>
+                              <Layers className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button variant="ghost" size="icon" onClick={() => openDialog(a)} title={t('edit')}>
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -550,6 +567,60 @@ export function AssignmentsContent() {
               if (a) handleDelete(a);
             }}>{t('delete')}</Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* FIFO batch breakdown dialog */}
+      <Dialog open={batchesDialogOpen} onOpenChange={setBatchesDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {t('batchDetails')} - {batchesAssignment?.employees?.name} / {batchesAssignment?.stock_items?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-x-auto max-h-80">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('pulledFromBatch')}</TableHead>
+                  <TableHead>{t('quantity')}</TableHead>
+                  <TableHead>{t('unitPrice')}</TableHead>
+                  <TableHead>{t('totalPrice')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {batchesData.map((b: any) => (
+                  <TableRow key={b.id}>
+                    <TableCell>
+                      {b.stock_additions?.added_at
+                        ? new Date(b.stock_additions.added_at).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')
+                        : '-'}
+                    </TableCell>
+                    <TableCell className="font-medium">{b.quantity}</TableCell>
+                    <TableCell>{b.unit_price > 0 ? `${b.unit_price} ${t('currency')}` : '-'}</TableCell>
+                    <TableCell>{b.unit_price > 0 ? `${(b.unit_price * b.quantity).toFixed(2)} ${t('currency')}` : '-'}</TableCell>
+                  </TableRow>
+                ))}
+                {batchesData.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-4">-</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          {batchesData.length > 0 && (
+            <div className="mt-3 space-y-1 p-3 rounded-lg bg-muted text-sm">
+              <div className="flex justify-between font-medium">
+                <span>{t('totalPrice')}</span>
+                <span>{batchesData.reduce((s, b) => s + (b.unit_price * b.quantity), 0).toFixed(2)} {t('currency')}</span>
+              </div>
+              <div className="flex justify-between text-muted-foreground text-xs">
+                <span>{t('weightedAverage')}</span>
+                <span>{batchesAssignment?.unit_price_at_assignment > 0 ? `${Number(batchesAssignment.unit_price_at_assignment).toFixed(2)} ${t('currency')}` : '-'}</span>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
