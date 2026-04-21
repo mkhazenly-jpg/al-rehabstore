@@ -368,7 +368,7 @@ export function AssignmentsContent() {
                 ))}
                 {assignments.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">-</TableCell>
+                    <TableCell colSpan={10} className="text-center text-muted-foreground py-8">-</TableCell>
                   </TableRow>
                 )}
               </TableBody>
