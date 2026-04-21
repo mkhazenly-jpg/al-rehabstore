@@ -124,7 +124,7 @@ export function AssignmentsContent() {
 
         const oldA = editingAssignment;
         if (oldA.status === 'approved') {
-          const { error: retErr } = await supabase.rpc('return_assignment', { _assignment_id: oldA.id });
+          const { error: retErr } = await supabase.rpc('return_with_fifo', { _assignment_id: oldA.id });
           if (retErr) { setError(retErr.message); setSaving(false); return; }
         }
 
@@ -139,7 +139,7 @@ export function AssignmentsContent() {
 
         if (updErr) { setError(updErr.message); setSaving(false); return; }
 
-        const { error: appErr } = await supabase.rpc('approve_assignment', { _assignment_id: oldA.id });
+        const { error: appErr } = await supabase.rpc('assign_with_fifo', { _assignment_id: oldA.id });
         if (appErr) { setError(appErr.message); setSaving(false); return; }
 
         setDialogOpen(false);
@@ -183,8 +183,8 @@ export function AssignmentsContent() {
         );
 
         for (const oldA of oldDamagedLost) {
-          // Return the stock first (restores quantity, sets status='returned')
-          const { error: retErr } = await supabase.rpc('return_assignment', { _assignment_id: oldA.id });
+          // Return the stock first (restores quantity to original batches, sets status='returned')
+          const { error: retErr } = await supabase.rpc('return_with_fifo', { _assignment_id: oldA.id });
           if (retErr) { setError(retErr.message); setSaving(false); return; }
           // Then mark it as 'replaced'
           const { error: updErr } = await supabase.from('assignments').update({ status: 'replaced' }).eq('id', oldA.id);
@@ -195,17 +195,13 @@ export function AssignmentsContent() {
           ? `[${line.reassign_reason === 'lost' ? t('lost') : t('damaged')}] ${notes || ''}`
           : (notes || null);
 
-        const currentStock = stockItems.find(s => s.id === line.stock_item_id);
-        const priceAtAssignment = (currentStock as any)?.unit_price || 0;
-
         const { data: assignment, error: insertErr } = await supabase.from('assignments').insert({
           employee_id: employeeId,
           stock_item_id: line.stock_item_id,
           quantity_assigned: line.quantity_assigned,
           notes: reasonNote,
           assignment_date: assignmentDate.toISOString(),
-          unit_price_at_assignment: priceAtAssignment,
-        } as any).select('id').single();
+        }).select('id').single();
 
         if (insertErr) {
           setError(insertErr.message);
@@ -214,7 +210,9 @@ export function AssignmentsContent() {
         }
 
         if (assignment) {
-          const { error: approveErr } = await supabase.rpc('approve_assignment', { _assignment_id: assignment.id });
+          // FIFO assign: pulls from oldest batches first, sets unit_price_at_assignment
+          // automatically as weighted average of pulled batches.
+          const { error: approveErr } = await supabase.rpc('assign_with_fifo', { _assignment_id: assignment.id });
           if (approveErr) {
             setError(approveErr.message);
             setSaving(false);
@@ -232,7 +230,7 @@ export function AssignmentsContent() {
   };
 
   const handleReturn = async (id: string) => {
-    await supabase.rpc('return_assignment', { _assignment_id: id });
+    await supabase.rpc('return_with_fifo', { _assignment_id: id });
     loadAll();
   };
 
