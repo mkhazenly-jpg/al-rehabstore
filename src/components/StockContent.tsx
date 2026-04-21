@@ -23,6 +23,7 @@ interface StockAddition {
   quantity_added: number;
   added_at: string;
   notes: string | null;
+  unit_price_at_addition: number;
 }
 
 const CATEGORIES = ['safety shoes', 'vests', 'helmets', 'gloves', 'other'];
