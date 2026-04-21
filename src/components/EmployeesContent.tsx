@@ -372,7 +372,33 @@ export function EmployeesContent() {
             )}
             <div className="space-y-2">
               <Label>{t('department')}</Label>
-              <Input value={form.department} onChange={e => setForm({ ...form, department: e.target.value })} />
+              {departments.length > 0 && form.department !== '__new__' ? (
+                <Select
+                  value={form.department || '__none__'}
+                  onValueChange={v => setForm({ ...form, department: v === '__new__' ? '__new__' : (v === '__none__' ? '' : v) })}
+                >
+                  <SelectTrigger><SelectValue placeholder="-" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">-</SelectItem>
+                    {departments.map(d => <SelectItem key={d!} value={d!}>{d}</SelectItem>)}
+                    <SelectItem value="__new__">{t('addNewDepartment')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="flex gap-2">
+                  <Input
+                    placeholder={t('newDepartmentName')}
+                    value={form.department === '__new__' ? '' : form.department}
+                    onChange={e => setForm({ ...form, department: e.target.value })}
+                    autoFocus={form.department === '__new__'}
+                  />
+                  {departments.length > 0 && (
+                    <Button type="button" variant="outline" size="sm" onClick={() => setForm({ ...form, department: '' })}>
+                      {t('cancel')}
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label>{t('jobTitle')}</Label>
