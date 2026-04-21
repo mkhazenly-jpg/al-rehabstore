@@ -188,6 +188,7 @@ export type Database = {
           hire_date: string
           id: string
           job_title: string | null
+          location: string | null
           mobile: string | null
           name: string
           notes: string | null
@@ -202,6 +203,7 @@ export type Database = {
           hire_date?: string
           id?: string
           job_title?: string | null
+          location?: string | null
           mobile?: string | null
           name: string
           notes?: string | null
@@ -216,6 +218,7 @@ export type Database = {
           hire_date?: string
           id?: string
           job_title?: string | null
+          location?: string | null
           mobile?: string | null
           name?: string
           notes?: string | null
