@@ -46,6 +46,11 @@ export function StockContent() {
   const [minThreshold, setMinThreshold] = useState(10);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [thresholdInput, setThresholdInput] = useState('10');
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
+  const [addCategoryOpen, setAddCategoryOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+
+  const allCategories = [...DEFAULT_CATEGORIES, ...customCategories];
 
   useEffect(() => { loadItems(); loadSettings(); }, []);
 
