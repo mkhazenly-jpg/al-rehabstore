@@ -26,7 +26,7 @@ interface StockAddition {
   unit_price_at_addition: number;
 }
 
-const CATEGORIES = ['safety shoes', 'vests', 'helmets', 'gloves', 'other'];
+const DEFAULT_CATEGORIES = ['safety shoes', 'vests', 'helmets', 'gloves'];
 const UNITS = ['pair', 'piece', 'box'];
 
 export function StockContent() {
