@@ -42,8 +42,8 @@ export function DashboardContent() {
 
     setStats({
       totalStock: items.length,
-      totalEmployees: employees.length,
-      pendingAssignments: allAssignments.filter(a => a.status === 'pending').length,
+      totalEmployees: employees.filter((e: any) => selectedLocation === 'all' || e.location === selectedLocation).length,
+      pendingAssignments: allAssignments.filter((a: any) => a.status === 'pending' && (selectedLocation === 'all' || a.employees?.location === selectedLocation)).length,
     });
 
     setStockItems(items);
