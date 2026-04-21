@@ -393,10 +393,17 @@ export function EmployeesContent() {
             )}
             <div className="space-y-2">
               <Label>{t('department')}</Label>
-              {departments.length > 0 && form.department !== '__new__' ? (
+              {departments.length > 0 && !isAddingDept ? (
                 <Select
                   value={form.department || '__none__'}
-                  onValueChange={v => setForm({ ...form, department: v === '__new__' ? '__new__' : (v === '__none__' ? '' : v) })}
+                  onValueChange={v => {
+                    if (v === '__new__') {
+                      setIsAddingDept(true);
+                      setForm({ ...form, department: '' });
+                    } else {
+                      setForm({ ...form, department: v === '__none__' ? '' : v });
+                    }
+                  }}
                 >
                   <SelectTrigger><SelectValue placeholder="-" /></SelectTrigger>
                   <SelectContent>
@@ -409,12 +416,12 @@ export function EmployeesContent() {
                 <div className="flex gap-2">
                   <Input
                     placeholder={t('newDepartmentName')}
-                    value={form.department === '__new__' ? '' : form.department}
+                    value={form.department}
                     onChange={e => setForm({ ...form, department: e.target.value })}
-                    autoFocus={form.department === '__new__'}
+                    autoFocus
                   />
                   {departments.length > 0 && (
-                    <Button type="button" variant="outline" size="sm" onClick={() => setForm({ ...form, department: '' })}>
+                    <Button type="button" variant="outline" size="sm" onClick={() => { setIsAddingDept(false); setForm({ ...form, department: '' }); }}>
                       {t('cancel')}
                     </Button>
                   )}
