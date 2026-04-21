@@ -372,6 +372,7 @@ export type Database = {
         Returns: boolean
       }
       is_approved: { Args: { _user_id: string }; Returns: boolean }
+      mark_as_replaced: { Args: { _assignment_id: string }; Returns: undefined }
       return_assignment: {
         Args: { _assignment_id: string }
         Returns: undefined

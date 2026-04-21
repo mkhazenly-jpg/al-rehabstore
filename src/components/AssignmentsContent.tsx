@@ -186,12 +186,10 @@ export function AssignmentsContent() {
         );
 
         for (const oldA of oldDamagedLost) {
-          // Return the stock first (restores quantity to original batches, sets status='returned')
-          const { error: retErr } = await supabase.rpc('return_with_fifo', { _assignment_id: oldA.id });
-          if (retErr) { setError(retErr.message); setSaving(false); return; }
-          // Then mark it as 'replaced'
-          const { error: updErr } = await supabase.from('assignments').update({ status: 'replaced' }).eq('id', oldA.id);
-          if (updErr) { setError(updErr.message); setSaving(false); return; }
+          // Mark as replaced WITHOUT returning the quantity to stock,
+          // because the item was actually damaged/lost (not physically returned).
+          const { error: replErr } = await supabase.rpc('mark_as_replaced' as any, { _assignment_id: oldA.id });
+          if (replErr) { setError(replErr.message); setSaving(false); return; }
         }
 
         const reasonNote = line.reassign_reason
