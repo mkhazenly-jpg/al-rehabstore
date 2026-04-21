@@ -150,28 +150,27 @@ export function StockContent() {
     setDialogOpen(true);
   };
 
-  // Check for existing item when name/category/size changes (only in add mode)
+  // Check for existing item when category/size changes (only in add mode)
   useEffect(() => {
-    if (editItem || !form.name.trim()) {
+    if (editItem) {
       setExistingMatch(null);
       return;
     }
     const sizeVal = form.category === 'safety shoes' ? form.size.trim() : 'N/A';
     const match = items.find(
-      i => i.name.trim().toLowerCase() === form.name.trim().toLowerCase() &&
-           i.category === form.category &&
-           i.size.trim() === sizeVal
+      i => i.category === form.category && i.size.trim() === sizeVal
     );
     setExistingMatch(match || null);
-  }, [form.name, form.category, form.size, editItem, items]);
+  }, [form.category, form.size, editItem, items]);
 
   const handleSave = async () => {
     const sizeVal = form.category === 'safety shoes' ? form.size.trim() : 'N/A';
+    const nameVal = form.category;
     let stockItemId: string | null = editItem?.id ?? existingMatch?.id ?? null;
     let stockError = null;
 
     if (editItem) {
-      const { error } = await supabase.from('stock_items').update({ ...form, size: sizeVal }).eq('id', editItem.id);
+      const { error } = await supabase.from('stock_items').update({ ...form, name: nameVal, size: sizeVal }).eq('id', editItem.id);
       stockError = error;
     } else if (existingMatch) {
       const updatePayload: { quantity_in_stock: number; unit_price?: number } = {
@@ -187,7 +186,7 @@ export function StockContent() {
         .eq('id', existingMatch.id);
       stockError = error;
     } else {
-      const { data, error } = await supabase.from('stock_items').insert({ ...form, size: sizeVal }).select('id').single();
+      const { data, error } = await supabase.from('stock_items').insert({ ...form, name: nameVal, size: sizeVal }).select('id').single();
       stockError = error;
       stockItemId = data?.id ?? null;
     }
@@ -358,10 +357,6 @@ export function StockContent() {
                 <AlertDescription>{t('itemExists')}</AlertDescription>
               </Alert>
             )}
-            <div className="space-y-2">
-              <Label>{t('name')}</Label>
-              <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
-            </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>{t('category')}</Label>
