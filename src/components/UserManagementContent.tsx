@@ -11,14 +11,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Check, X, Shield, Trash2, Lock, Key, AlertTriangle } from 'lucide-react';
+import { Check, X, Shield, Trash2, Lock, Key, AlertTriangle, Download } from 'lucide-react';
+import { exportFullBackup } from '@/lib/backup-export';
 
 const PROTECTED_EMAIL = 'm.khazenly@gmail.com';
 
 export function UserManagementContent() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { profile } = useAuth();
   const isProtectedAdmin = profile?.email === PROTECTED_EMAIL;
+  const [backingUp, setBackingUp] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [resetTarget, setResetTarget] = useState<{ email: string; name: string } | null>(null);
@@ -41,6 +43,17 @@ export function UserManagementContent() {
       toast.error(err.message || 'Failed');
     }
     setWiping(false);
+  };
+
+  const handleBackup = async () => {
+    setBackingUp(true);
+    try {
+      await exportFullBackup({ lang, t: t as (k: string) => string });
+      toast.success(t('backupSuccess'));
+    } catch (err: any) {
+      toast.error(err?.message || t('backupError'));
+    }
+    setBackingUp(false);
   };
 
   useEffect(() => { loadUsers(); }, []);
