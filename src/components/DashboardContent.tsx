@@ -21,18 +21,19 @@ export function DashboardContent() {
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState<string>('all');
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
+  const [selectedLocation, setSelectedLocation] = useState<string>('all');
 
   useEffect(() => { loadStats(); }, []);
 
   const loadStats = async () => {
     const [stockRes, empRes, assignRes, additionsRes, allAssignRes, damagedLostRes, approvedAssignRes] = await Promise.all([
       supabase.from('stock_items').select('*'),
-      supabase.from('employees').select('status'),
-      supabase.from('assignments').select('status, stock_item_id, quantity_assigned, created_at'),
+      supabase.from('employees').select('status, location'),
+      supabase.from('assignments').select('status, stock_item_id, quantity_assigned, created_at, employee_id, employees(location)'),
       supabase.from('stock_additions').select('*'),
-      supabase.from('assignments').select('stock_item_id, quantity_assigned, status, created_at').in('status', ['approved', 'pending']),
-      supabase.from('assignments').select('stock_item_id, quantity_assigned, notes, created_at, status').not('notes', 'is', null),
-      supabase.from('assignments').select('stock_item_id, quantity_assigned, status, assignment_date').eq('status', 'approved'),
+      supabase.from('assignments').select('stock_item_id, quantity_assigned, status, created_at, employee_id, employees(location)').in('status', ['approved', 'pending']),
+      supabase.from('assignments').select('stock_item_id, quantity_assigned, notes, created_at, status, employee_id, employees(location)').not('notes', 'is', null),
+      supabase.from('assignments').select('stock_item_id, quantity_assigned, status, assignment_date, employee_id, employees(location)').eq('status', 'approved'),
     ]);
 
     const items = stockRes.data || [];
