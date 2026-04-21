@@ -31,7 +31,7 @@ export function DashboardContent() {
       supabase.from('assignments').select('status, stock_item_id, quantity_assigned, created_at'),
       supabase.from('stock_additions').select('*'),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, status, created_at').in('status', ['approved', 'pending']),
-      supabase.from('assignments').select('stock_item_id, quantity_assigned, notes, created_at').not('notes', 'is', null),
+      supabase.from('assignments').select('stock_item_id, quantity_assigned, notes, created_at, status').not('notes', 'is', null),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, status, assignment_date').eq('status', 'approved'),
     ]);
 
@@ -124,10 +124,11 @@ export function DashboardContent() {
     }
   });
 
-  // Damaged and lost per item
+  // Damaged and lost per item (exclude replaced ones — those were already swapped)
   const damagedByItem: Record<string, number> = {};
   const lostByItem: Record<string, number> = {};
   filteredDamagedLost.forEach(a => {
+    if (a.status === 'replaced' || a.status === 'returned') return;
     const notes = (a.notes || '').toLowerCase();
     if (notes.includes('تالف') || notes.includes('damaged')) {
       damagedByItem[a.stock_item_id] = (damagedByItem[a.stock_item_id] || 0) + a.quantity_assigned;
