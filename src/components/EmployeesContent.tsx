@@ -32,13 +32,14 @@ export function EmployeesContent() {
   const [search, setSearch] = useState('');
   const [filterShift, setFilterShift] = useState('all');
   const [filterDept, setFilterDept] = useState('all');
+  const [filterLocation, setFilterLocation] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [empViolations, setEmpViolations] = useState<any[]>([]);
   const [editItem, setEditItem] = useState<Employee | null>(null);
-  const [form, setForm] = useState({ name: '', hire_date: '', status: 'active' as 'active' | 'resigned' | 'terminated', termination_date: '', department: '', notes: '', shift: '' as '' | 'morning' | 'night', mobile: '', job_title: '' });
+  const [form, setForm] = useState({ name: '', hire_date: '', status: 'active' as 'active' | 'resigned' | 'terminated', termination_date: '', department: '', notes: '', shift: '' as '' | 'morning' | 'night', mobile: '', job_title: '', location: '' as '' | 'RDC' | 'SDS' });
 
   useEffect(() => { loadEmployees(); }, []);
 
@@ -52,12 +53,13 @@ export function EmployeesContent() {
     if (!e.name.toLowerCase().includes(search.toLowerCase())) return false;
     if (filterShift !== 'all' && (e as any).shift !== filterShift) return false;
     if (filterDept !== 'all' && e.department !== filterDept) return false;
+    if (filterLocation !== 'all' && (e as any).location !== filterLocation) return false;
     return true;
   });
 
   const openAdd = () => {
     setEditItem(null);
-    setForm({ name: '', hire_date: new Date().toISOString().split('T')[0], status: 'active', termination_date: '', department: '', notes: '', shift: '', mobile: '', job_title: '' });
+    setForm({ name: '', hire_date: new Date().toISOString().split('T')[0], status: 'active', termination_date: '', department: '', notes: '', shift: '', mobile: '', job_title: '', location: '' });
     setDialogOpen(true);
   };
 
@@ -73,6 +75,7 @@ export function EmployeesContent() {
       shift: (emp as any).shift || '',
       mobile: (emp as any).mobile || '',
       job_title: (emp as any).job_title || '',
+      location: (emp as any).location || '',
     });
     setDialogOpen(true);
   };
@@ -108,6 +111,7 @@ export function EmployeesContent() {
       shift: form.shift || null,
       mobile: form.mobile || null,
       job_title: form.job_title || null,
+      location: form.location || null,
     };
     if (editItem) {
       await supabase.from('employees').update(payload).eq('id', editItem.id);
