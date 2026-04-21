@@ -198,6 +198,52 @@ export function UserManagementContent() {
         </CardContent>
       </Card>
 
+      {isProtectedAdmin && (
+        <Card className="border-destructive/50">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-6 w-6 text-destructive shrink-0 mt-1" />
+              <div className="flex-1">
+                <h2 className="text-lg font-bold text-destructive">{t('dangerZone')}</h2>
+                <p className="text-sm text-muted-foreground mt-1">{t('wipeAllDataDesc')}</p>
+              </div>
+              <Button variant="destructive" onClick={() => { setWipeOpen(true); setWipeConfirm(''); }}>
+                <Trash2 className="h-4 w-4 me-1" />
+                {t('wipeAllData')}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Dialog open={wipeOpen} onOpenChange={(o) => { setWipeOpen(o); if (!o) setWipeConfirm(''); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              {t('wipeAllData')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm">{t('wipeAllDataConfirm')}</p>
+            <Input
+              placeholder={t('typeDeleteToConfirm')}
+              value={wipeConfirm}
+              onChange={(e) => setWipeConfirm(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWipeOpen(false)} disabled={wiping}>
+              {t('cancel')}
+            </Button>
+            <Button variant="destructive" onClick={handleWipeAll} disabled={wiping || wipeConfirm !== 'DELETE'}>
+              {wiping ? '...' : t('wipeAllData')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!resetTarget} onOpenChange={(o) => !o && setResetTarget(null)}>
         <DialogContent>
           <DialogHeader>
