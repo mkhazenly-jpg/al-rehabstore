@@ -1,0 +1,2 @@
+ALTER TABLE public.assignments ADD COLUMN IF NOT EXISTS unit_price_at_assignment numeric NOT NULL DEFAULT 0;
+UPDATE public.assignments a SET unit_price_at_assignment = si.unit_price FROM public.stock_items si WHERE a.stock_item_id = si.id AND a.unit_price_at_assignment = 0;
