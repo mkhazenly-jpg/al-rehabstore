@@ -219,6 +219,7 @@ export function DashboardContent() {
       });
       const monthAssigns = assignments.filter(a => {
         const d = new Date(a.created_at);
+        if (selectedLocation !== 'all' && a.employees?.location !== selectedLocation) return false;
         return d.getFullYear() === year && d.getMonth() === i;
       });
       const purchaseCost = monthAdditions.reduce((sum, a) => {
@@ -235,7 +236,7 @@ export function DashboardContent() {
         [t('consumption')]: consumptionCost,
       };
     });
-  }, [additions, assignments, stockItems, selectedYear, monthNames, t]);
+  }, [additions, assignments, stockItems, selectedYear, monthNames, t, selectedLocation]);
 
   // Consumed by category for month view
   const consumedByCategory: Record<string, number> = {};
