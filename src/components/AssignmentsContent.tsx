@@ -569,6 +569,60 @@ export function AssignmentsContent() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* FIFO batch breakdown dialog */}
+      <Dialog open={batchesDialogOpen} onOpenChange={setBatchesDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {t('batchDetails')} - {batchesAssignment?.employees?.name} / {batchesAssignment?.stock_items?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-x-auto max-h-80">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('pulledFromBatch')}</TableHead>
+                  <TableHead>{t('quantity')}</TableHead>
+                  <TableHead>{t('unitPrice')}</TableHead>
+                  <TableHead>{t('totalPrice')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {batchesData.map((b: any) => (
+                  <TableRow key={b.id}>
+                    <TableCell>
+                      {b.stock_additions?.added_at
+                        ? new Date(b.stock_additions.added_at).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')
+                        : '-'}
+                    </TableCell>
+                    <TableCell className="font-medium">{b.quantity}</TableCell>
+                    <TableCell>{b.unit_price > 0 ? `${b.unit_price} ${t('currency')}` : '-'}</TableCell>
+                    <TableCell>{b.unit_price > 0 ? `${(b.unit_price * b.quantity).toFixed(2)} ${t('currency')}` : '-'}</TableCell>
+                  </TableRow>
+                ))}
+                {batchesData.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-4">-</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          {batchesData.length > 0 && (
+            <div className="mt-3 space-y-1 p-3 rounded-lg bg-muted text-sm">
+              <div className="flex justify-between font-medium">
+                <span>{t('totalPrice')}</span>
+                <span>{batchesData.reduce((s, b) => s + (b.unit_price * b.quantity), 0).toFixed(2)} {t('currency')}</span>
+              </div>
+              <div className="flex justify-between text-muted-foreground text-xs">
+                <span>{t('weightedAverage')}</span>
+                <span>{batchesAssignment?.unit_price_at_assignment > 0 ? `${Number(batchesAssignment.unit_price_at_assignment).toFixed(2)} ${t('currency')}` : '-'}</span>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
