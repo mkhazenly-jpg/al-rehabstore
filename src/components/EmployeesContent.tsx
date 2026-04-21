@@ -384,9 +384,15 @@ export function EmployeesContent() {
                             <Button variant="ghost" size="icon" onClick={() => openEdit(emp)}>
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(emp.id)}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                            {(emp.status as string) === 'archived' ? (
+                              <Button variant="ghost" size="sm" onClick={() => handleUnarchive(emp)} title={t('unarchive')}>
+                                {t('unarchive')}
+                              </Button>
+                            ) : (
+                              <Button variant="ghost" size="icon" onClick={() => handleDelete(emp)} title={t('delete')}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            )}
                           </>
                         )}
                       </div>
