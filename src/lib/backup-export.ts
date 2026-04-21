@@ -353,20 +353,6 @@ export async function exportFullBackup({ lang, t }: BackupOptions): Promise<void
     };
   });
 
-  // ---------- EMPLOYEES (basic) ----------
-  const empsRows: Row[] = emps.map((e) => ({
-    [t('name')]: e.name,
-    [t('jobTitle')]: e.job_title || '',
-    [t('department')]: e.department || '',
-    [t('location')]: e.location || '',
-    [t('shift')]: e.shift || '',
-    [t('mobile')]: e.mobile || '',
-    [t('hireDate')]: fmtDate(e.hire_date, locale),
-    [t('status')]: t(e.status as never) as string,
-    [t('terminationDate')]: fmtDate(e.termination_date, locale),
-    [t('notes')]: e.notes || '',
-  }));
-
   // ---------- EMPLOYEE DETAILS (with assigned items per employee) ----------
   const asnsByEmp: Record<string, typeof asns> = {};
   asns.forEach((a) => {
