@@ -150,20 +150,18 @@ export function StockContent() {
     setDialogOpen(true);
   };
 
-  // Check for existing item when name/category/size changes (only in add mode)
+  // Check for existing item when category/size changes (only in add mode)
   useEffect(() => {
-    if (editItem || !form.name.trim()) {
+    if (editItem) {
       setExistingMatch(null);
       return;
     }
     const sizeVal = form.category === 'safety shoes' ? form.size.trim() : 'N/A';
     const match = items.find(
-      i => i.name.trim().toLowerCase() === form.name.trim().toLowerCase() &&
-           i.category === form.category &&
-           i.size.trim() === sizeVal
+      i => i.category === form.category && i.size.trim() === sizeVal
     );
     setExistingMatch(match || null);
-  }, [form.name, form.category, form.size, editItem, items]);
+  }, [form.category, form.size, editItem, items]);
 
   const handleSave = async () => {
     const sizeVal = form.category === 'safety shoes' ? form.size.trim() : 'N/A';
