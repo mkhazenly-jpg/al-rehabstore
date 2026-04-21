@@ -155,6 +155,7 @@ export function EmployeesContent() {
           [t('jobTitle')]: e.job_title || '-',
           [t('status')]: t(e.status as any),
           [t('shift')]: e.shift ? t(e.shift as any) : '-',
+          [t('location')]: (e as any).location || '-',
           [t('department')]: e.department || '-',
           [t('mobile')]: e.mobile || '-',
           [t('hireDate')]: e.hire_date,
@@ -176,6 +177,7 @@ export function EmployeesContent() {
         [t('jobTitle')]: i === 0 ? (e.job_title || '-') : '',
         [t('status')]: i === 0 ? t(e.status as any) : '',
         [t('shift')]: i === 0 ? (e.shift ? t(e.shift as any) : '-') : '',
+        [t('location')]: i === 0 ? ((e as any).location || '-') : '',
         [t('department')]: i === 0 ? (e.department || '-') : '',
         [t('mobile')]: i === 0 ? (e.mobile || '-') : '',
         [t('hireDate')]: i === 0 ? e.hire_date : '',
@@ -218,8 +220,12 @@ export function EmployeesContent() {
           job_title: (row[t('jobTitle')] || row['Job Title'] || row['الوظيفة'] || '').toString().trim() || null,
           mobile: (row[t('mobile')] || row['Mobile'] || row['رقم الموبايل'] || '').toString().trim() || null,
           shift: null as string | null,
+          location: null as string | null,
           notes: (row[t('notes')] || row['Notes'] || row['ملاحظات'] || '').toString().trim() || null,
         };
+
+        const locVal = (row[t('location')] || row['Location'] || row['الموقع'] || '').toString().trim().toUpperCase();
+        if (locVal === 'RDC' || locVal === 'SDS') payload.location = locVal;
 
         const shiftVal = (row[t('shift')] || row['Shift'] || row['الشفت'] || '').toString().trim().toLowerCase();
         if (shiftVal.includes('morning') || shiftVal.includes('صباح')) payload.shift = 'morning';
