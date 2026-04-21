@@ -259,6 +259,7 @@ export function AssignmentsContent() {
         const price = a.unit_price_at_assignment || 0;
         return {
           [t('employee')]: a.employees?.name,
+          [t('location')]: a.employees?.location || '-',
           [t('stockItem')]: a.stock_items?.name,
           [t('quantityAssigned')]: a.quantity_assigned,
           [t('priceAtAssignment')]: price,
@@ -317,6 +318,7 @@ export function AssignmentsContent() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('employee')}</TableHead>
+                  <TableHead>{t('location')}</TableHead>
                   <TableHead>{t('stockItem')}</TableHead>
                   <TableHead>{t('quantityAssigned')}</TableHead>
                   <TableHead>{t('priceAtAssignment')}</TableHead>
@@ -332,6 +334,11 @@ export function AssignmentsContent() {
                 {assignments.map((a: any) => (
                   <TableRow key={a.id}>
                     <TableCell className="font-medium">{a.employees?.name}</TableCell>
+                    <TableCell>
+                      {a.employees?.location ? (
+                        <span className="rounded-full bg-primary/15 text-primary px-2 py-0.5 text-xs font-semibold">{a.employees.location}</span>
+                      ) : '-'}
+                    </TableCell>
                     <TableCell>{a.stock_items?.name} {a.stock_items?.size !== 'N/A' ? `(${a.stock_items?.size})` : ''}</TableCell>
                     <TableCell>{a.quantity_assigned}</TableCell>
                     <TableCell>{a.unit_price_at_assignment > 0 ? `${a.unit_price_at_assignment} ${t('currency')}` : '-'}</TableCell>
@@ -383,7 +390,7 @@ export function AssignmentsContent() {
                 ))}
                 {assignments.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center text-muted-foreground py-8">-</TableCell>
+                    <TableCell colSpan={11} className="text-center text-muted-foreground py-8">-</TableCell>
                   </TableRow>
                 )}
               </TableBody>
