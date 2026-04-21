@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Plus, Download, RotateCcw, Trash2, CalendarIcon, AlertTriangle, Pencil, Check, ChevronsUpDown } from 'lucide-react';
+import { Plus, Download, RotateCcw, Trash2, CalendarIcon, AlertTriangle, Pencil, Check, ChevronsUpDown, Layers } from 'lucide-react';
 import { exportToExcel } from '@/lib/export';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -44,6 +44,9 @@ export function AssignmentsContent() {
   const [saving, setSaving] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [employeePopoverOpen, setEmployeePopoverOpen] = useState(false);
+  const [batchesDialogOpen, setBatchesDialogOpen] = useState(false);
+  const [batchesAssignment, setBatchesAssignment] = useState<any>(null);
+  const [batchesData, setBatchesData] = useState<any[]>([]);
 
   useEffect(() => { loadAll(); }, []);
 
