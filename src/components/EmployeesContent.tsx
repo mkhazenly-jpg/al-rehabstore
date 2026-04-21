@@ -97,11 +97,12 @@ export function EmployeesContent() {
   };
 
   const handleSave = async () => {
+    const dept = form.department === '__new__' ? '' : form.department.trim();
     const payload: any = {
       name: form.name,
       hire_date: form.hire_date,
       status: form.status,
-      department: form.department || null,
+      department: dept || null,
       notes: form.notes || null,
       termination_date: form.status !== 'active' ? (form.termination_date || null) : null,
       shift: form.shift || null,
