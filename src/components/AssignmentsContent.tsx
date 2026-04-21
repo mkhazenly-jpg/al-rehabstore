@@ -317,6 +317,7 @@ export function AssignmentsContent() {
                       <span className={`rounded-full px-2 py-1 text-xs font-medium ${
                         a.status === 'approved' ? 'bg-success/20 text-success' :
                         a.status === 'pending' ? 'bg-accent/20 text-accent-foreground' :
+                        a.status === 'replaced' ? 'bg-primary/20 text-primary' :
                         'bg-muted text-muted-foreground'
                       }`}>
                         {t(a.status as any)}
