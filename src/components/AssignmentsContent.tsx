@@ -263,9 +263,9 @@ export function AssignmentsContent() {
 
   const handleDelete = async (assignment: any) => {
     try {
-      // If approved, return stock first
+      // If approved, return stock first (FIFO: returns to original batches)
       if (assignment.status === 'approved') {
-        await supabase.rpc('return_assignment', { _assignment_id: assignment.id });
+        await supabase.rpc('return_with_fifo', { _assignment_id: assignment.id });
       }
       await supabase.from('assignments').delete().eq('id', assignment.id);
       setDeleteConfirmId(null);
