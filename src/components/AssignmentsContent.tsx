@@ -68,6 +68,13 @@ export function AssignmentsContent() {
     );
   }, [employeeId, assignments]);
 
+  // Helper: detect if assignment notes mark it as damaged/lost
+  const isDamagedOrLostNote = (notes: string | null | undefined) => {
+    if (!notes?.startsWith('[')) return false;
+    const n = notes.toLowerCase();
+    return n.includes('تالف') || n.includes('damaged') || n.includes('فقدان') || n.includes('مفقود') || n.includes('lost');
+  };
+
   const openDialog = (assignment?: any) => {
     if (assignment) {
       setEditingAssignment(assignment);
