@@ -22,7 +22,10 @@ const STATUS_COLORS: Record<string, string> = {
   active: 'bg-success/20 text-success',
   resigned: 'bg-accent/20 text-accent-foreground',
   terminated: 'bg-destructive/20 text-destructive',
+  archived: 'bg-muted text-muted-foreground',
 };
+
+type EmployeeStatus = 'active' | 'resigned' | 'terminated' | 'archived';
 
 export function EmployeesContent() {
   const { t, lang } = useLanguage();
@@ -33,13 +36,14 @@ export function EmployeesContent() {
   const [filterShift, setFilterShift] = useState('all');
   const [filterDept, setFilterDept] = useState('all');
   const [filterLocation, setFilterLocation] = useState('all');
+  const [showArchived, setShowArchived] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [empViolations, setEmpViolations] = useState<any[]>([]);
   const [editItem, setEditItem] = useState<Employee | null>(null);
-  const [form, setForm] = useState({ name: '', hire_date: '', status: 'active' as 'active' | 'resigned' | 'terminated', termination_date: '', department: '', notes: '', shift: '' as '' | 'morning' | 'night', mobile: '', job_title: '', location: '' as '' | 'RDC' | 'SDC' });
+  const [form, setForm] = useState({ name: '', hire_date: '', status: 'active' as EmployeeStatus, termination_date: '', department: '', notes: '', shift: '' as '' | 'morning' | 'night', mobile: '', job_title: '', location: '' as '' | 'RDC' | 'SDC' });
   const [isAddingDept, setIsAddingDept] = useState(false);
 
   useEffect(() => { loadEmployees(); }, []);
@@ -51,6 +55,7 @@ export function EmployeesContent() {
 
   const departments = [...new Set(employees.map(e => e.department).filter(Boolean))];
   const filtered = employees.filter(e => {
+    if (!showArchived && (e.status as string) === 'archived') return false;
     if (!e.name.toLowerCase().includes(search.toLowerCase())) return false;
     if (filterShift !== 'all' && (e as any).shift !== filterShift) return false;
     if (filterDept !== 'all' && e.department !== filterDept) return false;
@@ -71,7 +76,7 @@ export function EmployeesContent() {
     setForm({
       name: emp.name,
       hire_date: emp.hire_date,
-      status: emp.status,
+      status: emp.status as EmployeeStatus,
       termination_date: emp.termination_date || '',
       department: emp.department || '',
       notes: emp.notes || '',
@@ -125,9 +130,46 @@ export function EmployeesContent() {
     loadEmployees();
   };
 
-  const handleDelete = async (id: string) => {
-    await supabase.from('employees').delete().eq('id', id);
-    loadEmployees();
+  const handleDelete = async (emp: Employee) => {
+    // Check if employee has assignments
+    const { count } = await supabase
+      .from('assignments')
+      .select('id', { count: 'exact', head: true })
+      .eq('employee_id', emp.id);
+
+    if ((count || 0) > 0) {
+      // Has assignments → archive instead
+      if (!confirm(t('archiveConfirm'))) return;
+      const { error } = await supabase
+        .from('employees')
+        .update({ status: 'archived' as any })
+        .eq('id', emp.id);
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success(t('archived'));
+        loadEmployees();
+      }
+      return;
+    }
+
+    // No assignments → safe to delete
+    if (!confirm(lang === 'ar' ? 'هل أنت متأكد من حذف هذا الموظف؟' : 'Are you sure you want to delete this employee?')) return;
+    const { error } = await supabase.from('employees').delete().eq('id', emp.id);
+    if (error) {
+      toast.error(error.message.includes('assignments') ? t('cannotDeleteHasAssignments') : error.message);
+    } else {
+      loadEmployees();
+    }
+  };
+
+  const handleUnarchive = async (emp: Employee) => {
+    const { error } = await supabase
+      .from('employees')
+      .update({ status: 'active' as any })
+      .eq('id', emp.id);
+    if (error) toast.error(error.message);
+    else { toast.success(t('active')); loadEmployees(); }
   };
 
   const handleExport = async () => {
@@ -298,6 +340,9 @@ export function EmployeesContent() {
             <SelectItem value="SDC">SDC</SelectItem>
           </SelectContent>
         </Select>
+        <Button variant={showArchived ? 'default' : 'outline'} size="sm" onClick={() => setShowArchived(s => !s)}>
+          {showArchived ? t('hideArchived') : t('showArchived')}
+        </Button>
       </div>
 
       <Card>
@@ -342,9 +387,15 @@ export function EmployeesContent() {
                             <Button variant="ghost" size="icon" onClick={() => openEdit(emp)}>
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(emp.id)}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                            {(emp.status as string) === 'archived' ? (
+                              <Button variant="ghost" size="sm" onClick={() => handleUnarchive(emp)} title={t('unarchive')}>
+                                {t('unarchive')}
+                              </Button>
+                            ) : (
+                              <Button variant="ghost" size="icon" onClick={() => handleDelete(emp)} title={t('delete')}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            )}
                           </>
                         )}
                       </div>
@@ -385,6 +436,7 @@ export function EmployeesContent() {
                   <SelectItem value="active">{t('active')}</SelectItem>
                   <SelectItem value="resigned">{t('resigned')}</SelectItem>
                   <SelectItem value="terminated">{t('terminated')}</SelectItem>
+                  <SelectItem value="archived">{t('archived')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

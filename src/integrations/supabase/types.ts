@@ -391,7 +391,7 @@ export type Database = {
         | "damaged"
         | "lost"
         | "replaced"
-      employee_status: "active" | "resigned" | "terminated"
+      employee_status: "active" | "resigned" | "terminated" | "archived"
       violation_action:
         | "warning"
         | "deduction"
@@ -534,7 +534,7 @@ export const Constants = {
         "lost",
         "replaced",
       ],
-      employee_status: ["active", "resigned", "terminated"],
+      employee_status: ["active", "resigned", "terminated", "archived"],
       violation_action: [
         "warning",
         "deduction",
