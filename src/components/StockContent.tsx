@@ -69,12 +69,19 @@ export function StockContent() {
   };
 
   const loadSettings = async () => {
-    const { data } = await supabase.from('app_settings').select('value').eq('key', 'min_stock_threshold').maybeSingle();
-    if (data) {
-      const val = parseInt(data.value);
-      setMinThreshold(val);
-      setThresholdInput(String(val));
-    }
+    const { data } = await supabase.from('app_settings').select('key, value').in('key', ['min_stock_threshold', 'custom_stock_categories']);
+    (data || []).forEach((row: any) => {
+      if (row.key === 'min_stock_threshold') {
+        const val = parseInt(row.value);
+        setMinThreshold(val);
+        setThresholdInput(String(val));
+      } else if (row.key === 'custom_stock_categories') {
+        try {
+          const parsed = JSON.parse(row.value);
+          if (Array.isArray(parsed)) setCustomCategories(parsed);
+        } catch { /* ignore */ }
+      }
+    });
   };
 
   const saveThreshold = async () => {
@@ -83,6 +90,44 @@ export function StockContent() {
     setMinThreshold(val);
     setSettingsOpen(false);
     toast.success(t('settingsSaved'));
+  };
+
+  const saveNewCategory = async () => {
+    const name = newCategoryName.trim();
+    if (!name) return;
+    if (categoryOptions.some(c => c.toLowerCase() === name.toLowerCase())) {
+      toast.error(t('categoryExists'));
+      return;
+    }
+    const next = [...customCategories, name];
+    const { error } = await supabase
+      .from('app_settings')
+      .upsert({ key: 'custom_stock_categories', value: JSON.stringify(next) }, { onConflict: 'key' });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setCustomCategories(next);
+    setForm(f => ({ ...f, category: name }));
+    setAddCategoryOpen(false);
+    setNewCategoryName('');
+    toast.success(t('categoryAdded'));
+  };
+
+  const deleteCustomCategory = async (cat: string) => {
+    if (items.some(i => i.category === cat)) {
+      toast.error(t('categoryInUse'));
+      return;
+    }
+    const next = customCategories.filter(c => c !== cat);
+    const { error } = await supabase
+      .from('app_settings')
+      .upsert({ key: 'custom_stock_categories', value: JSON.stringify(next) }, { onConflict: 'key' });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setCustomCategories(next);
   };
 
   const filtered = items.filter(i => {
