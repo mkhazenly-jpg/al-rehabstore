@@ -10,6 +10,8 @@ const COLORS = {
   alt: 'F1F8F5',          // very light emerald for zebra rows
   border: 'D9E5DF',
   titleBg: '0F4C3A',      // deep emerald for title banner
+  sectionBg: 'E8F1ED',    // light emerald section divider
+  sectionText: '0F4C3A',
   danger: 'C0392B',
   success: '2F8F6E',
   warning: 'E0A93D',
@@ -25,13 +27,15 @@ interface SheetSpec {
   rows: Row[];
   /** Columns whose values should be rendered as currency */
   currencyCols?: string[];
+  /** Row indices (0-based within `rows`) that should render as section dividers (full-width, bold) */
+  sectionRowIndices?: number[];
 }
 
 const thin = { style: 'thin' as const, color: { rgb: COLORS.border } };
 const border = { top: thin, bottom: thin, left: thin, right: thin };
 
 function buildSheet(spec: SheetSpec): XLSX.WorkSheet {
-  const { title, headers, rows, currencyCols = [] } = spec;
+  const { title, headers, rows, currencyCols = [], sectionRowIndices = [] } = spec;
   const aoa: (string | number | null)[][] = [];
 
   // Title row
@@ -79,7 +83,31 @@ function buildSheet(spec: SheetSpec): XLSX.WorkSheet {
 
   // Data row styling (zebra)
   for (let r = 3; r <= lastRow; r++) {
-    const isAlt = (r - 3) % 2 === 1;
+    const dataIdx = r - 3;
+    const isSection = sectionRowIndices.includes(dataIdx);
+    const isAlt = (dataIdx) % 2 === 1;
+
+    if (isSection) {
+      // Merge whole row & style as section divider
+      ws['!merges']!.push({ s: { r, c: 0 }, e: { r, c: lastCol } });
+      const addr = XLSX.utils.encode_cell({ r, c: 0 });
+      const sectionText = headers.map((h) => rows[dataIdx][h]).find((v) => v !== '' && v !== null && v !== undefined) ?? '';
+      ws[addr] = { t: 's', v: String(sectionText) };
+      ws[addr].s = {
+        font: { bold: true, sz: 12, color: { rgb: COLORS.sectionText }, name: 'Cairo' },
+        fill: { patternType: 'solid', fgColor: { rgb: COLORS.sectionBg } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border,
+      };
+      // Clear other cells in the merged range
+      for (let c = 1; c <= lastCol; c++) {
+        const a = XLSX.utils.encode_cell({ r, c });
+        if (ws[a]) delete ws[a];
+      }
+      ws['!rows']![r] = { hpt: 24 };
+      continue;
+    }
+
     for (let c = 0; c <= lastCol; c++) {
       const addr = XLSX.utils.encode_cell({ r, c });
       if (!ws[addr]) ws[addr] = { t: 's', v: '' };
@@ -158,24 +186,145 @@ export async function exportFullBackup({ lang, t }: BackupOptions): Promise<void
   const empMap = new Map(emps.map((e) => [e.id, e]));
   const itemMap = new Map(items.map((i) => [i.id, i]));
 
-  // ---------- OVERVIEW ----------
+  // ---------- DASHBOARD-LIKE AGGREGATES ----------
+  const totalAddedByItem: Record<string, number> = {};
+  adds.forEach((a) => {
+    totalAddedByItem[a.stock_item_id] = (totalAddedByItem[a.stock_item_id] || 0) + num(a.quantity_added);
+  });
+
+  const totalConsumedByItem: Record<string, number> = {};
+  asns.forEach((a) => {
+    totalConsumedByItem[a.stock_item_id] = (totalConsumedByItem[a.stock_item_id] || 0) + num(a.quantity_assigned);
+  });
+
+  // Total purchase cost = sum over items of (item.unit_price * total added qty)  — matches dashboard
+  const totalPurchaseCost = items.reduce((s, i) => s + num(i.unit_price) * (totalAddedByItem[i.id] || 0), 0);
   const totalStockValue = items.reduce((s, i) => s + num(i.quantity_in_stock) * num(i.unit_price), 0);
-  const totalPurchaseCost = adds.reduce((s, a) => s + num(a.quantity_added) * num(a.unit_price_at_addition), 0);
   const totalAssignedValue = asns
     .filter((a) => a.status === 'approved' || a.status === 'returned' || a.status === 'replaced')
     .reduce((s, a) => s + num(a.quantity_assigned) * num(a.unit_price_at_assignment), 0);
   const totalDeductions = viols.reduce((s, v) => s + num(v.deduction_amount), 0);
 
-  const overviewRows: Row[] = [
-    { [t('details')]: t('totalStock'), [t('quantity')]: items.length, [t('totalPrice')]: '' },
-    { [t('details')]: t('activeEmployees'), [t('quantity')]: emps.filter((e) => e.status === 'active').length, [t('totalPrice')]: '' },
-    { [t('details')]: t('assignments'), [t('quantity')]: asns.length, [t('totalPrice')]: '' },
-    { [t('details')]: t('violations'), [t('quantity')]: viols.length, [t('totalPrice')]: '' },
-    { [t('details')]: t('totalPurchaseCost'), [t('quantity')]: '', [t('totalPrice')]: totalPurchaseCost },
-    { [t('details')]: lang === 'ar' ? 'قيمة المخزون الحالي' : 'Current Stock Value', [t('quantity')]: '', [t('totalPrice')]: totalStockValue },
-    { [t('details')]: lang === 'ar' ? 'قيمة الأصناف المسلمة' : 'Assigned Items Value', [t('quantity')]: '', [t('totalPrice')]: totalAssignedValue },
-    { [t('details')]: lang === 'ar' ? 'إجمالي الخصومات' : 'Total Deductions', [t('quantity')]: '', [t('totalPrice')]: totalDeductions },
-  ];
+  // Cost by category (same as dashboard: unit_price * total added)
+  const costByCategory: Record<string, number> = {};
+  items.forEach((i) => {
+    const added = totalAddedByItem[i.id] || 0;
+    const cost = num(i.unit_price) * added;
+    if (cost > 0) {
+      costByCategory[i.category] = (costByCategory[i.category] || 0) + cost;
+    }
+  });
+
+  // Damaged & lost (parsed from notes, same logic as dashboard)
+  const damagedByItem: Record<string, number> = {};
+  const lostByItem: Record<string, number> = {};
+  asns.forEach((a) => {
+    if (a.status === 'replaced' || a.status === 'returned') return;
+    if (!a.notes) return;
+    const notes = a.notes.toLowerCase();
+    if (notes.includes('تالف') || notes.includes('damaged')) {
+      damagedByItem[a.stock_item_id] = (damagedByItem[a.stock_item_id] || 0) + num(a.quantity_assigned);
+    }
+    if (notes.includes('فقدان') || notes.includes('مفقود') || notes.includes('lost')) {
+      lostByItem[a.stock_item_id] = (lostByItem[a.stock_item_id] || 0) + num(a.quantity_assigned);
+    }
+  });
+
+  // Renewal needed (shoes >=12mo, gloves/vests >=4mo on approved assignments)
+  const renewalNeededByItem: Record<string, number> = {};
+  asns.filter((a) => a.status === 'approved').forEach((a) => {
+    const it = itemMap.get(a.stock_item_id);
+    if (!it) return;
+    const combined = (it.name + ' ' + it.category).toLowerCase();
+    const isShoes = /shoe|حذاء|بوت|boot|safety/.test(combined);
+    const isGlovesOrVest = /glove|جوانتي|قفاز|vest|فيست|سترة/.test(combined);
+    const monthsElapsed = (Date.now() - new Date(a.assignment_date).getTime()) / (1000 * 60 * 60 * 24 * 30.4375);
+    const isExpired = (isShoes && monthsElapsed >= 12) || (isGlovesOrVest && monthsElapsed >= 4);
+    if (isExpired) {
+      renewalNeededByItem[a.stock_item_id] = (renewalNeededByItem[a.stock_item_id] || 0) + num(a.quantity_assigned);
+    }
+  });
+
+  // ---------- OVERVIEW (rich, dashboard-matching) ----------
+  const COL_DETAILS = t('details');
+  const COL_QTY = t('quantity');
+  const COL_TOTAL = t('totalPrice');
+
+  const overviewRows: Row[] = [];
+  const sectionIdx: number[] = [];
+
+  // Section: General
+  sectionIdx.push(overviewRows.length);
+  overviewRows.push({ [COL_DETAILS]: lang === 'ar' ? 'إحصائيات عامة' : 'General Statistics', [COL_QTY]: '', [COL_TOTAL]: '' });
+  overviewRows.push({ [COL_DETAILS]: t('totalStock'), [COL_QTY]: items.length, [COL_TOTAL]: '' });
+  overviewRows.push({ [COL_DETAILS]: t('activeEmployees'), [COL_QTY]: emps.filter((e) => e.status === 'active').length, [COL_TOTAL]: '' });
+  overviewRows.push({ [COL_DETAILS]: lang === 'ar' ? 'إجمالي الموظفين' : 'Total Employees', [COL_QTY]: emps.length, [COL_TOTAL]: '' });
+  overviewRows.push({ [COL_DETAILS]: t('assignments'), [COL_QTY]: asns.length, [COL_TOTAL]: '' });
+  overviewRows.push({ [COL_DETAILS]: lang === 'ar' ? 'تسليمات معتمدة' : 'Approved Assignments', [COL_QTY]: asns.filter(a => a.status === 'approved').length, [COL_TOTAL]: '' });
+  overviewRows.push({ [COL_DETAILS]: lang === 'ar' ? 'تسليمات قيد الاعتماد' : 'Pending Assignments', [COL_QTY]: asns.filter(a => a.status === 'pending').length, [COL_TOTAL]: '' });
+  overviewRows.push({ [COL_DETAILS]: t('violations'), [COL_QTY]: viols.length, [COL_TOTAL]: '' });
+
+  // Section: Financial
+  sectionIdx.push(overviewRows.length);
+  overviewRows.push({ [COL_DETAILS]: lang === 'ar' ? 'الملخص المالي' : 'Financial Summary', [COL_QTY]: '', [COL_TOTAL]: '' });
+  overviewRows.push({ [COL_DETAILS]: t('totalPurchaseCost'), [COL_QTY]: '', [COL_TOTAL]: totalPurchaseCost });
+  overviewRows.push({ [COL_DETAILS]: lang === 'ar' ? 'قيمة المخزون الحالي' : 'Current Stock Value', [COL_QTY]: '', [COL_TOTAL]: totalStockValue });
+  overviewRows.push({ [COL_DETAILS]: lang === 'ar' ? 'قيمة الأصناف المسلمة' : 'Assigned Items Value', [COL_QTY]: '', [COL_TOTAL]: totalAssignedValue });
+  overviewRows.push({ [COL_DETAILS]: lang === 'ar' ? 'إجمالي الخصومات من المخالفات' : 'Total Violation Deductions', [COL_QTY]: '', [COL_TOTAL]: totalDeductions });
+
+  // Section: Cost by Category
+  if (Object.keys(costByCategory).length > 0) {
+    sectionIdx.push(overviewRows.length);
+    overviewRows.push({ [COL_DETAILS]: t('categoryCost'), [COL_QTY]: '', [COL_TOTAL]: '' });
+    Object.entries(costByCategory).forEach(([cat, cost]) => {
+      const totalQty = items.filter(i => i.category === cat).reduce((s, i) => s + (totalAddedByItem[i.id] || 0), 0);
+      overviewRows.push({ [COL_DETAILS]: cat, [COL_QTY]: totalQty, [COL_TOTAL]: cost });
+    });
+  }
+
+  // Section: Damaged Items
+  if (Object.keys(damagedByItem).length > 0) {
+    sectionIdx.push(overviewRows.length);
+    overviewRows.push({ [COL_DETAILS]: t('damagedItems'), [COL_QTY]: '', [COL_TOTAL]: '' });
+    Object.entries(damagedByItem).forEach(([itemId, qty]) => {
+      const it = itemMap.get(itemId);
+      overviewRows.push({ [COL_DETAILS]: it?.name || '-', [COL_QTY]: qty, [COL_TOTAL]: qty * num(it?.unit_price) });
+    });
+  }
+
+  // Section: Lost Items
+  if (Object.keys(lostByItem).length > 0) {
+    sectionIdx.push(overviewRows.length);
+    overviewRows.push({ [COL_DETAILS]: t('lostItems'), [COL_QTY]: '', [COL_TOTAL]: '' });
+    Object.entries(lostByItem).forEach(([itemId, qty]) => {
+      const it = itemMap.get(itemId);
+      overviewRows.push({ [COL_DETAILS]: it?.name || '-', [COL_QTY]: qty, [COL_TOTAL]: qty * num(it?.unit_price) });
+    });
+  }
+
+  // Section: Renewal needed
+  if (Object.keys(renewalNeededByItem).length > 0) {
+    sectionIdx.push(overviewRows.length);
+    overviewRows.push({ [COL_DETAILS]: t('renewalNeededItems'), [COL_QTY]: '', [COL_TOTAL]: '' });
+    Object.entries(renewalNeededByItem).forEach(([itemId, qty]) => {
+      const it = itemMap.get(itemId);
+      overviewRows.push({ [COL_DETAILS]: it?.name || '-', [COL_QTY]: qty, [COL_TOTAL]: '' });
+    });
+  }
+
+  // Section: Per-item consumption
+  sectionIdx.push(overviewRows.length);
+  overviewRows.push({ [COL_DETAILS]: t('consumptionOverview'), [COL_QTY]: '', [COL_TOTAL]: '' });
+  items.forEach((i) => {
+    const added = totalAddedByItem[i.id] || 0;
+    const consumed = totalConsumedByItem[i.id] || 0;
+    if (added === 0 && consumed === 0) return;
+    overviewRows.push({
+      [COL_DETAILS]: `${i.name} — ${t('totalAdded')}: ${added} / ${t('totalConsumed')}: ${consumed}`,
+      [COL_QTY]: i.quantity_in_stock,
+      [COL_TOTAL]: num(i.quantity_in_stock) * num(i.unit_price),
+    });
+  });
 
   // ---------- STOCK ----------
   const stockRows: Row[] = items.map((i) => ({
@@ -204,7 +353,7 @@ export async function exportFullBackup({ lang, t }: BackupOptions): Promise<void
     };
   });
 
-  // ---------- EMPLOYEES ----------
+  // ---------- EMPLOYEES (basic) ----------
   const empsRows: Row[] = emps.map((e) => ({
     [t('name')]: e.name,
     [t('jobTitle')]: e.job_title || '',
@@ -217,6 +366,82 @@ export async function exportFullBackup({ lang, t }: BackupOptions): Promise<void
     [t('terminationDate')]: fmtDate(e.termination_date, locale),
     [t('notes')]: e.notes || '',
   }));
+
+  // ---------- EMPLOYEE DETAILS (with assigned items per employee) ----------
+  const asnsByEmp: Record<string, typeof asns> = {};
+  asns.forEach((a) => {
+    if (!asnsByEmp[a.employee_id]) asnsByEmp[a.employee_id] = [];
+    asnsByEmp[a.employee_id].push(a);
+  });
+
+  const empDetailsHeaders = [
+    t('name'),
+    t('jobTitle'),
+    t('department'),
+    t('location'),
+    t('shift'),
+    t('mobile'),
+    t('status'),
+    t('stockItem'),
+    t('category'),
+    t('size'),
+    t('quantityAssigned'),
+    t('unitPrice'),
+    t('totalPrice'),
+    lang === 'ar' ? 'الحالة' : 'Assignment Status',
+    t('assignmentDate'),
+    t('returnDate'),
+    t('notes'),
+  ];
+  const STATUS_COL = empDetailsHeaders[13];
+  const empDetailsRows: Row[] = [];
+  emps.forEach((e) => {
+    const list = asnsByEmp[e.id] || [];
+    if (list.length === 0) {
+      empDetailsRows.push({
+        [t('name')]: e.name,
+        [t('jobTitle')]: e.job_title || '-',
+        [t('department')]: e.department || '-',
+        [t('location')]: e.location || '-',
+        [t('shift')]: e.shift ? (t(e.shift as never) as string) : '-',
+        [t('mobile')]: e.mobile || '-',
+        [t('status')]: t(e.status as never) as string,
+        [t('stockItem')]: '-',
+        [t('category')]: '-',
+        [t('size')]: '-',
+        [t('quantityAssigned')]: '-',
+        [t('unitPrice')]: '-',
+        [t('totalPrice')]: '-',
+        [STATUS_COL]: '-',
+        [t('assignmentDate')]: '-',
+        [t('returnDate')]: '-',
+        [t('notes')]: '-',
+      });
+      return;
+    }
+    list.forEach((a, i) => {
+      const it = itemMap.get(a.stock_item_id);
+      empDetailsRows.push({
+        [t('name')]: i === 0 ? e.name : '',
+        [t('jobTitle')]: i === 0 ? (e.job_title || '-') : '',
+        [t('department')]: i === 0 ? (e.department || '-') : '',
+        [t('location')]: i === 0 ? (e.location || '-') : '',
+        [t('shift')]: i === 0 ? (e.shift ? (t(e.shift as never) as string) : '-') : '',
+        [t('mobile')]: i === 0 ? (e.mobile || '-') : '',
+        [t('status')]: i === 0 ? (t(e.status as never) as string) : '',
+        [t('stockItem')]: it?.name || '-',
+        [t('category')]: it?.category || '-',
+        [t('size')]: it?.size || '-',
+        [t('quantityAssigned')]: num(a.quantity_assigned),
+        [t('unitPrice')]: num(a.unit_price_at_assignment),
+        [t('totalPrice')]: num(a.quantity_assigned) * num(a.unit_price_at_assignment),
+        [STATUS_COL]: t(a.status as never) as string,
+        [t('assignmentDate')]: fmtDate(a.assignment_date, locale),
+        [t('returnDate')]: fmtDate(a.return_date, locale),
+        [t('notes')]: a.notes || '',
+      });
+    });
+  });
 
   // ---------- ASSIGNMENTS ----------
   const asnRows: Row[] = asns.map((a) => {
@@ -259,9 +484,10 @@ export async function exportFullBackup({ lang, t }: BackupOptions): Promise<void
     {
       name: lang === 'ar' ? 'نظرة عامة' : 'Overview',
       title: `${t('appName')} — ${t('overview')}  |  ${new Date().toLocaleDateString(locale)}`,
-      headers: [t('details'), t('quantity'), t('totalPrice')],
+      headers: [COL_DETAILS, COL_QTY, COL_TOTAL],
       rows: overviewRows,
-      currencyCols: [t('totalPrice')],
+      currencyCols: [COL_TOTAL],
+      sectionRowIndices: sectionIdx,
     },
     {
       name: lang === 'ar' ? 'المخزون' : 'Stock',
@@ -282,6 +508,13 @@ export async function exportFullBackup({ lang, t }: BackupOptions): Promise<void
       title: t('employees'),
       headers: [t('name'), t('jobTitle'), t('department'), t('location'), t('shift'), t('mobile'), t('hireDate'), t('status'), t('terminationDate'), t('notes')],
       rows: empsRows,
+    },
+    {
+      name: lang === 'ar' ? 'تفاصيل الموظفين' : 'Employee Details',
+      title: lang === 'ar' ? 'تفاصيل الموظفين والأصناف المسلمة' : 'Employee Details & Assigned Items',
+      headers: empDetailsHeaders,
+      rows: empDetailsRows,
+      currencyCols: [t('unitPrice'), t('totalPrice')],
     },
     {
       name: lang === 'ar' ? 'التسليمات' : 'Assignments',
