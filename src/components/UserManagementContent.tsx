@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Check, X, Shield, Trash2, Lock, Key } from 'lucide-react';
+import { Check, X, Shield, Trash2, Lock, Key, AlertTriangle } from 'lucide-react';
 
 const PROTECTED_EMAIL = 'm.khazenly@gmail.com';
 
@@ -24,6 +24,24 @@ export function UserManagementContent() {
   const [resetTarget, setResetTarget] = useState<{ email: string; name: string } | null>(null);
   const [newPwd, setNewPwd] = useState('');
   const [resetting, setResetting] = useState(false);
+  const [wipeOpen, setWipeOpen] = useState(false);
+  const [wipeConfirm, setWipeConfirm] = useState('');
+  const [wiping, setWiping] = useState(false);
+
+  const handleWipeAll = async () => {
+    if (wipeConfirm !== 'DELETE') return;
+    setWiping(true);
+    try {
+      const { error } = await supabase.rpc('wipe_all_data' as any);
+      if (error) throw error;
+      toast.success(t('wipeAllDataSuccess'));
+      setWipeOpen(false);
+      setWipeConfirm('');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed');
+    }
+    setWiping(false);
+  };
 
   useEffect(() => { loadUsers(); }, []);
 
