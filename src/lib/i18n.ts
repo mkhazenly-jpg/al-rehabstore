@@ -197,6 +197,9 @@ export const translations = {
     violationVest: 'عدم ارتداء فيست',
     violationUnsafeAct: 'تصرف غير آمن',
     violationUnsafeCondition: 'وضع غير آمن',
+    location: 'الموقع',
+    allLocations: 'كل المواقع',
+    employeeLocation: 'موقع الموظف',
   },
   en: {
     appName: 'Al-Rahaba Warehouse',
@@ -394,6 +397,9 @@ export const translations = {
     violationVest: 'Not wearing vest',
     violationUnsafeAct: 'Unsafe act',
     violationUnsafeCondition: 'Unsafe condition',
+    location: 'Location',
+    allLocations: 'All Locations',
+    employeeLocation: 'Employee Location',
   },
 } as const;
 
