@@ -50,7 +50,7 @@ export function StockContent() {
   const [addCategoryOpen, setAddCategoryOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
 
-  const allCategories = [...DEFAULT_CATEGORIES, ...customCategories];
+  const categoryOptions = [...DEFAULT_CATEGORIES, ...customCategories];
 
   useEffect(() => { loadItems(); loadSettings(); }, []);
 
@@ -234,7 +234,7 @@ export function StockContent() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('allCategories')}</SelectItem>
-            {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            {categoryOptions.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
