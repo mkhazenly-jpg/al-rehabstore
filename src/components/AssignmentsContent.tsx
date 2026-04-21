@@ -174,6 +174,23 @@ export function AssignmentsContent() {
     setSaving(true);
     try {
       for (const line of validLines) {
+        // Auto-replace: find old approved damaged/lost assignments for same employee+item
+        const oldDamagedLost = assignments.filter((a: any) =>
+          a.employee_id === employeeId &&
+          a.stock_item_id === line.stock_item_id &&
+          a.status === 'approved' &&
+          isDamagedOrLostNote(a.notes)
+        );
+
+        for (const oldA of oldDamagedLost) {
+          // Return the stock first (restores quantity, sets status='returned')
+          const { error: retErr } = await supabase.rpc('return_assignment', { _assignment_id: oldA.id });
+          if (retErr) { setError(retErr.message); setSaving(false); return; }
+          // Then mark it as 'replaced'
+          const { error: updErr } = await supabase.from('assignments').update({ status: 'replaced' }).eq('id', oldA.id);
+          if (updErr) { setError(updErr.message); setSaving(false); return; }
+        }
+
         const reasonNote = line.reassign_reason
           ? `[${line.reassign_reason === 'lost' ? t('lost') : t('damaged')}] ${notes || ''}`
           : (notes || null);
