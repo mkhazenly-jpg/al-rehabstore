@@ -237,6 +237,17 @@ export function AssignmentsContent() {
     loadAll();
   };
 
+  const openBatches = async (a: any) => {
+    setBatchesAssignment(a);
+    setBatchesDialogOpen(true);
+    const { data } = await supabase
+      .from('assignment_batches' as any)
+      .select('*, stock_additions(added_at)')
+      .eq('assignment_id', a.id)
+      .order('created_at', { ascending: true });
+    setBatchesData((data as any[]) || []);
+  };
+
   const getReasonFromNotes = (notes: string | null) => {
     if (!notes?.startsWith('[')) return '-';
     if (notes.includes(t('lost'))) return t('lost');
@@ -351,6 +362,11 @@ export function AssignmentsContent() {
                     {isAdmin && (
                       <TableCell>
                         <div className="flex gap-1">
+                          {(a.status === 'approved' || a.status === 'returned' || a.status === 'replaced') && (
+                            <Button variant="ghost" size="icon" onClick={() => openBatches(a)} title={t('batchDetails')}>
+                              <Layers className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button variant="ghost" size="icon" onClick={() => openDialog(a)} title={t('edit')}>
                             <Pencil className="h-4 w-4" />
                           </Button>
