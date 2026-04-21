@@ -470,7 +470,51 @@ export function StockContent() {
                 {lang === 'ar' ? 'الأصناف التي تصل لهذا الرقم أو أقل ستظهر بعلامة تحذير حمراء' : 'Items at or below this number will show a red warning'}
               </p>
             </div>
+            {customCategories.length > 0 && (
+              <div className="space-y-2">
+                <Label>{t('addCategory')}</Label>
+                <div className="flex flex-wrap gap-2">
+                  {customCategories.map(c => (
+                    <div key={c} className="flex items-center gap-1 rounded-md border px-2 py-1 text-sm bg-muted/50">
+                      <span>{c}</span>
+                      <button
+                        type="button"
+                        onClick={() => deleteCustomCategory(c)}
+                        title={t('deleteCategory')}
+                        className="text-destructive hover:text-destructive/80"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <Button onClick={saveThreshold} className="w-full">{t('save')}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Category Dialog */}
+      <Dialog open={addCategoryOpen} onOpenChange={setAddCategoryOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t('addCategory')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>{t('newCategoryName')}</Label>
+              <Input
+                value={newCategoryName}
+                onChange={e => setNewCategoryName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') saveNewCategory(); }}
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setAddCategoryOpen(false)}>{t('cancel')}</Button>
+              <Button onClick={saveNewCategory}>{t('save')}</Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
