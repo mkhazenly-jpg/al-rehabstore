@@ -273,7 +273,7 @@ export function UserManagementContent() {
                     <TableCell>
                       {isProtected ? (
                         <span className="text-sm font-medium">{t('admin')}</span>
-                      ) : (
+                      ) : isProtectedAdmin ? (
                       <Select value={user.role} onValueChange={(v: any) => changeRole(user.user_id, v)}>
                         <SelectTrigger className="w-28">
                           <SelectValue />
@@ -283,6 +283,8 @@ export function UserManagementContent() {
                           <SelectItem value="staff">{t('staff')}</SelectItem>
                         </SelectContent>
                       </Select>
+                      ) : (
+                        <span className="text-sm">{user.role === 'admin' ? t('admin') : t('staff')}</span>
                       )}
                     </TableCell>
                     <TableCell>
