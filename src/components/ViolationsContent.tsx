@@ -129,10 +129,17 @@ export function ViolationsContent() {
     return result;
   }, [violations]);
 
+  const availableRepeats = useMemo(() => {
+    const set = new Set<number>();
+    Object.values(repeatMap).forEach(n => set.add(n));
+    return Array.from(set).sort((a, b) => a - b);
+  }, [repeatMap]);
+
   const filtered = violations.filter(v => {
     const empName = empMap[v.employee_id]?.name || '';
     if (search && !empName.toLowerCase().includes(search.toLowerCase()) && !v.violation_description.toLowerCase().includes(search.toLowerCase())) return false;
     if (filterEmployee !== 'all' && v.employee_id !== filterEmployee) return false;
+    if (filterRepeats.length > 0 && !filterRepeats.includes(repeatMap[v.id] || 1)) return false;
     if (fromDate && new Date(v.violation_date) < new Date(fromDate)) return false;
     if (toDate) {
       const end = new Date(toDate);
@@ -141,6 +148,10 @@ export function ViolationsContent() {
     }
     return true;
   });
+
+  const toggleRepeat = (n: number) => {
+    setFilterRepeats(prev => prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n]);
+  };
 
   const openAdd = () => {
     setEditItem(null);
