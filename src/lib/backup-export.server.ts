@@ -3,6 +3,13 @@
 import * as XLSX from 'xlsx-js-style';
 import { supabaseAdmin } from '@/integrations/supabase/client.server';
 
+// Normalize CommonJS interop: depending on bundler (Vite SSR vs Worker build),
+// the module shape may be either the namespace itself or wrapped under `.default`.
+// `XLSX` keeps the type namespace; `xlsx` is the runtime-resolved value.
+const xlsx = ((XLSX as any)?.utils
+  ? (XLSX as any)
+  : ((XLSX as any)?.default ?? (XLSX as any))) as typeof XLSX;
+
 const COLORS = {
   primary: '2F8F6E',
   primaryDark: '1E6B52',
@@ -115,7 +122,7 @@ function buildSheet(spec: SheetSpec): XLSX.WorkSheet {
     aoa.push(headers.map((h) => (r[h] === undefined || r[h] === null ? '' : (r[h] as string | number))));
   });
 
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const ws = xlsx.utils.aoa_to_sheet(aoa);
   const lastCol = headers.length - 1;
   const lastRow = aoa.length - 1;
 
@@ -131,7 +138,7 @@ function buildSheet(spec: SheetSpec): XLSX.WorkSheet {
   ws['!rows'] = [{ hpt: 30 }, { hpt: 8 }];
 
   for (let c = 0; c <= lastCol; c++) {
-    const addr = XLSX.utils.encode_cell({ r: 2, c });
+    const addr = xlsx.utils.encode_cell({ r: 2, c });
     if (!ws[addr]) ws[addr] = { t: 's', v: headers[c] };
     ws[addr].s = {
       font: { bold: true, color: { rgb: COLORS.headerText }, name: 'Cairo', sz: 11 },
@@ -149,7 +156,7 @@ function buildSheet(spec: SheetSpec): XLSX.WorkSheet {
 
     if (isSection) {
       ws['!merges']!.push({ s: { r, c: 0 }, e: { r, c: lastCol } });
-      const addr = XLSX.utils.encode_cell({ r, c: 0 });
+      const addr = xlsx.utils.encode_cell({ r, c: 0 });
       const sectionText =
         headers.map((h) => rows[dataIdx][h]).find((v) => v !== '' && v !== null && v !== undefined) ?? '';
       ws[addr] = { t: 's', v: String(sectionText) };
@@ -160,7 +167,7 @@ function buildSheet(spec: SheetSpec): XLSX.WorkSheet {
         border,
       };
       for (let c = 1; c <= lastCol; c++) {
-        const a = XLSX.utils.encode_cell({ r, c });
+        const a = xlsx.utils.encode_cell({ r, c });
         if (ws[a]) delete ws[a];
       }
       ws['!rows']![r] = { hpt: 24 };
@@ -168,7 +175,7 @@ function buildSheet(spec: SheetSpec): XLSX.WorkSheet {
     }
 
     for (let c = 0; c <= lastCol; c++) {
-      const addr = XLSX.utils.encode_cell({ r, c });
+      const addr = xlsx.utils.encode_cell({ r, c });
       if (!ws[addr]) ws[addr] = { t: 's', v: '' };
       const isCurrency = currencyCols.includes(headers[c]);
       ws[addr].s = {
@@ -472,7 +479,7 @@ export async function buildBackupBuffer(): Promise<Uint8Array> {
     };
   });
 
-  const wb = XLSX.utils.book_new();
+  const wb = xlsx.utils.book_new();
   const sheets: SheetSpec[] = [
     {
       name: 'نظرة عامة',
@@ -521,9 +528,9 @@ export async function buildBackupBuffer(): Promise<Uint8Array> {
 
   sheets.forEach((spec) => {
     const ws = buildSheet(spec);
-    XLSX.utils.book_append_sheet(wb, ws, spec.name.slice(0, 31));
+    xlsx.utils.book_append_sheet(wb, ws, spec.name.slice(0, 31));
   });
 
-  const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array', compression: true }) as Uint8Array;
+  const buffer = xlsx.write(wb, { bookType: 'xlsx', type: 'array', compression: true }) as Uint8Array;
   return buffer;
 }
