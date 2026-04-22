@@ -601,6 +601,8 @@ export function EmployeesContent() {
                               <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                                 a.status === 'approved' ? 'bg-success/20 text-success' :
                                 a.status === 'pending' ? 'bg-accent/20 text-accent-foreground' :
+                                a.status === 'replaced' ? 'bg-primary/20 text-primary' :
+                                a.status === 'returned' ? 'bg-secondary text-secondary-foreground' :
                                 'bg-muted text-muted-foreground'
                               }`}>
                                 {t(a.status as any)}
@@ -616,7 +618,10 @@ export function EmployeesContent() {
                       })}
                     </div>
                     {(() => {
-                      const grandTotal = assignments.reduce((sum: number, a: any) => sum + ((a.stock_items?.unit_price || 0) * a.quantity_assigned), 0);
+                      const grandTotal = assignments.reduce((sum: number, a: any) => {
+                        if (a.status === 'replaced' || a.status === 'returned') return sum;
+                        return sum + ((a.stock_items?.unit_price || 0) * a.quantity_assigned);
+                      }, 0);
                       return grandTotal > 0 ? (
                         <div className="flex justify-between items-center rounded-lg bg-muted p-2 text-sm font-semibold">
                           <span>{t('totalPrice')}</span>

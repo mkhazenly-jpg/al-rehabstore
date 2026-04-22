@@ -177,12 +177,15 @@ export function AssignmentsContent() {
     setSaving(true);
     try {
       for (const line of validLines) {
-        // Auto-replace: find old approved damaged/lost assignments for same employee+item
+        // Auto-replace: when the new assignment is a replacement (reassign_reason set
+        // to damaged/lost), mark ALL existing approved assignments for the same
+        // employee+item as replaced. Also keep the legacy behavior of detecting
+        // damaged/lost markers in the OLD notes for backward compatibility.
         const oldDamagedLost = assignments.filter((a: any) =>
           a.employee_id === employeeId &&
           a.stock_item_id === line.stock_item_id &&
           a.status === 'approved' &&
-          isDamagedOrLostNote(a.notes)
+          (line.reassign_reason === 'damaged' || line.reassign_reason === 'lost' || isDamagedOrLostNote(a.notes))
         );
 
         for (const oldA of oldDamagedLost) {
