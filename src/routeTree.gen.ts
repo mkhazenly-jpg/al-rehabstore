@@ -17,6 +17,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AssignmentsRouteImport } from './routes/assignments'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
+import { Route as ApiPublicHooksAutoBackupRouteImport } from './routes/api/public/hooks/auto-backup'
 
 const ViolationsRoute = ViolationsRouteImport.update({
   id: '/violations',
@@ -58,6 +59,12 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
   path: '/admin/users',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksAutoBackupRoute =
+  ApiPublicHooksAutoBackupRouteImport.update({
+    id: '/api/public/hooks/auto-backup',
+    path: '/api/public/hooks/auto-backup',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -68,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/unauthorized': typeof UnauthorizedRoute
   '/violations': typeof ViolationsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/api/public/hooks/auto-backup': typeof ApiPublicHooksAutoBackupRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -78,6 +86,7 @@ export interface FileRoutesByTo {
   '/unauthorized': typeof UnauthorizedRoute
   '/violations': typeof ViolationsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/api/public/hooks/auto-backup': typeof ApiPublicHooksAutoBackupRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -89,6 +98,7 @@ export interface FileRoutesById {
   '/unauthorized': typeof UnauthorizedRoute
   '/violations': typeof ViolationsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/api/public/hooks/auto-backup': typeof ApiPublicHooksAutoBackupRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +111,7 @@ export interface FileRouteTypes {
     | '/unauthorized'
     | '/violations'
     | '/admin/users'
+    | '/api/public/hooks/auto-backup'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -111,6 +122,7 @@ export interface FileRouteTypes {
     | '/unauthorized'
     | '/violations'
     | '/admin/users'
+    | '/api/public/hooks/auto-backup'
   id:
     | '__root__'
     | '/'
@@ -121,6 +133,7 @@ export interface FileRouteTypes {
     | '/unauthorized'
     | '/violations'
     | '/admin/users'
+    | '/api/public/hooks/auto-backup'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -132,6 +145,7 @@ export interface RootRouteChildren {
   UnauthorizedRoute: typeof UnauthorizedRoute
   ViolationsRoute: typeof ViolationsRoute
   AdminUsersRoute: typeof AdminUsersRoute
+  ApiPublicHooksAutoBackupRoute: typeof ApiPublicHooksAutoBackupRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -192,6 +206,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/auto-backup': {
+      id: '/api/public/hooks/auto-backup'
+      path: '/api/public/hooks/auto-backup'
+      fullPath: '/api/public/hooks/auto-backup'
+      preLoaderRoute: typeof ApiPublicHooksAutoBackupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -204,6 +225,7 @@ const rootRouteChildren: RootRouteChildren = {
   UnauthorizedRoute: UnauthorizedRoute,
   ViolationsRoute: ViolationsRoute,
   AdminUsersRoute: AdminUsersRoute,
+  ApiPublicHooksAutoBackupRoute: ApiPublicHooksAutoBackupRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
