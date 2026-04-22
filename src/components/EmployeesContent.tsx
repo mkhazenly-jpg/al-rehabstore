@@ -618,7 +618,10 @@ export function EmployeesContent() {
                       })}
                     </div>
                     {(() => {
-                      const grandTotal = assignments.reduce((sum: number, a: any) => sum + ((a.stock_items?.unit_price || 0) * a.quantity_assigned), 0);
+                      const grandTotal = assignments.reduce((sum: number, a: any) => {
+                        if (a.status === 'replaced' || a.status === 'returned') return sum;
+                        return sum + ((a.stock_items?.unit_price || 0) * a.quantity_assigned);
+                      }, 0);
                       return grandTotal > 0 ? (
                         <div className="flex justify-between items-center rounded-lg bg-muted p-2 text-sm font-semibold">
                           <span>{t('totalPrice')}</span>
