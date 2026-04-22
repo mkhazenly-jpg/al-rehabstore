@@ -295,7 +295,7 @@ export function UserManagementContent() {
                     <TableCell>
                       {isProtected ? (
                         <span className="text-xs text-muted-foreground">{t('protectedAccount')}</span>
-                      ) : (
+                      ) : isProtectedAdmin ? (
                       <div className="flex items-center gap-1">
                         <Button
                           variant="ghost"
@@ -317,17 +317,17 @@ export function UserManagementContent() {
                           <Trash2 className="h-4 w-4 me-1 text-destructive" />
                           {t('delete')}
                         </Button>
-                        {isProtectedAdmin && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => { setResetTarget({ email: user.email, name: user.full_name || user.email }); setNewPwd(''); }}
-                          >
-                            <Key className="h-4 w-4 me-1 text-primary" />
-                            {t('resetPassword')}
-                          </Button>
-                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => { setResetTarget({ email: user.email, name: user.full_name || user.email }); setNewPwd(''); }}
+                        >
+                          <Key className="h-4 w-4 me-1 text-primary" />
+                          {t('resetPassword')}
+                        </Button>
                       </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </TableCell>
                   </TableRow>
