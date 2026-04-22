@@ -273,7 +273,7 @@ export function UserManagementContent() {
                     <TableCell>
                       {isProtected ? (
                         <span className="text-sm font-medium">{t('admin')}</span>
-                      ) : (
+                      ) : isProtectedAdmin ? (
                       <Select value={user.role} onValueChange={(v: any) => changeRole(user.user_id, v)}>
                         <SelectTrigger className="w-28">
                           <SelectValue />
@@ -283,6 +283,8 @@ export function UserManagementContent() {
                           <SelectItem value="staff">{t('staff')}</SelectItem>
                         </SelectContent>
                       </Select>
+                      ) : (
+                        <span className="text-sm">{user.role === 'admin' ? t('admin') : t('staff')}</span>
                       )}
                     </TableCell>
                     <TableCell>
@@ -295,7 +297,7 @@ export function UserManagementContent() {
                     <TableCell>
                       {isProtected ? (
                         <span className="text-xs text-muted-foreground">{t('protectedAccount')}</span>
-                      ) : (
+                      ) : isProtectedAdmin ? (
                       <div className="flex items-center gap-1">
                         <Button
                           variant="ghost"
@@ -317,17 +319,17 @@ export function UserManagementContent() {
                           <Trash2 className="h-4 w-4 me-1 text-destructive" />
                           {t('delete')}
                         </Button>
-                        {isProtectedAdmin && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => { setResetTarget({ email: user.email, name: user.full_name || user.email }); setNewPwd(''); }}
-                          >
-                            <Key className="h-4 w-4 me-1 text-primary" />
-                            {t('resetPassword')}
-                          </Button>
-                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => { setResetTarget({ email: user.email, name: user.full_name || user.email }); setNewPwd(''); }}
+                        >
+                          <Key className="h-4 w-4 me-1 text-primary" />
+                          {t('resetPassword')}
+                        </Button>
                       </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </TableCell>
                   </TableRow>
