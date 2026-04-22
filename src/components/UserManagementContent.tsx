@@ -11,8 +11,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Check, X, Shield, Trash2, Lock, Key, AlertTriangle, Download } from 'lucide-react';
+import { Check, X, Shield, Trash2, Lock, Key, AlertTriangle, Download, Cloud, ExternalLink, CheckCircle2, XCircle } from 'lucide-react';
 import { exportFullBackup } from '@/lib/backup-export';
+
+type DriveBackupResult = {
+  success: boolean;
+  file?: string;
+  fileId?: string;
+  webViewLink?: string;
+  deletedOld?: number;
+  sizeBytes?: number;
+  elapsedMs?: number;
+  error?: string;
+  at?: string;
+};
 
 const PROTECTED_EMAIL = 'm.khazenly@gmail.com';
 
