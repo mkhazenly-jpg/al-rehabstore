@@ -8,9 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Pencil, Trash2, Search, Download } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Download, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { exportToExcel } from '@/lib/export';
 import type { Tables as DBTables } from '@/integrations/supabase/types';
@@ -45,6 +47,7 @@ export function ViolationsContent() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [search, setSearch] = useState('');
   const [filterEmployee, setFilterEmployee] = useState('all');
+  const [filterRepeats, setFilterRepeats] = useState<number[]>([]);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -126,10 +129,17 @@ export function ViolationsContent() {
     return result;
   }, [violations]);
 
+  const availableRepeats = useMemo(() => {
+    const set = new Set<number>();
+    Object.values(repeatMap).forEach(n => set.add(n));
+    return Array.from(set).sort((a, b) => a - b);
+  }, [repeatMap]);
+
   const filtered = violations.filter(v => {
     const empName = empMap[v.employee_id]?.name || '';
     if (search && !empName.toLowerCase().includes(search.toLowerCase()) && !v.violation_description.toLowerCase().includes(search.toLowerCase())) return false;
     if (filterEmployee !== 'all' && v.employee_id !== filterEmployee) return false;
+    if (filterRepeats.length > 0 && !filterRepeats.includes(repeatMap[v.id] || 1)) return false;
     if (fromDate && new Date(v.violation_date) < new Date(fromDate)) return false;
     if (toDate) {
       const end = new Date(toDate);
@@ -138,6 +148,10 @@ export function ViolationsContent() {
     }
     return true;
   });
+
+  const toggleRepeat = (n: number) => {
+    setFilterRepeats(prev => prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n]);
+  };
 
   const openAdd = () => {
     setEditItem(null);
@@ -231,7 +245,7 @@ export function ViolationsContent() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
         <div className="relative">
           <Search className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input className="ps-9" placeholder={t('search')} value={search} onChange={e => setSearch(e.target.value)} />
@@ -243,6 +257,44 @@ export function ViolationsContent() {
             {employees.map(e => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="justify-between font-normal">
+              <span className="truncate">
+                {filterRepeats.length === 0
+                  ? t('allRepeats')
+                  : `${t('repeatCount')}: ${filterRepeats.sort((a, b) => a - b).join(', ')}`}
+              </span>
+              <ChevronDown className="h-4 w-4 opacity-50 ms-2 shrink-0" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-56 p-2" align="start">
+            <div className="flex items-center justify-between px-2 py-1.5">
+              <span className="text-sm font-medium">{t('repeatCount')}</span>
+              {filterRepeats.length > 0 && (
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setFilterRepeats([])}>
+                  {t('cancel')}
+                </Button>
+              )}
+            </div>
+            <div className="max-h-64 overflow-auto space-y-1">
+              {availableRepeats.length === 0 && (
+                <div className="text-xs text-muted-foreground px-2 py-2">—</div>
+              )}
+              {availableRepeats.map(n => (
+                <label key={n} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer">
+                  <Checkbox
+                    checked={filterRepeats.includes(n)}
+                    onCheckedChange={() => toggleRepeat(n)}
+                  />
+                  <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${getRepeatBadgeClass(n)}`}>
+                    {n}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
         <div className="space-y-1">
           <Label className="text-xs text-muted-foreground">{t('fromDate')}</Label>
           <Input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} />
