@@ -1,13 +1,14 @@
 // Server-side backup generator: builds the same xlsx as the manual download
 // but returns a Buffer (no DOM). Uses supabaseAdmin (service role).
-import * as XLSXImport from 'xlsx-js-style';
+import * as XLSXNs from 'xlsx-js-style';
 import { supabaseAdmin } from '@/integrations/supabase/client.server';
 
-// Normalize CommonJS interop: depending on bundler, the module shape may be
-// either the namespace itself or wrapped under `.default`.
-const XLSX: typeof XLSXImport = (XLSXImport as any)?.utils
-  ? (XLSXImport as any)
-  : ((XLSXImport as any)?.default ?? (XLSXImport as any));
+// Normalize CommonJS interop: depending on bundler (Vite SSR vs Worker build),
+// the module shape may be either the namespace itself or wrapped under `.default`.
+// Types come from the namespace import; runtime value is resolved here.
+const XLSX = ((XLSXNs as any)?.utils
+  ? (XLSXNs as any)
+  : ((XLSXNs as any)?.default ?? (XLSXNs as any))) as typeof XLSXNs;
 
 const COLORS = {
   primary: '2F8F6E',
