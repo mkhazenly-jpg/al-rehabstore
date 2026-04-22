@@ -170,6 +170,83 @@ export function UserManagementContent() {
         </CardContent>
       </Card>
 
+      <Card className="border-primary/30">
+        <CardContent className="p-4 space-y-4">
+          <div className="flex items-start gap-3">
+            <Cloud className="h-6 w-6 text-primary shrink-0 mt-1" />
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg font-bold text-primary">{t('driveBackup')}</h2>
+              <p className="text-sm text-muted-foreground mt-1">{t('driveBackupDesc')}</p>
+            </div>
+            <Button onClick={handleDriveBackup} disabled={driveRunning}>
+              <Cloud className="h-4 w-4 me-1" />
+              {driveRunning ? t('runningBackup') : t('runBackupNow')}
+            </Button>
+          </div>
+
+          {driveResult && (
+            <div
+              className={`rounded-lg border p-3 text-sm ${
+                driveResult.success
+                  ? 'border-success/40 bg-success/10'
+                  : 'border-destructive/40 bg-destructive/10'
+              }`}
+            >
+              <div className="flex items-center gap-2 font-medium mb-2">
+                {driveResult.success ? (
+                  <>
+                    <CheckCircle2 className="h-4 w-4 text-success" />
+                    <span className="text-success">{t('driveBackupSuccess')}</span>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-4 w-4 text-destructive" />
+                    <span className="text-destructive">{t('driveBackupError')}</span>
+                  </>
+                )}
+              </div>
+
+              {driveResult.success ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground">
+                  {driveResult.file && (
+                    <div><span className="font-medium text-foreground">{t('fileName')}:</span> {driveResult.file}</div>
+                  )}
+                  {typeof driveResult.sizeBytes === 'number' && (
+                    <div><span className="font-medium text-foreground">{t('fileSize')}:</span> {(driveResult.sizeBytes / 1024).toFixed(1)} KB</div>
+                  )}
+                  {typeof driveResult.elapsedMs === 'number' && (
+                    <div><span className="font-medium text-foreground">{t('duration')}:</span> {(driveResult.elapsedMs / 1000).toFixed(2)}s</div>
+                  )}
+                  {typeof driveResult.deletedOld === 'number' && (
+                    <div><span className="font-medium text-foreground">{t('deletedOldFiles')}:</span> {driveResult.deletedOld}</div>
+                  )}
+                  {driveResult.at && (
+                    <div className="sm:col-span-2">
+                      <span className="font-medium text-foreground">{t('lastBackupAt')}:</span>{' '}
+                      {new Date(driveResult.at).toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US')}
+                    </div>
+                  )}
+                  {driveResult.webViewLink && (
+                    <div className="sm:col-span-2 mt-2">
+                      <a
+                        href={driveResult.webViewLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-primary hover:underline font-medium"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        {t('openInDrive')}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-destructive/90 break-all">{driveResult.error}</p>
+              )}
+            </div>
+          )}</CardContent>
+      </Card>
+
       <Card>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
