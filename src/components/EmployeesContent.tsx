@@ -601,6 +601,8 @@ export function EmployeesContent() {
                               <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                                 a.status === 'approved' ? 'bg-success/20 text-success' :
                                 a.status === 'pending' ? 'bg-accent/20 text-accent-foreground' :
+                                a.status === 'replaced' ? 'bg-primary/20 text-primary' :
+                                a.status === 'returned' ? 'bg-secondary text-secondary-foreground' :
                                 'bg-muted text-muted-foreground'
                               }`}>
                                 {t(a.status as any)}
