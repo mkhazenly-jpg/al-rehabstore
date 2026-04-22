@@ -11,8 +11,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Check, X, Shield, Trash2, Lock, Key, AlertTriangle, Download } from 'lucide-react';
+import { Check, X, Shield, Trash2, Lock, Key, AlertTriangle, Download, Cloud, ExternalLink, CheckCircle2, XCircle } from 'lucide-react';
 import { exportFullBackup } from '@/lib/backup-export';
+
+type DriveBackupResult = {
+  success: boolean;
+  file?: string;
+  fileId?: string;
+  webViewLink?: string;
+  deletedOld?: number;
+  sizeBytes?: number;
+  elapsedMs?: number;
+  error?: string;
+  at?: string;
+};
 
 const PROTECTED_EMAIL = 'm.khazenly@gmail.com';
 
@@ -29,6 +41,29 @@ export function UserManagementContent() {
   const [wipeOpen, setWipeOpen] = useState(false);
   const [wipeConfirm, setWipeConfirm] = useState('');
   const [wiping, setWiping] = useState(false);
+  const [driveRunning, setDriveRunning] = useState(false);
+  const [driveResult, setDriveResult] = useState<DriveBackupResult | null>(null);
+
+  const handleDriveBackup = async () => {
+    setDriveRunning(true);
+    setDriveResult(null);
+    try {
+      const res = await fetch('/api/public/hooks/auto-backup', { method: 'POST' });
+      const data = (await res.json()) as DriveBackupResult;
+      const result: DriveBackupResult = { ...data, at: new Date().toISOString() };
+      setDriveResult(result);
+      if (res.ok && data.success) {
+        toast.success(t('driveBackupSuccess'));
+      } else {
+        toast.error(data.error || t('driveBackupError'));
+      }
+    } catch (err: any) {
+      const msg = err?.message || t('driveBackupError');
+      setDriveResult({ success: false, error: msg, at: new Date().toISOString() });
+      toast.error(msg);
+    }
+    setDriveRunning(false);
+  };
 
   const handleWipeAll = async () => {
     if (wipeConfirm !== 'DELETE') return;
@@ -133,6 +168,83 @@ export function UserManagementContent() {
             </Button>
           </div>
         </CardContent>
+      </Card>
+
+      <Card className="border-primary/30">
+        <CardContent className="p-4 space-y-4">
+          <div className="flex items-start gap-3">
+            <Cloud className="h-6 w-6 text-primary shrink-0 mt-1" />
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg font-bold text-primary">{t('driveBackup')}</h2>
+              <p className="text-sm text-muted-foreground mt-1">{t('driveBackupDesc')}</p>
+            </div>
+            <Button onClick={handleDriveBackup} disabled={driveRunning}>
+              <Cloud className="h-4 w-4 me-1" />
+              {driveRunning ? t('runningBackup') : t('runBackupNow')}
+            </Button>
+          </div>
+
+          {driveResult && (
+            <div
+              className={`rounded-lg border p-3 text-sm ${
+                driveResult.success
+                  ? 'border-success/40 bg-success/10'
+                  : 'border-destructive/40 bg-destructive/10'
+              }`}
+            >
+              <div className="flex items-center gap-2 font-medium mb-2">
+                {driveResult.success ? (
+                  <>
+                    <CheckCircle2 className="h-4 w-4 text-success" />
+                    <span className="text-success">{t('driveBackupSuccess')}</span>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-4 w-4 text-destructive" />
+                    <span className="text-destructive">{t('driveBackupError')}</span>
+                  </>
+                )}
+              </div>
+
+              {driveResult.success ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground">
+                  {driveResult.file && (
+                    <div><span className="font-medium text-foreground">{t('fileName')}:</span> {driveResult.file}</div>
+                  )}
+                  {typeof driveResult.sizeBytes === 'number' && (
+                    <div><span className="font-medium text-foreground">{t('fileSize')}:</span> {(driveResult.sizeBytes / 1024).toFixed(1)} KB</div>
+                  )}
+                  {typeof driveResult.elapsedMs === 'number' && (
+                    <div><span className="font-medium text-foreground">{t('duration')}:</span> {(driveResult.elapsedMs / 1000).toFixed(2)}s</div>
+                  )}
+                  {typeof driveResult.deletedOld === 'number' && (
+                    <div><span className="font-medium text-foreground">{t('deletedOldFiles')}:</span> {driveResult.deletedOld}</div>
+                  )}
+                  {driveResult.at && (
+                    <div className="sm:col-span-2">
+                      <span className="font-medium text-foreground">{t('lastBackupAt')}:</span>{' '}
+                      {new Date(driveResult.at).toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US')}
+                    </div>
+                  )}
+                  {driveResult.webViewLink && (
+                    <div className="sm:col-span-2 mt-2">
+                      <a
+                        href={driveResult.webViewLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-primary hover:underline font-medium"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        {t('openInDrive')}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-destructive/90 break-all">{driveResult.error}</p>
+              )}
+            </div>
+          )}</CardContent>
       </Card>
 
       <Card>
