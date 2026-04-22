@@ -41,6 +41,29 @@ export function UserManagementContent() {
   const [wipeOpen, setWipeOpen] = useState(false);
   const [wipeConfirm, setWipeConfirm] = useState('');
   const [wiping, setWiping] = useState(false);
+  const [driveRunning, setDriveRunning] = useState(false);
+  const [driveResult, setDriveResult] = useState<DriveBackupResult | null>(null);
+
+  const handleDriveBackup = async () => {
+    setDriveRunning(true);
+    setDriveResult(null);
+    try {
+      const res = await fetch('/api/public/hooks/auto-backup', { method: 'POST' });
+      const data = (await res.json()) as DriveBackupResult;
+      const result: DriveBackupResult = { ...data, at: new Date().toISOString() };
+      setDriveResult(result);
+      if (res.ok && data.success) {
+        toast.success(t('driveBackupSuccess'));
+      } else {
+        toast.error(data.error || t('driveBackupError'));
+      }
+    } catch (err: any) {
+      const msg = err?.message || t('driveBackupError');
+      setDriveResult({ success: false, error: msg, at: new Date().toISOString() });
+      toast.error(msg);
+    }
+    setDriveRunning(false);
+  };
 
   const handleWipeAll = async () => {
     if (wipeConfirm !== 'DELETE') return;
