@@ -83,7 +83,12 @@ async function uploadFile(
     mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   });
 
-  // Build multipart body
+  // Build multipart body — normalize buffer to a true Uint8Array view
+  const fileBytes =
+    buffer instanceof Uint8Array
+      ? new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength)
+      : new Uint8Array(buffer as unknown as ArrayBuffer);
+
   const enc = new TextEncoder();
   const pre = enc.encode(
     `--${boundary}\r\n` +
@@ -94,10 +99,10 @@ async function uploadFile(
   );
   const post = enc.encode(`\r\n--${boundary}--\r\n`);
 
-  const body = new Uint8Array(pre.length + buffer.length + post.length);
+  const body = new Uint8Array(pre.byteLength + fileBytes.byteLength + post.byteLength);
   body.set(pre, 0);
-  body.set(buffer, pre.length);
-  body.set(post, pre.length + buffer.length);
+  body.set(fileBytes, pre.byteLength);
+  body.set(post, pre.byteLength + fileBytes.byteLength);
 
   const res = await fetch(
     `${GATEWAY_BASE}/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink`,
