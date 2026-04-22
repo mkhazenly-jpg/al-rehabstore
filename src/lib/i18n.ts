@@ -464,6 +464,18 @@ export const translations = {
     backupSuccess: 'Backup downloaded successfully',
     backupError: 'Failed to download backup',
     preparingBackup: 'Preparing file...',
+    driveBackup: 'Google Drive Backup',
+    driveBackupDesc: 'A full backup is uploaded automatically every day at 4 AM to the linked Google Drive account, keeping only the latest file. You can also trigger an instant backup now.',
+    runBackupNow: 'Run Backup Now',
+    runningBackup: 'Uploading to Drive...',
+    driveBackupSuccess: 'Backup uploaded to Google Drive successfully',
+    driveBackupError: 'Failed to upload backup',
+    openInDrive: 'Open file in Drive',
+    fileName: 'File name',
+    fileSize: 'File size',
+    duration: 'Duration',
+    deletedOldFiles: 'Old files deleted',
+    lastBackupAt: 'Last backup at',
   },
 } as const;
 
