@@ -113,24 +113,57 @@ export function DashboardContent() {
     });
   }, [allApprovedAssignments, selectedYear, selectedMonth, selectedLocation]);
 
+  // Helper: detect renewal window (months) per item
+  const getRenewalMonths = (item: any): number | null => {
+    if (!item) return null;
+    const combined = (item.name + ' ' + item.category).toLowerCase();
+    const isShoes = /shoe|حذاء|بوت|boot|سيفتي|safety/.test(combined);
+    const isGlovesOrVest = /glove|جوانتي|قفاز|vest|فيست|سترة|helmet|خوذة/.test(combined);
+    if (isShoes) return 12;
+    if (isGlovesOrVest) return 4;
+    return null;
+  };
+
   // Calculate renewal needed by item (safety shoes: 12 months, gloves/vests: 4 months)
   const renewalNeededByItem: Record<string, number> = {};
   filteredApprovedAssignments.forEach(a => {
     const item = stockItems.find(i => i.id === a.stock_item_id);
-    if (!item) return;
-    
-    const combined = (item.name + ' ' + item.category).toLowerCase();
-    const isShoes = /shoe|حذاء|بوت|boot|sيفتي/.test(combined);
-    const isGlovesOrVest = /glove|جوانتي|قفاز|vest|فيست|سترة/.test(combined);
-    
+    const months = getRenewalMonths(item);
+    if (months === null) return;
     const monthsElapsed = (Date.now() - new Date(a.assignment_date).getTime()) / (1000 * 60 * 60 * 24 * 30.4375);
-    
-    const isExpired = (isShoes && monthsElapsed >= 12) || (isGlovesOrVest && monthsElapsed >= 4);
-    
-    if (isExpired) {
+    if (monthsElapsed >= months) {
       renewalNeededByItem[a.stock_item_id] = (renewalNeededByItem[a.stock_item_id] || 0) + a.quantity_assigned;
     }
   });
+
+  // Total deductions for resigned/terminated/archived employees whose approved
+  // assignments are STILL within renewal window (not expired) — they owe the value back.
+  const totalAssignmentDeductions = useMemo(() => {
+    const inactiveStatuses = new Set(['resigned', 'terminated', 'archived']);
+    let total = 0;
+    allApprovedAssignments.forEach((a: any) => {
+      const emp = a.employees;
+      if (!emp || !inactiveStatuses.has(emp.status)) return;
+      if (selectedLocation !== 'all' && emp.location !== selectedLocation) return;
+
+      // Filter by termination_date (fallback to assignment_date)
+      const refDate = emp.termination_date ? new Date(emp.termination_date) : new Date(a.assignment_date);
+      if (selectedYear !== 'all' && refDate.getFullYear() !== Number(selectedYear)) return;
+      if (selectedMonth !== 'all' && refDate.getMonth() !== Number(selectedMonth)) return;
+
+      const item = stockItems.find(i => i.id === a.stock_item_id);
+      const months = getRenewalMonths(item);
+      if (months === null) return;
+
+      const monthsElapsed = (Date.now() - new Date(a.assignment_date).getTime()) / (1000 * 60 * 60 * 24 * 30.4375);
+      if (monthsElapsed >= months) return; // expired → no deduction
+
+      const unitPrice = Number(a.unit_price_at_assignment) || Number(a.stock_items?.unit_price) || Number(item?.unit_price) || 0;
+      total += unitPrice * (a.quantity_assigned || 0);
+    });
+    return total;
+  }, [allApprovedAssignments, stockItems, selectedYear, selectedMonth, selectedLocation]);
+
 
   // Damaged and lost per item (exclude replaced ones — those were already swapped)
   const damagedByItem: Record<string, number> = {};
