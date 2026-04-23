@@ -33,7 +33,7 @@ export function DashboardContent() {
       supabase.from('stock_additions').select('*'),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, status, created_at, employee_id, employees(location)').in('status', ['approved', 'pending']),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, notes, created_at, status, employee_id, employees(location)').not('notes', 'is', null),
-      supabase.from('assignments').select('stock_item_id, quantity_assigned, status, assignment_date, employee_id, employees(location)').eq('status', 'approved'),
+      supabase.from('assignments').select('stock_item_id, quantity_assigned, status, assignment_date, employee_id, unit_price_at_assignment, employees(location, status, termination_date), stock_items(unit_price)').eq('status', 'approved'),
     ]);
 
     const items = stockRes.data || [];
@@ -113,24 +113,57 @@ export function DashboardContent() {
     });
   }, [allApprovedAssignments, selectedYear, selectedMonth, selectedLocation]);
 
+  // Helper: detect renewal window (months) per item
+  const getRenewalMonths = (item: any): number | null => {
+    if (!item) return null;
+    const combined = (item.name + ' ' + item.category).toLowerCase();
+    const isShoes = /shoe|حذاء|بوت|boot|سيفتي|safety/.test(combined);
+    const isGlovesOrVest = /glove|جوانتي|قفاز|vest|فيست|سترة|helmet|خوذة/.test(combined);
+    if (isShoes) return 12;
+    if (isGlovesOrVest) return 4;
+    return null;
+  };
+
   // Calculate renewal needed by item (safety shoes: 12 months, gloves/vests: 4 months)
   const renewalNeededByItem: Record<string, number> = {};
   filteredApprovedAssignments.forEach(a => {
     const item = stockItems.find(i => i.id === a.stock_item_id);
-    if (!item) return;
-    
-    const combined = (item.name + ' ' + item.category).toLowerCase();
-    const isShoes = /shoe|حذاء|بوت|boot|sيفتي/.test(combined);
-    const isGlovesOrVest = /glove|جوانتي|قفاز|vest|فيست|سترة/.test(combined);
-    
+    const months = getRenewalMonths(item);
+    if (months === null) return;
     const monthsElapsed = (Date.now() - new Date(a.assignment_date).getTime()) / (1000 * 60 * 60 * 24 * 30.4375);
-    
-    const isExpired = (isShoes && monthsElapsed >= 12) || (isGlovesOrVest && monthsElapsed >= 4);
-    
-    if (isExpired) {
+    if (monthsElapsed >= months) {
       renewalNeededByItem[a.stock_item_id] = (renewalNeededByItem[a.stock_item_id] || 0) + a.quantity_assigned;
     }
   });
+
+  // Total deductions for resigned/terminated/archived employees whose approved
+  // assignments are STILL within renewal window (not expired) — they owe the value back.
+  const totalAssignmentDeductions = useMemo(() => {
+    const inactiveStatuses = new Set(['resigned', 'terminated', 'archived']);
+    let total = 0;
+    allApprovedAssignments.forEach((a: any) => {
+      const emp = a.employees;
+      if (!emp || !inactiveStatuses.has(emp.status)) return;
+      if (selectedLocation !== 'all' && emp.location !== selectedLocation) return;
+
+      // Filter by termination_date (fallback to assignment_date)
+      const refDate = emp.termination_date ? new Date(emp.termination_date) : new Date(a.assignment_date);
+      if (selectedYear !== 'all' && refDate.getFullYear() !== Number(selectedYear)) return;
+      if (selectedMonth !== 'all' && refDate.getMonth() !== Number(selectedMonth)) return;
+
+      const item = stockItems.find(i => i.id === a.stock_item_id);
+      const months = getRenewalMonths(item);
+      if (months === null) return;
+
+      const monthsElapsed = (Date.now() - new Date(a.assignment_date).getTime()) / (1000 * 60 * 60 * 24 * 30.4375);
+      if (monthsElapsed >= months) return; // expired → no deduction
+
+      const unitPrice = Number(a.unit_price_at_assignment) || Number(a.stock_items?.unit_price) || Number(item?.unit_price) || 0;
+      total += unitPrice * (a.quantity_assigned || 0);
+    });
+    return total;
+  }, [allApprovedAssignments, stockItems, selectedYear, selectedMonth, selectedLocation]);
+
 
   // Damaged and lost per item (exclude replaced ones — those were already swapped)
   const damagedByItem: Record<string, number> = {};
@@ -323,7 +356,23 @@ export function DashboardContent() {
         </div>
       </Card>
 
-      {/* Cost by category */}
+      {/* Total assignment deductions for inactive employees */}
+      <Card className="overflow-hidden border-amber-500/40">
+        <div className="bg-gradient-to-br from-amber-400 to-amber-500 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-amber-950">{t('totalAssignmentDeductions')}</p>
+              <p className="mt-1 text-3xl font-bold text-amber-950">
+                {totalAssignmentDeductions.toLocaleString()} {t('currency')}
+              </p>
+              <p className="mt-2 text-xs text-amber-950/80 leading-relaxed">
+                {t('totalAssignmentDeductionsDesc')}
+              </p>
+            </div>
+            <BarChart3 className="h-8 w-8 text-amber-950/60 shrink-0" />
+          </div>
+        </div>
+      </Card>
       <h2 className="text-lg font-bold">{t('categoryCost')}</h2>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Object.entries(costByCategory).map(([cat, cost], idx) => (
