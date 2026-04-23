@@ -721,12 +721,17 @@ export function EmployeesContent() {
                               </span>
                             </div>
                             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                              <span>{new Date(v.violation_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}</span>
+                              <span>{new Date(v.violation_date).toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                              {v.violation_location && (
+                                <span>📍 {v.violation_location}</span>
+                              )}
                               <span className={`rounded-full px-2 py-0.5 font-medium ${actionColors[v.action_taken]}`}>
                                 {t(v.action_taken as any)}
                               </span>
-                              {Number(v.deduction_amount) > 0 && (
-                                <span>{t('deductionAmount')}: {v.deduction_amount} {t('currency')}</span>
+                              {v.action_taken === 'deduction' && Number(v.deduction_amount) > 0 && (
+                                <span>
+                                  {t('deductionDays')}: {Number(v.deduction_amount) === 0.5 ? t('halfDay') : `${v.deduction_amount} ${Number(v.deduction_amount) === 1 ? t('day') : t('days')}`}
+                                </span>
                               )}
                             </div>
                             {v.notes && <p className="mt-1 text-xs text-muted-foreground">{v.notes}</p>}
