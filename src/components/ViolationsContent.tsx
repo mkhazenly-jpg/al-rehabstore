@@ -17,10 +17,12 @@ import { toast } from 'sonner';
 import { exportToExcel } from '@/lib/export';
 import type { Tables as DBTables } from '@/integrations/supabase/types';
 
-type Violation = DBTables<'employee_violations'>;
+type Violation = DBTables<'employee_violations'> & { violation_location?: string | null };
 type Employee = DBTables<'employees'>;
 
 type ActionType = 'warning' | 'verbal_warning' | 'deduction' | 'suspension' | 'termination';
+
+const DEDUCTION_DAY_OPTIONS = [0.5, 1, 2, 3, 4, 5];
 
 const ACTION_COLORS: Record<string, string> = {
   warning: 'bg-accent/20 text-accent-foreground',
@@ -57,11 +59,19 @@ export function ViolationsContent() {
   const [form, setForm] = useState({
     employee_id: '',
     violation_description: '',
-    violation_date: new Date().toISOString().split('T')[0],
+    violation_location: '',
+    violation_date: new Date().toISOString().slice(0, 16),
     action_taken: 'warning' as ActionType,
-    deduction_amount: 0,
+    deduction_amount: 1,
     notes: '',
   });
+
+  // Format day-deduction for display
+  const formatDays = (n: number): string => {
+    if (n === 0.5) return t('halfDay');
+    if (n === 1) return `1 ${t('day')}`;
+    return `${n} ${t('days')}`;
+  };
 
   // Preset common violations
   const presets = useMemo(() => [
@@ -158,9 +168,10 @@ export function ViolationsContent() {
     setForm({
       employee_id: '',
       violation_description: '',
-      violation_date: new Date().toISOString().split('T')[0],
+      violation_location: '',
+      violation_date: new Date().toISOString().slice(0, 16),
       action_taken: 'warning',
-      deduction_amount: 0,
+      deduction_amount: 1,
       notes: '',
     });
     setDialogOpen(true);
@@ -168,12 +179,17 @@ export function ViolationsContent() {
 
   const openEdit = (v: Violation) => {
     setEditItem(v);
+    // Convert ISO date to local datetime-local input format (YYYY-MM-DDTHH:mm)
+    const d = new Date(v.violation_date);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const local = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
     setForm({
       employee_id: v.employee_id,
       violation_description: v.violation_description,
-      violation_date: v.violation_date.split('T')[0],
+      violation_location: (v as any).violation_location || '',
+      violation_date: local,
       action_taken: v.action_taken as ActionType,
-      deduction_amount: Number(v.deduction_amount) || 0,
+      deduction_amount: Number(v.deduction_amount) || 1,
       notes: v.notes || '',
     });
     setDialogOpen(true);
