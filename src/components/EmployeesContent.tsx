@@ -45,6 +45,31 @@ export function EmployeesContent() {
   const [editItem, setEditItem] = useState<Employee | null>(null);
   const [form, setForm] = useState({ name: '', hire_date: '', status: 'active' as EmployeeStatus, termination_date: '', department: '', notes: '', shift: '' as '' | 'morning' | 'night', mobile: '', job_title: '', location: '' as '' | 'RDC' | 'SDC' });
   const [isAddingDept, setIsAddingDept] = useState(false);
+  const [showJobSuggestions, setShowJobSuggestions] = useState(false);
+  const jobInputWrapRef = useRef<HTMLDivElement>(null);
+
+  // Close job suggestions on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (jobInputWrapRef.current && !jobInputWrapRef.current.contains(e.target as Node)) {
+        setShowJobSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // Unique past job titles for autocomplete
+  const jobTitleHistory = Array.from(new Set(
+    employees.map(e => (e.job_title || '').trim()).filter(Boolean)
+  ));
+  const jobSuggestions = (() => {
+    const typed = form.job_title.trim().toLowerCase();
+    if (!typed) return jobTitleHistory.slice(0, 8);
+    return jobTitleHistory
+      .filter(s => s.toLowerCase().includes(typed) && s.toLowerCase() !== typed)
+      .slice(0, 8);
+  })();
 
   useEffect(() => { loadEmployees(); }, []);
 
