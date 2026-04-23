@@ -515,10 +515,10 @@ export function EmployeesContent() {
               <Label>{t('notes')}</Label>
               <Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
             </div>
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>{t('cancel')}</Button>
-              <Button onClick={handleSave}>{t('save')}</Button>
-            </div>
+          </div>
+          <div className="flex gap-2 justify-end p-6 pt-4 border-t shrink-0 bg-background">
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>{t('cancel')}</Button>
+            <Button onClick={handleSave}>{t('save')}</Button>
           </div>
         </DialogContent>
       </Dialog>
