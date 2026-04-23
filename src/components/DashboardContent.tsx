@@ -356,7 +356,23 @@ export function DashboardContent() {
         </div>
       </Card>
 
-      {/* Cost by category */}
+      {/* Total assignment deductions for inactive employees */}
+      <Card className="overflow-hidden border-amber-500/40">
+        <div className="bg-gradient-to-br from-amber-400 to-amber-500 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-amber-950">{t('totalAssignmentDeductions')}</p>
+              <p className="mt-1 text-3xl font-bold text-amber-950">
+                {totalAssignmentDeductions.toLocaleString()} {t('currency')}
+              </p>
+              <p className="mt-2 text-xs text-amber-950/80 leading-relaxed">
+                {t('totalAssignmentDeductionsDesc')}
+              </p>
+            </div>
+            <BarChart3 className="h-8 w-8 text-amber-950/60 shrink-0" />
+          </div>
+        </div>
+      </Card>
       <h2 className="text-lg font-bold">{t('categoryCost')}</h2>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Object.entries(costByCategory).map(([cat, cost], idx) => (
