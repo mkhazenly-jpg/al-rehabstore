@@ -200,9 +200,10 @@ export function ViolationsContent() {
       toast.error(lang === 'ar' ? 'الموظف ووصف المخالفة مطلوبان' : 'Employee and description required');
       return;
     }
-    const payload = {
+    const payload: any = {
       employee_id: form.employee_id,
       violation_description: form.violation_description.trim(),
+      violation_location: form.violation_location.trim() || null,
       violation_date: new Date(form.violation_date).toISOString(),
       action_taken: form.action_taken,
       deduction_amount: form.deduction_amount,
@@ -236,10 +237,11 @@ export function ViolationsContent() {
     const rows = filtered.map(v => ({
       [t('employee')]: empMap[v.employee_id]?.name || '-',
       [t('violationDescription')]: v.violation_description,
+      [t('violationLocation')]: (v as any).violation_location || '-',
       [t('repeatCount')]: repeatMap[v.id] || 1,
       [t('actionTaken')]: t(v.action_taken as never) as string,
-      [t('deductionAmount')]: Number(v.deduction_amount) || 0,
-      [t('violationDate')]: new Date(v.violation_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US'),
+      [t('deductionDays')]: v.action_taken === 'deduction' ? formatDays(Number(v.deduction_amount) || 0) : '-',
+      [t('violationDate')]: new Date(v.violation_date).toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US'),
       [t('notes')]: v.notes || '',
     }));
     const stamp = new Date().toISOString().split('T')[0];
