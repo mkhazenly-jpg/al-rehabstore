@@ -331,9 +331,10 @@ export function ViolationsContent() {
                 <TableRow>
                   <TableHead>{t('employee')}</TableHead>
                   <TableHead>{t('violationDescription')}</TableHead>
+                  <TableHead>{t('violationLocation')}</TableHead>
                   <TableHead>{t('repeatCount')}</TableHead>
                   <TableHead>{t('actionTaken')}</TableHead>
-                  <TableHead>{t('deductionAmount')}</TableHead>
+                  <TableHead>{t('deductionDays')}</TableHead>
                   <TableHead>{t('violationDate')}</TableHead>
                   {isAdmin && <TableHead>{t('actions')}</TableHead>}
                 </TableRow>
@@ -345,6 +346,7 @@ export function ViolationsContent() {
                     <TableRow key={v.id}>
                       <TableCell className="font-medium">{empMap[v.employee_id]?.name || '-'}</TableCell>
                       <TableCell className="max-w-xs truncate" title={v.violation_description}>{v.violation_description}</TableCell>
+                      <TableCell className="text-xs">{(v as any).violation_location || '-'}</TableCell>
                       <TableCell>
                         <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${getRepeatBadgeClass(repeat)}`}>
                           {repeat}
@@ -355,8 +357,8 @@ export function ViolationsContent() {
                           {t(v.action_taken as never) as string}
                         </span>
                       </TableCell>
-                      <TableCell>{Number(v.deduction_amount) > 0 ? `${v.deduction_amount} ${t('currency')}` : '-'}</TableCell>
-                      <TableCell className="text-xs">{new Date(v.violation_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}</TableCell>
+                      <TableCell>{v.action_taken === 'deduction' && Number(v.deduction_amount) > 0 ? formatDays(Number(v.deduction_amount)) : '-'}</TableCell>
+                      <TableCell className="text-xs">{new Date(v.violation_date).toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US', { dateStyle: 'short', timeStyle: 'short' })}</TableCell>
                       {isAdmin && (
                         <TableCell>
                           <div className="flex gap-1">
@@ -374,7 +376,7 @@ export function ViolationsContent() {
                 })}
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={isAdmin ? 7 : 6} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={isAdmin ? 8 : 7} className="text-center text-muted-foreground py-8">
                       {t('noViolations')}
                     </TableCell>
                   </TableRow>
@@ -386,11 +388,11 @@ export function ViolationsContent() {
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="max-h-[90vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="p-6 pb-2 shrink-0">
             <DialogTitle>{editItem ? t('editViolation') : t('addViolation')}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto px-6 pb-2 flex-1">
             <div className="space-y-2">
               <Label>{t('employee')}</Label>
               <Select value={form.employee_id} onValueChange={v => setForm({ ...form, employee_id: v })}>
@@ -441,8 +443,17 @@ export function ViolationsContent() {
             </div>
 
             <div className="space-y-2">
-              <Label>{t('violationDate')}</Label>
-              <Input type="date" value={form.violation_date} onChange={e => setForm({ ...form, violation_date: e.target.value })} />
+              <Label>{t('violationLocation')}</Label>
+              <Input
+                value={form.violation_location}
+                onChange={e => setForm({ ...form, violation_location: e.target.value })}
+                placeholder={lang === 'ar' ? 'مثال: ساحة التحميل، المخزن A' : 'e.g. Loading dock, Warehouse A'}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>{t('violationTime')}</Label>
+              <Input type="datetime-local" value={form.violation_date} onChange={e => setForm({ ...form, violation_date: e.target.value })} />
             </div>
             <div className="space-y-2">
               <Label>{t('actionTaken')}</Label>
@@ -459,18 +470,28 @@ export function ViolationsContent() {
             </div>
             {form.action_taken === 'deduction' && (
               <div className="space-y-2">
-                <Label>{t('deductionAmount')} ({t('currency')})</Label>
-                <Input type="number" min="0" step="0.01" value={form.deduction_amount} onChange={e => setForm({ ...form, deduction_amount: Number(e.target.value) })} />
+                <Label>{t('deductionDays')}</Label>
+                <Select
+                  value={String(form.deduction_amount)}
+                  onValueChange={v => setForm({ ...form, deduction_amount: Number(v) })}
+                >
+                  <SelectTrigger><SelectValue placeholder={t('selectDeduction')} /></SelectTrigger>
+                  <SelectContent>
+                    {DEDUCTION_DAY_OPTIONS.map(d => (
+                      <SelectItem key={d} value={String(d)}>{formatDays(d)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
             <div className="space-y-2">
               <Label>{t('notes')}</Label>
               <Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
             </div>
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>{t('cancel')}</Button>
-              <Button onClick={handleSave}>{t('save')}</Button>
-            </div>
+          </div>
+          <div className="flex gap-2 justify-end p-6 pt-4 border-t shrink-0 bg-background">
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>{t('cancel')}</Button>
+            <Button onClick={handleSave}>{t('save')}</Button>
           </div>
         </DialogContent>
       </Dialog>
