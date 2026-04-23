@@ -415,11 +415,11 @@ export function EmployeesContent() {
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="max-h-[90vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="p-6 pb-2 shrink-0">
             <DialogTitle>{editItem ? t('editEmployee') : t('addEmployee')}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto px-6 pb-2 flex-1">
             <div className="space-y-2">
               <Label>{t('name')}</Label>
               <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
@@ -515,10 +515,10 @@ export function EmployeesContent() {
               <Label>{t('notes')}</Label>
               <Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
             </div>
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>{t('cancel')}</Button>
-              <Button onClick={handleSave}>{t('save')}</Button>
-            </div>
+          </div>
+          <div className="flex gap-2 justify-end p-6 pt-4 border-t shrink-0 bg-background">
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>{t('cancel')}</Button>
+            <Button onClick={handleSave}>{t('save')}</Button>
           </div>
         </DialogContent>
       </Dialog>
