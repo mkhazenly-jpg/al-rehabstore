@@ -218,6 +218,35 @@ export function ViolationsContent() {
       if (error) { toast.error(error.message); return; }
       toast.success(lang === 'ar' ? 'تم الإضافة' : 'Added');
     }
+
+    // Auto-update employee status when violation action is suspension or termination.
+    // - termination → 'terminated'
+    // - suspension  → 'archived' (kept out of active lists, deductions counted in dashboard)
+    // Also stamp termination_date so the dashboard's date filter in
+    // "Total Assignment Deductions" can pick it up.
+    if (form.action_taken === 'termination' || form.action_taken === 'suspension') {
+      const emp = empMap[form.employee_id];
+      const newStatus: 'terminated' | 'archived' =
+        form.action_taken === 'termination' ? 'terminated' : 'archived';
+
+      if (emp && emp.status !== newStatus) {
+        const violationDay = new Date(form.violation_date).toISOString().split('T')[0];
+        const { error: updErr } = await supabase
+          .from('employees')
+          .update({
+            status: newStatus,
+            termination_date: emp.termination_date || violationDay,
+          })
+          .eq('id', form.employee_id);
+
+        if (updErr) {
+          toast.error(updErr.message);
+        } else {
+          toast.success(t('employeeStatusAutoUpdated'));
+        }
+      }
+    }
+
     setDialogOpen(false);
     loadData();
   };
