@@ -45,6 +45,31 @@ export function EmployeesContent() {
   const [editItem, setEditItem] = useState<Employee | null>(null);
   const [form, setForm] = useState({ name: '', hire_date: '', status: 'active' as EmployeeStatus, termination_date: '', department: '', notes: '', shift: '' as '' | 'morning' | 'night', mobile: '', job_title: '', location: '' as '' | 'RDC' | 'SDC' });
   const [isAddingDept, setIsAddingDept] = useState(false);
+  const [showJobSuggestions, setShowJobSuggestions] = useState(false);
+  const jobInputWrapRef = useRef<HTMLDivElement>(null);
+
+  // Close job suggestions on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (jobInputWrapRef.current && !jobInputWrapRef.current.contains(e.target as Node)) {
+        setShowJobSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // Unique past job titles for autocomplete
+  const jobTitleHistory = Array.from(new Set(
+    employees.map(e => (e.job_title || '').trim()).filter(Boolean)
+  ));
+  const jobSuggestions = (() => {
+    const typed = form.job_title.trim().toLowerCase();
+    if (!typed) return jobTitleHistory.slice(0, 8);
+    return jobTitleHistory
+      .filter(s => s.toLowerCase().includes(typed) && s.toLowerCase() !== typed)
+      .slice(0, 8);
+  })();
 
   useEffect(() => { loadEmployees(); }, []);
 
@@ -483,9 +508,30 @@ export function EmployeesContent() {
                 </div>
               )}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2" ref={jobInputWrapRef}>
               <Label>{t('jobTitle')}</Label>
-              <Input value={form.job_title} onChange={e => setForm({ ...form, job_title: e.target.value })} />
+              <div className="relative">
+                <Input
+                  value={form.job_title}
+                  onChange={e => { setForm({ ...form, job_title: e.target.value }); setShowJobSuggestions(true); }}
+                  onFocus={() => setShowJobSuggestions(true)}
+                  autoComplete="off"
+                />
+                {showJobSuggestions && jobSuggestions.length > 0 && (
+                  <div className="absolute z-50 mt-1 max-h-48 w-full overflow-auto rounded-md border bg-popover shadow-md">
+                    {jobSuggestions.map(s => (
+                      <button
+                        key={s}
+                        type="button"
+                        className="block w-full px-3 py-2 text-start text-sm hover:bg-accent hover:text-accent-foreground"
+                        onClick={() => { setForm(f => ({ ...f, job_title: s })); setShowJobSuggestions(false); }}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="space-y-2">
               <Label>{t('mobile')}</Label>
@@ -675,12 +721,17 @@ export function EmployeesContent() {
                               </span>
                             </div>
                             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                              <span>{new Date(v.violation_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}</span>
+                              <span>{new Date(v.violation_date).toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                              {v.violation_location && (
+                                <span>📍 {v.violation_location}</span>
+                              )}
                               <span className={`rounded-full px-2 py-0.5 font-medium ${actionColors[v.action_taken]}`}>
                                 {t(v.action_taken as any)}
                               </span>
-                              {Number(v.deduction_amount) > 0 && (
-                                <span>{t('deductionAmount')}: {v.deduction_amount} {t('currency')}</span>
+                              {v.action_taken === 'deduction' && Number(v.deduction_amount) > 0 && (
+                                <span>
+                                  {t('deductionDays')}: {Number(v.deduction_amount) === 0.5 ? t('halfDay') : `${v.deduction_amount} ${Number(v.deduction_amount) === 1 ? t('day') : t('days')}`}
+                                </span>
                               )}
                             </div>
                             {v.notes && <p className="mt-1 text-xs text-muted-foreground">{v.notes}</p>}

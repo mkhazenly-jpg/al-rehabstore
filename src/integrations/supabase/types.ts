@@ -146,6 +146,7 @@ export type Database = {
           updated_at: string
           violation_date: string
           violation_description: string
+          violation_location: string | null
         }
         Insert: {
           action_taken?: Database["public"]["Enums"]["violation_action"]
@@ -158,6 +159,7 @@ export type Database = {
           updated_at?: string
           violation_date?: string
           violation_description: string
+          violation_location?: string | null
         }
         Update: {
           action_taken?: Database["public"]["Enums"]["violation_action"]
@@ -170,6 +172,7 @@ export type Database = {
           updated_at?: string
           violation_date?: string
           violation_description?: string
+          violation_location?: string | null
         }
         Relationships: [
           {
