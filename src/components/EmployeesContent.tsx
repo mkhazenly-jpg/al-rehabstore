@@ -508,9 +508,30 @@ export function EmployeesContent() {
                 </div>
               )}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2" ref={jobInputWrapRef}>
               <Label>{t('jobTitle')}</Label>
-              <Input value={form.job_title} onChange={e => setForm({ ...form, job_title: e.target.value })} />
+              <div className="relative">
+                <Input
+                  value={form.job_title}
+                  onChange={e => { setForm({ ...form, job_title: e.target.value }); setShowJobSuggestions(true); }}
+                  onFocus={() => setShowJobSuggestions(true)}
+                  autoComplete="off"
+                />
+                {showJobSuggestions && jobSuggestions.length > 0 && (
+                  <div className="absolute z-50 mt-1 max-h-48 w-full overflow-auto rounded-md border bg-popover shadow-md">
+                    {jobSuggestions.map(s => (
+                      <button
+                        key={s}
+                        type="button"
+                        className="block w-full px-3 py-2 text-start text-sm hover:bg-accent hover:text-accent-foreground"
+                        onClick={() => { setForm(f => ({ ...f, job_title: s })); setShowJobSuggestions(false); }}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="space-y-2">
               <Label>{t('mobile')}</Label>
