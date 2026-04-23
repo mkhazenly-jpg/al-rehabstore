@@ -1,0 +1,1 @@
+ALTER TABLE public.employee_violations ADD COLUMN IF NOT EXISTS violation_location text;
