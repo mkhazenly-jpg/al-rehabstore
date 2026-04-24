@@ -61,7 +61,7 @@ export const Route = createFileRoute('/api/public/hooks/auto-backup')({
 
           // Log failure
           try {
-            await supabaseAdmin.from('backup_logs').insert({
+            const { error: insErr } = await supabaseAdmin.from('backup_logs').insert({
               kind: 'drive',
               status: 'error',
               triggered_by: triggeredBy,
@@ -69,8 +69,11 @@ export const Route = createFileRoute('/api/public/hooks/auto-backup')({
               elapsed_ms: elapsedMs,
               error_message: message,
             });
+            if (insErr) {
+              console.error('[auto-backup] insert error log returned error:', insErr);
+            }
           } catch (logErr) {
-            console.error('[auto-backup] failed to log error:', logErr);
+            console.error('[auto-backup] failed to log error (threw):', logErr);
           }
 
           console.error('[auto-backup] failed:', message);
