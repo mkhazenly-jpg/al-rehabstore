@@ -410,11 +410,77 @@ export function DashboardContent() {
               <p className="mt-2 text-xs text-amber-950/80 leading-relaxed">
                 {t('totalAssignmentDeductionsDesc')}
               </p>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="mt-3 bg-amber-950 text-amber-50 hover:bg-amber-950/90"
+                onClick={() => setDeductionsOpen(true)}
+                disabled={deductionRows.length === 0}
+              >
+                <Eye className="h-4 w-4" />
+                {t('viewDetails')}
+              </Button>
             </div>
             <BarChart3 className="h-8 w-8 text-amber-950/60 shrink-0" />
           </div>
         </div>
       </Card>
+
+      <Dialog open={deductionsOpen} onOpenChange={setDeductionsOpen}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{t('deductionsBreakdown')}</DialogTitle>
+            <DialogDescription>{t('totalAssignmentDeductionsDesc')}</DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto">
+            {deductionRows.length === 0 ? (
+              <p className="py-8 text-center text-muted-foreground">{t('noDeductions')}</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('employee')}</TableHead>
+                    <TableHead>{t('item')}</TableHead>
+                    <TableHead className="text-center">{t('quantity')}</TableHead>
+                    <TableHead className="text-center">{t('daysElapsed')}</TableHead>
+                    <TableHead className="text-center">{t('daysRemaining')}</TableHead>
+                    <TableHead className="text-end">{t('deductionValue')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {deductionRows.map((r) => (
+                    <TableRow key={r.key}>
+                      <TableCell className="font-medium">{r.employeeName}</TableCell>
+                      <TableCell>{r.itemName}</TableCell>
+                      <TableCell className="text-center">{r.quantity}</TableCell>
+                      <TableCell className="text-center">{r.daysElapsed}</TableCell>
+                      <TableCell className="text-center font-semibold text-amber-700">{r.daysRemaining}</TableCell>
+                      <TableCell className="text-end font-semibold">
+                        {r.deduction.toLocaleString()} {t('currency')}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+          {deductionRows.length > 0 && (
+            <div className="border-t pt-3 mt-2 flex flex-wrap items-center justify-between gap-3 text-sm">
+              <div>
+                <span className="text-muted-foreground">{t('totalDays')}: </span>
+                <span className="font-bold">{totalDeductionDays}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">{t('grandTotal')}: </span>
+                <span className="font-bold text-lg text-amber-700">
+                  {totalAssignmentDeductions.toLocaleString()} {t('currency')}
+                </span>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <h2 className="text-lg font-bold">{t('categoryCost')}</h2>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Object.entries(costByCategory).map(([cat, cost], idx) => (
