@@ -139,33 +139,72 @@ export function DashboardContent() {
     }
   });
 
-  // Total deductions for resigned/terminated/archived employees whose approved
-  // assignments are STILL within renewal window (not expired) — they owe the value back.
-  const totalAssignmentDeductions = useMemo(() => {
+  const deductionRows = useMemo(() => {
     const inactiveStatuses = new Set(['resigned', 'terminated', 'archived']);
-    let total = 0;
-    allApprovedAssignments.forEach((a: any) => {
+    const rows: Array<{
+      key: string;
+      employeeName: string;
+      itemName: string;
+      category: string;
+      quantity: number;
+      unitPrice: number;
+      deduction: number;
+      daysElapsed: number;
+      daysRemaining: number;
+      assignmentDate: string;
+    }> = [];
+
+    allApprovedAssignments.forEach((a: any, idx: number) => {
       const emp = a.employees;
       if (!emp || !inactiveStatuses.has(emp.status)) return;
       if (selectedLocation !== 'all' && emp.location !== selectedLocation) return;
 
-      // Filter by termination_date (fallback to assignment_date)
       const refDate = emp.termination_date ? new Date(emp.termination_date) : new Date(a.assignment_date);
       if (selectedYear !== 'all' && refDate.getFullYear() !== Number(selectedYear)) return;
       if (selectedMonth !== 'all' && refDate.getMonth() !== Number(selectedMonth)) return;
 
       const item = stockItems.find(i => i.id === a.stock_item_id);
-      const months = getRenewalMonths(item);
+      const months = getRenewalMonths(item || a.stock_items);
       if (months === null) return;
 
-      const monthsElapsed = (Date.now() - new Date(a.assignment_date).getTime()) / (1000 * 60 * 60 * 24 * 30.4375);
-      if (monthsElapsed >= months) return; // expired → no deduction
+      const msInDay = 1000 * 60 * 60 * 24;
+      const daysElapsed = Math.floor((Date.now() - new Date(a.assignment_date).getTime()) / msInDay);
+      const totalWindowDays = Math.round(months * 30.4375);
+      if (daysElapsed >= totalWindowDays) return; // expired → no deduction
 
+      const daysRemaining = Math.max(0, totalWindowDays - daysElapsed);
       const unitPrice = Number(a.unit_price_at_assignment) || Number(a.stock_items?.unit_price) || Number(item?.unit_price) || 0;
-      total += unitPrice * (a.quantity_assigned || 0);
+      const qty = a.quantity_assigned || 0;
+      const deduction = unitPrice * qty;
+
+      rows.push({
+        key: `${a.employee_id}-${a.stock_item_id}-${idx}`,
+        employeeName: emp.name || '—',
+        itemName: a.stock_items?.name || item?.name || '—',
+        category: a.stock_items?.category || item?.category || '',
+        quantity: qty,
+        unitPrice,
+        deduction,
+        daysElapsed,
+        daysRemaining,
+        assignmentDate: a.assignment_date,
+      });
     });
-    return total;
+
+    rows.sort((a, b) => a.employeeName.localeCompare(b.employeeName));
+    return rows;
   }, [allApprovedAssignments, stockItems, selectedYear, selectedMonth, selectedLocation]);
+
+  const totalAssignmentDeductions = useMemo(
+    () => deductionRows.reduce((sum, r) => sum + r.deduction, 0),
+    [deductionRows]
+  );
+  const totalDeductionDays = useMemo(
+    () => deductionRows.reduce((sum, r) => sum + r.daysRemaining, 0),
+    [deductionRows]
+  );
+
+  const [deductionsOpen, setDeductionsOpen] = useState(false);
 
 
   // Damaged and lost per item (exclude replaced ones — those were already swapped)
