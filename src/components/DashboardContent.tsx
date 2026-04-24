@@ -3,9 +3,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/hooks/use-language';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Package, Users, ClipboardList, BarChart3 } from 'lucide-react';
+import { Package, Users, ClipboardList, BarChart3, Eye } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const PIE_COLORS = ['#10b981', '#f59e0b', '#3b82f6', '#ef4444', '#8b5cf6', '#ec4899'];
 
@@ -33,7 +36,7 @@ export function DashboardContent() {
       supabase.from('stock_additions').select('*'),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, status, created_at, employee_id, employees(location)').in('status', ['approved', 'pending']),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, notes, created_at, status, employee_id, employees(location)').not('notes', 'is', null),
-      supabase.from('assignments').select('stock_item_id, quantity_assigned, status, assignment_date, employee_id, unit_price_at_assignment, employees(location, status, termination_date), stock_items(unit_price)').eq('status', 'approved'),
+      supabase.from('assignments').select('stock_item_id, quantity_assigned, status, assignment_date, employee_id, unit_price_at_assignment, employees(name, location, status, termination_date), stock_items(name, unit_price, category)').eq('status', 'approved'),
     ]);
 
     const items = stockRes.data || [];
@@ -136,33 +139,72 @@ export function DashboardContent() {
     }
   });
 
-  // Total deductions for resigned/terminated/archived employees whose approved
-  // assignments are STILL within renewal window (not expired) — they owe the value back.
-  const totalAssignmentDeductions = useMemo(() => {
+  const deductionRows = useMemo(() => {
     const inactiveStatuses = new Set(['resigned', 'terminated', 'archived']);
-    let total = 0;
-    allApprovedAssignments.forEach((a: any) => {
+    const rows: Array<{
+      key: string;
+      employeeName: string;
+      itemName: string;
+      category: string;
+      quantity: number;
+      unitPrice: number;
+      deduction: number;
+      daysElapsed: number;
+      daysRemaining: number;
+      assignmentDate: string;
+    }> = [];
+
+    allApprovedAssignments.forEach((a: any, idx: number) => {
       const emp = a.employees;
       if (!emp || !inactiveStatuses.has(emp.status)) return;
       if (selectedLocation !== 'all' && emp.location !== selectedLocation) return;
 
-      // Filter by termination_date (fallback to assignment_date)
       const refDate = emp.termination_date ? new Date(emp.termination_date) : new Date(a.assignment_date);
       if (selectedYear !== 'all' && refDate.getFullYear() !== Number(selectedYear)) return;
       if (selectedMonth !== 'all' && refDate.getMonth() !== Number(selectedMonth)) return;
 
       const item = stockItems.find(i => i.id === a.stock_item_id);
-      const months = getRenewalMonths(item);
+      const months = getRenewalMonths(item || a.stock_items);
       if (months === null) return;
 
-      const monthsElapsed = (Date.now() - new Date(a.assignment_date).getTime()) / (1000 * 60 * 60 * 24 * 30.4375);
-      if (monthsElapsed >= months) return; // expired → no deduction
+      const msInDay = 1000 * 60 * 60 * 24;
+      const daysElapsed = Math.floor((Date.now() - new Date(a.assignment_date).getTime()) / msInDay);
+      const totalWindowDays = Math.round(months * 30.4375);
+      if (daysElapsed >= totalWindowDays) return; // expired → no deduction
 
+      const daysRemaining = Math.max(0, totalWindowDays - daysElapsed);
       const unitPrice = Number(a.unit_price_at_assignment) || Number(a.stock_items?.unit_price) || Number(item?.unit_price) || 0;
-      total += unitPrice * (a.quantity_assigned || 0);
+      const qty = a.quantity_assigned || 0;
+      const deduction = unitPrice * qty;
+
+      rows.push({
+        key: `${a.employee_id}-${a.stock_item_id}-${idx}`,
+        employeeName: emp.name || '—',
+        itemName: a.stock_items?.name || item?.name || '—',
+        category: a.stock_items?.category || item?.category || '',
+        quantity: qty,
+        unitPrice,
+        deduction,
+        daysElapsed,
+        daysRemaining,
+        assignmentDate: a.assignment_date,
+      });
     });
-    return total;
+
+    rows.sort((a, b) => a.employeeName.localeCompare(b.employeeName));
+    return rows;
   }, [allApprovedAssignments, stockItems, selectedYear, selectedMonth, selectedLocation]);
+
+  const totalAssignmentDeductions = useMemo(
+    () => deductionRows.reduce((sum, r) => sum + r.deduction, 0),
+    [deductionRows]
+  );
+  const totalDeductionDays = useMemo(
+    () => deductionRows.reduce((sum, r) => sum + r.daysRemaining, 0),
+    [deductionRows]
+  );
+
+  const [deductionsOpen, setDeductionsOpen] = useState(false);
 
 
   // Damaged and lost per item (exclude replaced ones — those were already swapped)
@@ -368,11 +410,77 @@ export function DashboardContent() {
               <p className="mt-2 text-xs text-amber-950/80 leading-relaxed">
                 {t('totalAssignmentDeductionsDesc')}
               </p>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="mt-3 bg-amber-950 text-amber-50 hover:bg-amber-950/90"
+                onClick={() => setDeductionsOpen(true)}
+                disabled={deductionRows.length === 0}
+              >
+                <Eye className="h-4 w-4" />
+                {t('viewDetails')}
+              </Button>
             </div>
             <BarChart3 className="h-8 w-8 text-amber-950/60 shrink-0" />
           </div>
         </div>
       </Card>
+
+      <Dialog open={deductionsOpen} onOpenChange={setDeductionsOpen}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{t('deductionsBreakdown')}</DialogTitle>
+            <DialogDescription>{t('totalAssignmentDeductionsDesc')}</DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto">
+            {deductionRows.length === 0 ? (
+              <p className="py-8 text-center text-muted-foreground">{t('noDeductions')}</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('employee')}</TableHead>
+                    <TableHead>{t('item')}</TableHead>
+                    <TableHead className="text-center">{t('quantity')}</TableHead>
+                    <TableHead className="text-center">{t('daysElapsed')}</TableHead>
+                    <TableHead className="text-center">{t('daysRemaining')}</TableHead>
+                    <TableHead className="text-end">{t('deductionValue')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {deductionRows.map((r) => (
+                    <TableRow key={r.key}>
+                      <TableCell className="font-medium">{r.employeeName}</TableCell>
+                      <TableCell>{r.itemName}</TableCell>
+                      <TableCell className="text-center">{r.quantity}</TableCell>
+                      <TableCell className="text-center">{r.daysElapsed}</TableCell>
+                      <TableCell className="text-center font-semibold text-amber-700">{r.daysRemaining}</TableCell>
+                      <TableCell className="text-end font-semibold">
+                        {r.deduction.toLocaleString()} {t('currency')}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+          {deductionRows.length > 0 && (
+            <div className="border-t pt-3 mt-2 flex flex-wrap items-center justify-between gap-3 text-sm">
+              <div>
+                <span className="text-muted-foreground">{t('totalDays')}: </span>
+                <span className="font-bold">{totalDeductionDays}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">{t('grandTotal')}: </span>
+                <span className="font-bold text-lg text-amber-700">
+                  {totalAssignmentDeductions.toLocaleString()} {t('currency')}
+                </span>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <h2 className="text-lg font-bold">{t('categoryCost')}</h2>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Object.entries(costByCategory).map(([cat, cost], idx) => (
