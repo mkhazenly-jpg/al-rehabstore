@@ -134,6 +134,54 @@ export type Database = {
           },
         ]
       }
+      backup_logs: {
+        Row: {
+          created_at: string
+          deleted_old: number | null
+          elapsed_ms: number | null
+          error_message: string | null
+          file_id: string | null
+          file_name: string | null
+          id: string
+          kind: string
+          size_bytes: number | null
+          status: string
+          triggered_by: string | null
+          triggered_by_user: string | null
+          web_view_link: string | null
+        }
+        Insert: {
+          created_at?: string
+          deleted_old?: number | null
+          elapsed_ms?: number | null
+          error_message?: string | null
+          file_id?: string | null
+          file_name?: string | null
+          id?: string
+          kind?: string
+          size_bytes?: number | null
+          status: string
+          triggered_by?: string | null
+          triggered_by_user?: string | null
+          web_view_link?: string | null
+        }
+        Update: {
+          created_at?: string
+          deleted_old?: number | null
+          elapsed_ms?: number | null
+          error_message?: string | null
+          file_id?: string | null
+          file_name?: string | null
+          id?: string
+          kind?: string
+          size_bytes?: number | null
+          status?: string
+          triggered_by?: string | null
+          triggered_by_user?: string | null
+          web_view_link?: string | null
+        }
+        Relationships: []
+      }
       employee_violations: {
         Row: {
           action_taken: Database["public"]["Enums"]["violation_action"]

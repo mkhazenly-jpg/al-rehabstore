@@ -1,7 +1,7 @@
 import { Link, useLocation } from '@tanstack/react-router';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
-import { LayoutDashboard, Package, Users, ClipboardList, LogOut, Globe, Menu, X, Shield, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, Package, Users, ClipboardList, LogOut, Globe, Menu, X, Shield, AlertTriangle, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 
@@ -25,7 +25,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       ];
 
   const adminItems = isAdmin
-    ? [{ to: '/admin/users' as const, icon: Shield, label: t('userManagement') }]
+    ? [
+        { to: '/admin/users' as const, icon: Shield, label: t('userManagement') },
+        { to: '/admin/backups' as const, icon: History, label: t('backupStatus') },
+      ]
     : [];
 
   const allItems = [...navItems, ...adminItems];
