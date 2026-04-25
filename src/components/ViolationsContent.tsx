@@ -422,7 +422,7 @@ export function ViolationsContent() {
                   <TableHead>{t('actionTaken')}</TableHead>
                   <TableHead>{t('deductionDays')}</TableHead>
                   <TableHead>{t('violationDate')}</TableHead>
-                  {isAdmin && <TableHead>{t('actions')}</TableHead>}
+                  <TableHead>{t('actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
