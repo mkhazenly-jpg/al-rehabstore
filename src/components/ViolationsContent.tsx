@@ -288,27 +288,27 @@ export function ViolationsContent() {
     const actionLabel = t(v.action_taken as never) as string;
     const locationStr = (v as any).violation_location || '-';
 
-    // Colorful, well-spaced message (emojis + bold). No deduction value by design.
+    // Plain message without emojis. No deduction value by design.
     const lines = [
-      `🦺🛡️ *${t('whatsappTitle')}* 🛡️🦺`,
+      `*${t('whatsappTitle')}*`,
       `━━━━━━━━━━━━━━━━━`,
       ``,
-      `👤 ${t('whatsappGreeting')}: *${emp.name}*`,
+      `${t('whatsappGreeting')}: *${emp.name}*`,
       ``,
-      `⚠️ ${t('whatsappIntro')}`,
+      `${t('whatsappIntro')}`,
       ``,
-      `📝 *${t('whatsappLabelDescription')}:*`,
-      `   ${v.violation_description}`,
+      `*${t('whatsappLabelDescription')}:*`,
+      `${v.violation_description}`,
       ``,
-      `📍 *${t('whatsappLabelLocation')}:* ${locationStr}`,
-      `🕒 *${t('whatsappLabelDate')}:* ${dateStr}`,
-      `🔁 *${t('whatsappLabelRepeat')}:* ${repeat}`,
-      `📌 *${t('whatsappLabelAction')}:* ${actionLabel}`,
+      `*${t('whatsappLabelLocation')}:* ${locationStr}`,
+      `*${t('whatsappLabelDate')}:* ${dateStr}`,
+      `*${t('whatsappLabelRepeat')}:* ${repeat}`,
+      `*${t('whatsappLabelAction')}:* ${actionLabel}`,
       ``,
       `━━━━━━━━━━━━━━━━━`,
-      `✅ ${t('whatsappFooter')}`,
+      `${t('whatsappFooter')}`,
       ``,
-      `🙏 ${t('whatsappSignature')}`,
+      `${t('whatsappSignature')}`,
     ];
     const message = lines.join('\n');
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
