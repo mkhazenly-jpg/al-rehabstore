@@ -282,7 +282,7 @@ export const translations = {
     sendWhatsapp: 'إرسال على واتساب',
     whatsappNoMobile: 'لا يوجد رقم موبايل لهذا الموظف',
     whatsappTitle: 'إشعار مخالفة - قسم السلامة والصحة المهنية',
-    whatsappGreeting: 'الأخ الفاضل',
+    whatsappGreeting: 'الموظف',
     whatsappIntro: 'يُرجى العلم بأنه قد تم رصد المخالفة التالية بحقكم:',
     whatsappFooter: 'نأمل الالتزام بإجراءات السلامة حفاظاً على سلامتكم وسلامة زملائكم.',
     whatsappSignature: 'مع تحيات قسم السلامة والصحة المهنية',
