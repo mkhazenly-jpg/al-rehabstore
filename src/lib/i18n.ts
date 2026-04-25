@@ -570,6 +570,18 @@ export const translations = {
     success: 'Success',
     failed: 'Failed',
     createdAt: 'Time',
+    sendWhatsapp: 'Send via WhatsApp',
+    whatsappNoMobile: 'No mobile number for this employee',
+    whatsappTitle: 'Violation Notice - Health & Safety Department',
+    whatsappGreeting: 'Dear',
+    whatsappIntro: 'Please be informed that the following violation has been recorded:',
+    whatsappFooter: 'We kindly ask you to comply with safety procedures to protect yourself and your colleagues.',
+    whatsappSignature: 'Best regards, Health & Safety Department',
+    whatsappLabelDescription: 'Violation Description',
+    whatsappLabelLocation: 'Violation Location',
+    whatsappLabelDate: 'Date & Time',
+    whatsappLabelAction: 'Action Taken',
+    whatsappLabelRepeat: 'Repeat Count',
   },
 } as const;
 
