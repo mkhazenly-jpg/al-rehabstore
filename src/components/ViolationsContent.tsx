@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Pencil, Trash2, Search, Download, ChevronDown } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Download, ChevronDown, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { exportToExcel } from '@/lib/export';
 import type { Tables as DBTables } from '@/integrations/supabase/types';
@@ -258,6 +258,63 @@ export function ViolationsContent() {
     loadData();
   };
 
+  // Normalize phone to digits-only for wa.me link.
+  // Defaults to Egypt (+20) when number starts with 0 or has no country code.
+  const normalizePhoneForWhatsApp = (raw: string): string => {
+    let digits = raw.replace(/[^\d+]/g, '');
+    if (digits.startsWith('+')) digits = digits.slice(1);
+    if (digits.startsWith('00')) digits = digits.slice(2);
+    if (digits.startsWith('0')) digits = '20' + digits.slice(1);
+    if (digits.length === 10 && digits.startsWith('1')) digits = '20' + digits;
+    return digits;
+  };
+
+  const handleSendWhatsapp = (v: Violation) => {
+    const emp = empMap[v.employee_id];
+    if (!emp?.mobile || !emp.mobile.trim()) {
+      toast.error(t('whatsappNoMobile'));
+      return;
+    }
+    const phone = normalizePhoneForWhatsApp(emp.mobile);
+    if (phone.length < 8) {
+      toast.error(t('whatsappNoMobile'));
+      return;
+    }
+    const repeat = repeatMap[v.id] || 1;
+    const dateStr = new Date(v.violation_date).toLocaleString(
+      lang === 'ar' ? 'ar-EG' : 'en-US',
+      { dateStyle: 'short', timeStyle: 'short' }
+    );
+    const actionLabel = t(v.action_taken as never) as string;
+    const locationStr = (v as any).violation_location || '-';
+
+    // Colorful, well-spaced message (emojis + bold). No deduction value by design.
+    const lines = [
+      `🦺🛡️ *${t('whatsappTitle')}* 🛡️🦺`,
+      `━━━━━━━━━━━━━━━━━`,
+      ``,
+      `👤 ${t('whatsappGreeting')}: *${emp.name}*`,
+      ``,
+      `⚠️ ${t('whatsappIntro')}`,
+      ``,
+      `📝 *${t('whatsappLabelDescription')}:*`,
+      `   ${v.violation_description}`,
+      ``,
+      `📍 *${t('whatsappLabelLocation')}:* ${locationStr}`,
+      `🕒 *${t('whatsappLabelDate')}:* ${dateStr}`,
+      `🔁 *${t('whatsappLabelRepeat')}:* ${repeat}`,
+      `📌 *${t('whatsappLabelAction')}:* ${actionLabel}`,
+      ``,
+      `━━━━━━━━━━━━━━━━━`,
+      `✅ ${t('whatsappFooter')}`,
+      ``,
+      `🙏 ${t('whatsappSignature')}`,
+    ];
+    const message = lines.join('\n');
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   const handleExport = () => {
     if (filtered.length === 0) {
       toast.error(lang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export');
@@ -365,7 +422,7 @@ export function ViolationsContent() {
                   <TableHead>{t('actionTaken')}</TableHead>
                   <TableHead>{t('deductionDays')}</TableHead>
                   <TableHead>{t('violationDate')}</TableHead>
-                  {isAdmin && <TableHead>{t('actions')}</TableHead>}
+                  <TableHead>{t('actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -388,24 +445,35 @@ export function ViolationsContent() {
                       </TableCell>
                       <TableCell>{v.action_taken === 'deduction' && Number(v.deduction_amount) > 0 ? formatDays(Number(v.deduction_amount)) : '-'}</TableCell>
                       <TableCell className="text-xs">{new Date(v.violation_date).toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US', { dateStyle: 'short', timeStyle: 'short' })}</TableCell>
-                      {isAdmin && (
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => openEdit(v)}>
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(v.id)}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      )}
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title={t('sendWhatsapp')}
+                            onClick={() => handleSendWhatsapp(v)}
+                            className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950"
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                          </Button>
+                          {isAdmin && (
+                            <>
+                              <Button variant="ghost" size="icon" onClick={() => openEdit(v)}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleDelete(v.id)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={isAdmin ? 8 : 7} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                       {t('noViolations')}
                     </TableCell>
                   </TableRow>
