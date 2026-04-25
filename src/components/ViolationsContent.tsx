@@ -293,7 +293,7 @@ export function ViolationsContent() {
       `*${t('whatsappTitle')}*`,
       `━━━━━━━━━━━━━━━━━`,
       ``,
-      `${t('whatsappEmployeeLabel')}: *${emp.name}*`,
+      `${t('whatsappGreeting')}: *${emp.name}*`,
       ``,
       `${t('whatsappIntro')}`,
       ``,
