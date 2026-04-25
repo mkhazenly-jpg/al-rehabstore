@@ -573,7 +573,7 @@ export const translations = {
     sendWhatsapp: 'Send via WhatsApp',
     whatsappNoMobile: 'No mobile number for this employee',
     whatsappTitle: 'Violation Notice - Health & Safety Department',
-    whatsappGreeting: 'Dear',
+    whatsappGreeting: 'Employee',
     whatsappIntro: 'Please be informed that the following violation has been recorded:',
     whatsappFooter: 'We kindly ask you to comply with safety procedures to protect yourself and your colleagues.',
     whatsappSignature: 'Best regards, Health & Safety Department',
