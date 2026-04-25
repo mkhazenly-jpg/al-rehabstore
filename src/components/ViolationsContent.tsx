@@ -258,6 +258,63 @@ export function ViolationsContent() {
     loadData();
   };
 
+  // Normalize phone to digits-only for wa.me link.
+  // Defaults to Egypt (+20) when number starts with 0 or has no country code.
+  const normalizePhoneForWhatsApp = (raw: string): string => {
+    let digits = raw.replace(/[^\d+]/g, '');
+    if (digits.startsWith('+')) digits = digits.slice(1);
+    if (digits.startsWith('00')) digits = digits.slice(2);
+    if (digits.startsWith('0')) digits = '20' + digits.slice(1);
+    if (digits.length === 10 && digits.startsWith('1')) digits = '20' + digits;
+    return digits;
+  };
+
+  const handleSendWhatsapp = (v: Violation) => {
+    const emp = empMap[v.employee_id];
+    if (!emp?.mobile || !emp.mobile.trim()) {
+      toast.error(t('whatsappNoMobile'));
+      return;
+    }
+    const phone = normalizePhoneForWhatsApp(emp.mobile);
+    if (phone.length < 8) {
+      toast.error(t('whatsappNoMobile'));
+      return;
+    }
+    const repeat = repeatMap[v.id] || 1;
+    const dateStr = new Date(v.violation_date).toLocaleString(
+      lang === 'ar' ? 'ar-EG' : 'en-US',
+      { dateStyle: 'short', timeStyle: 'short' }
+    );
+    const actionLabel = t(v.action_taken as never) as string;
+    const locationStr = (v as any).violation_location || '-';
+
+    // Colorful, well-spaced message (emojis + bold). No deduction value by design.
+    const lines = [
+      `🦺🛡️ *${t('whatsappTitle')}* 🛡️🦺`,
+      `━━━━━━━━━━━━━━━━━`,
+      ``,
+      `👤 ${t('whatsappGreeting')}: *${emp.name}*`,
+      ``,
+      `⚠️ ${t('whatsappIntro')}`,
+      ``,
+      `📝 *${t('whatsappLabelDescription')}:*`,
+      `   ${v.violation_description}`,
+      ``,
+      `📍 *${t('whatsappLabelLocation')}:* ${locationStr}`,
+      `🕒 *${t('whatsappLabelDate')}:* ${dateStr}`,
+      `🔁 *${t('whatsappLabelRepeat')}:* ${repeat}`,
+      `📌 *${t('whatsappLabelAction')}:* ${actionLabel}`,
+      ``,
+      `━━━━━━━━━━━━━━━━━`,
+      `✅ ${t('whatsappFooter')}`,
+      ``,
+      `🙏 ${t('whatsappSignature')}`,
+    ];
+    const message = lines.join('\n');
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   const handleExport = () => {
     if (filtered.length === 0) {
       toast.error(lang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export');
