@@ -521,9 +521,9 @@ export function ViolationsContent() {
                       return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
                     }}
                   >
-                    <CommandInput placeholder={t('searchEmployee') || 'بحث...'} />
+                    <CommandInput placeholder={t('searchEmployee')} />
                     <CommandList>
-                      <CommandEmpty>{t('noResults') || 'لا توجد نتائج'}</CommandEmpty>
+                      <CommandEmpty>{lang === 'ar' ? 'لا توجد نتائج' : 'No results'}</CommandEmpty>
                       <CommandGroup>
                         {employees.map(e => (
                           <CommandItem
