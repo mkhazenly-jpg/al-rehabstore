@@ -47,6 +47,15 @@ export function EmployeesContent() {
   const [isAddingDept, setIsAddingDept] = useState(false);
   const [showJobSuggestions, setShowJobSuggestions] = useState(false);
   const jobInputWrapRef = useRef<HTMLDivElement>(null);
+  const [nowTick, setNowTick] = useState(() => Date.now());
+
+  // Refresh "days of service" once a day (and on visibility change)
+  useEffect(() => {
+    const interval = setInterval(() => setNowTick(Date.now()), 1000 * 60 * 60); // hourly check is enough
+    const onVis = () => { if (!document.hidden) setNowTick(Date.now()); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { clearInterval(interval); document.removeEventListener('visibilitychange', onVis); };
+  }, []);
 
   // Close job suggestions on outside click
   useEffect(() => {
