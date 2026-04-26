@@ -212,6 +212,19 @@ export function DashboardContent() {
 
   const [deductionsOpen, setDeductionsOpen] = useState(false);
 
+  // Total monetary deductions from employee violations (filtered by year/month/location)
+  const totalViolationDeductions = useMemo(() => {
+    return allViolations.reduce((sum, v: any) => {
+      const d = new Date(v.violation_date);
+      if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return sum;
+      if (selectedMonth !== 'all' && d.getMonth() !== Number(selectedMonth)) return sum;
+      if (selectedLocation !== 'all' && v.employees?.location !== selectedLocation) return sum;
+      const wage = Number(v.daily_wage) || 0;
+      const days = Number(v.deduction_amount) || 0;
+      return sum + wage * days;
+    }, 0);
+  }, [allViolations, selectedYear, selectedMonth, selectedLocation]);
+
   // Attrition rate calculation
   // Formula: (terminations in period / average headcount in period) * 100
   // Period is determined by selectedYear + selectedMonth filters.
