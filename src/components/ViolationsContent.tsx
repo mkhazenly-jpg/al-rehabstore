@@ -497,12 +497,60 @@ export function ViolationsContent() {
           <div className="space-y-4 overflow-y-auto px-6 pb-2 flex-1">
             <div className="space-y-2">
               <Label>{t('employee')}</Label>
-              <Select value={form.employee_id} onValueChange={v => setForm({ ...form, employee_id: v })}>
-                <SelectTrigger><SelectValue placeholder={t('selectEmployee')} /></SelectTrigger>
-                <SelectContent>
-                  {employees.map(e => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Popover open={employeePickerOpen} onOpenChange={setEmployeePickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={employeePickerOpen}
+                    className="w-full justify-between font-normal"
+                  >
+                    <span className={cn(!form.employee_id && 'text-muted-foreground')}>
+                      {form.employee_id
+                        ? (empMap[form.employee_id]?.name || t('selectEmployee'))
+                        : t('selectEmployee')}
+                    </span>
+                    <ChevronDown className="ms-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command
+                    filter={(value, search) => {
+                      if (!search) return 1;
+                      return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
+                    }}
+                  >
+                    <CommandInput placeholder={t('searchEmployee') || 'بحث...'} />
+                    <CommandList>
+                      <CommandEmpty>{t('noResults') || 'لا توجد نتائج'}</CommandEmpty>
+                      <CommandGroup>
+                        {employees.map(e => (
+                          <CommandItem
+                            key={e.id}
+                            value={`${e.name} ${e.job_title || ''} ${e.location || ''}`}
+                            onSelect={() => {
+                              setForm({ ...form, employee_id: e.id });
+                              setEmployeePickerOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                'me-2 h-4 w-4',
+                                form.employee_id === e.id ? 'opacity-100' : 'opacity-0'
+                              )}
+                            />
+                            <span>{e.name}</span>
+                            {e.job_title && (
+                              <span className="ms-auto text-xs text-muted-foreground">{e.job_title}</span>
+                            )}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="space-y-2">
