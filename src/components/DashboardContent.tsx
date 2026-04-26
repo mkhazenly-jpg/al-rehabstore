@@ -27,6 +27,7 @@ export function DashboardContent() {
   const [selectedYear, setSelectedYear] = useState<string>('all');
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
+  const [attritionUseLocation, setAttritionUseLocation] = useState<boolean>(true);
 
   useEffect(() => { loadStats(); }, []);
 
