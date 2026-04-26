@@ -66,6 +66,7 @@ export function ViolationsContent() {
     violation_date: new Date().toISOString().slice(0, 16),
     action_taken: 'warning' as ActionType,
     deduction_amount: 1,
+    daily_wage: 0,
     notes: '',
   });
 
@@ -175,6 +176,7 @@ export function ViolationsContent() {
       violation_date: new Date().toISOString().slice(0, 16),
       action_taken: 'warning',
       deduction_amount: 1,
+      daily_wage: 0,
       notes: '',
     });
     setDialogOpen(true);
@@ -193,6 +195,7 @@ export function ViolationsContent() {
       violation_date: local,
       action_taken: v.action_taken as ActionType,
       deduction_amount: Number(v.deduction_amount) || 1,
+      daily_wage: Number((v as any).daily_wage) || 0,
       notes: v.notes || '',
     });
     setDialogOpen(true);
@@ -210,6 +213,7 @@ export function ViolationsContent() {
       violation_date: new Date(form.violation_date).toISOString(),
       action_taken: form.action_taken,
       deduction_amount: form.deduction_amount,
+      daily_wage: Number(form.daily_wage) || 0,
       notes: form.notes || null,
     };
     if (editItem) {
@@ -619,20 +623,41 @@ export function ViolationsContent() {
               </Select>
             </div>
             {form.action_taken === 'deduction' && (
-              <div className="space-y-2">
-                <Label>{t('deductionDays')}</Label>
-                <Select
-                  value={String(form.deduction_amount)}
-                  onValueChange={v => setForm({ ...form, deduction_amount: Number(v) })}
-                >
-                  <SelectTrigger><SelectValue placeholder={t('selectDeduction')} /></SelectTrigger>
-                  <SelectContent>
-                    {DEDUCTION_DAY_OPTIONS.map(d => (
-                      <SelectItem key={d} value={String(d)}>{formatDays(d)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label>{t('deductionDays')}</Label>
+                  <Select
+                    value={String(form.deduction_amount)}
+                    onValueChange={v => setForm({ ...form, deduction_amount: Number(v) })}
+                  >
+                    <SelectTrigger><SelectValue placeholder={t('selectDeduction')} /></SelectTrigger>
+                    <SelectContent>
+                      {DEDUCTION_DAY_OPTIONS.map(d => (
+                        <SelectItem key={d} value={String(d)}>{formatDays(d)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('dailyWage')} ({t('currency')})</Label>
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="0.01"
+                    value={form.daily_wage || ''}
+                    onChange={e => setForm({ ...form, daily_wage: Number(e.target.value) || 0 })}
+                    placeholder={t('dailyWagePlaceholder')}
+                  />
+                  {form.daily_wage > 0 && form.deduction_amount > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {t('deductionMoney')}: <span className="font-semibold text-foreground">
+                        {(form.daily_wage * form.deduction_amount).toLocaleString()} {t('currency')}
+                      </span>
+                    </p>
+                  )}
+                </div>
+              </>
             )}
             <div className="space-y-2">
               <Label>{t('notes')}</Label>

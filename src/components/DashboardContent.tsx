@@ -22,6 +22,7 @@ export function DashboardContent() {
   const [assignments, setAssignments] = useState<any[]>([]);
   const [damagedLostAssignments, setDamagedLostAssignments] = useState<any[]>([]);
   const [allApprovedAssignments, setAllApprovedAssignments] = useState<any[]>([]);
+  const [allViolations, setAllViolations] = useState<any[]>([]);
 
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState<string>('all');
@@ -32,7 +33,7 @@ export function DashboardContent() {
   useEffect(() => { loadStats(); }, []);
 
   const loadStats = async () => {
-    const [stockRes, empRes, assignRes, additionsRes, allAssignRes, damagedLostRes, approvedAssignRes] = await Promise.all([
+    const [stockRes, empRes, assignRes, additionsRes, allAssignRes, damagedLostRes, approvedAssignRes, violationsRes] = await Promise.all([
       supabase.from('stock_items').select('*'),
       supabase.from('employees').select('status, location, hire_date, termination_date'),
       supabase.from('assignments').select('status, stock_item_id, quantity_assigned, created_at, employee_id, employees(location)'),
@@ -40,6 +41,7 @@ export function DashboardContent() {
       supabase.from('assignments').select('stock_item_id, quantity_assigned, status, created_at, employee_id, employees(location)').in('status', ['approved', 'pending']),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, notes, created_at, status, employee_id, employees(location)').not('notes', 'is', null),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, status, assignment_date, employee_id, unit_price_at_assignment, employees(name, location, status, termination_date), stock_items(name, unit_price, category)').eq('status', 'approved'),
+      supabase.from('employee_violations').select('id, action_taken, deduction_amount, daily_wage, violation_date, employee_id, employees(location)').eq('action_taken', 'deduction'),
     ]);
 
     const items = stockRes.data || [];
@@ -51,6 +53,7 @@ export function DashboardContent() {
     setAssignments(allAssignRes.data || []);
     setDamagedLostAssignments(damagedLostRes.data || []);
     setAllApprovedAssignments(approvedAssignRes.data || []);
+    setAllViolations(violationsRes.data || []);
   };
 
   const stats = useMemo(() => {
@@ -208,6 +211,19 @@ export function DashboardContent() {
   );
 
   const [deductionsOpen, setDeductionsOpen] = useState(false);
+
+  // Total monetary deductions from employee violations (filtered by year/month/location)
+  const totalViolationDeductions = useMemo(() => {
+    return allViolations.reduce((sum, v: any) => {
+      const d = new Date(v.violation_date);
+      if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return sum;
+      if (selectedMonth !== 'all' && d.getMonth() !== Number(selectedMonth)) return sum;
+      if (selectedLocation !== 'all' && v.employees?.location !== selectedLocation) return sum;
+      const wage = Number(v.daily_wage) || 0;
+      const days = Number(v.deduction_amount) || 0;
+      return sum + wage * days;
+    }, 0);
+  }, [allViolations, selectedYear, selectedMonth, selectedLocation]);
 
   // Attrition rate calculation
   // Formula: (terminations in period / average headcount in period) * 100
@@ -552,6 +568,24 @@ export function DashboardContent() {
                 <Eye className="h-4 w-4" />
                 {t('viewDetails')}
               </Button>
+            </div>
+            <BarChart3 className="h-8 w-8 text-amber-950/60 shrink-0" />
+          </div>
+        </div>
+      </Card>
+
+      {/* Total monetary deductions from violations */}
+      <Card className="overflow-hidden border-amber-500/40">
+        <div className="bg-gradient-to-br from-amber-400 to-amber-500 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-amber-950">{t('totalViolationDeductions')}</p>
+              <p className="mt-1 text-3xl font-bold text-amber-950">
+                {totalViolationDeductions.toLocaleString()} {t('currency')}
+              </p>
+              <p className="mt-2 text-xs text-amber-950/80 leading-relaxed">
+                {t('totalViolationDeductionsDesc')}
+              </p>
             </div>
             <BarChart3 className="h-8 w-8 text-amber-950/60 shrink-0" />
           </div>
