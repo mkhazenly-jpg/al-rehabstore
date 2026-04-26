@@ -594,6 +594,16 @@ export const translations = {
     whatsappLabelTime: 'Violation Time',
     whatsappLabelAction: 'Action Taken',
     whatsappLabelRepeat: 'Repeat Count',
+    attritionRate: 'Employee Attrition Rate',
+    attritionTrailing12: 'Last 12 months',
+    attritionPeriod: 'Period',
+    attritionTerminations: 'Leavers',
+    attritionAvgHeadcount: 'Average Headcount',
+    attritionFormulaHint: '(Leavers ÷ Average Headcount) × 100',
+    attritionExcellent: 'Excellent',
+    attritionGood: 'Good',
+    attritionFair: 'Fair',
+    attritionHigh: 'High',
   },
 } as const;
 
