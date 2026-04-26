@@ -574,6 +574,24 @@ export function DashboardContent() {
         </div>
       </Card>
 
+      {/* Total monetary deductions from violations */}
+      <Card className="overflow-hidden border-amber-500/40">
+        <div className="bg-gradient-to-br from-amber-400 to-amber-500 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-amber-950">{t('totalViolationDeductions')}</p>
+              <p className="mt-1 text-3xl font-bold text-amber-950">
+                {totalViolationDeductions.toLocaleString()} {t('currency')}
+              </p>
+              <p className="mt-2 text-xs text-amber-950/80 leading-relaxed">
+                {t('totalViolationDeductionsDesc')}
+              </p>
+            </div>
+            <BarChart3 className="h-8 w-8 text-amber-950/60 shrink-0" />
+          </div>
+        </div>
+      </Card>
+
       <Dialog open={deductionsOpen} onOpenChange={setDeductionsOpen}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
