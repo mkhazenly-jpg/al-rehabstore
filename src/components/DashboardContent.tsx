@@ -31,7 +31,7 @@ export function DashboardContent() {
   const loadStats = async () => {
     const [stockRes, empRes, assignRes, additionsRes, allAssignRes, damagedLostRes, approvedAssignRes] = await Promise.all([
       supabase.from('stock_items').select('*'),
-      supabase.from('employees').select('status, location'),
+      supabase.from('employees').select('status, location, hire_date, termination_date'),
       supabase.from('assignments').select('status, stock_item_id, quantity_assigned, created_at, employee_id, employees(location)'),
       supabase.from('stock_additions').select('*'),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, status, created_at, employee_id, employees(location)').in('status', ['approved', 'pending']),
@@ -205,6 +205,83 @@ export function DashboardContent() {
   );
 
   const [deductionsOpen, setDeductionsOpen] = useState(false);
+
+  // Attrition rate calculation
+  // Formula: (terminations in period / average headcount in period) * 100
+  // Period is determined by selectedYear + selectedMonth filters.
+  // When "all time" is selected we fall back to the trailing 12 months ending today.
+  const attrition = useMemo(() => {
+    const filteredEmployees = allEmployees.filter((e: any) =>
+      selectedLocation === 'all' || e.location === selectedLocation
+    );
+
+    let periodStart: Date;
+    let periodEnd: Date;
+    let label: string;
+
+    if (selectedYear === 'all') {
+      periodEnd = new Date();
+      periodStart = new Date();
+      periodStart.setFullYear(periodEnd.getFullYear() - 1);
+      label = t('attritionTrailing12');
+    } else if (selectedMonth === 'all') {
+      const y = Number(selectedYear);
+      periodStart = new Date(y, 0, 1);
+      periodEnd = new Date(y, 11, 31, 23, 59, 59);
+      label = `${y}`;
+    } else {
+      const y = Number(selectedYear);
+      const m = Number(selectedMonth);
+      periodStart = new Date(y, m, 1);
+      periodEnd = new Date(y, m + 1, 0, 23, 59, 59);
+      label = `${monthNames[String(m)]} ${y}`;
+    }
+
+    const startMs = periodStart.getTime();
+    const endMs = periodEnd.getTime();
+
+    // Headcount at a given date = hired on/before date AND not terminated before/on date
+    const headcountAt = (date: Date) => {
+      const ms = date.getTime();
+      return filteredEmployees.filter((e: any) => {
+        const hireMs = e.hire_date ? new Date(e.hire_date).getTime() : null;
+        const termMs = e.termination_date ? new Date(e.termination_date).getTime() : null;
+        if (hireMs === null || hireMs > ms) return false;
+        if (termMs !== null && termMs <= ms) return false;
+        return true;
+      }).length;
+    };
+
+    const startHeadcount = headcountAt(periodStart);
+    const endHeadcount = headcountAt(periodEnd);
+    const avgHeadcount = (startHeadcount + endHeadcount) / 2;
+
+    const terminations = filteredEmployees.filter((e: any) => {
+      if (!e.termination_date) return false;
+      const t = new Date(e.termination_date).getTime();
+      return t >= startMs && t <= endMs;
+    }).length;
+
+    const rate = avgHeadcount > 0 ? (terminations / avgHeadcount) * 100 : 0;
+
+    return {
+      rate,
+      terminations,
+      avgHeadcount,
+      startHeadcount,
+      endHeadcount,
+      label,
+    };
+  }, [allEmployees, selectedYear, selectedMonth, selectedLocation, monthNames, t]);
+
+  const attritionTone = attrition.rate < 10
+    ? { bg: 'from-success to-success/70', fg: 'text-primary-foreground', sub: 'text-primary-foreground/80', badge: t('attritionExcellent') }
+    : attrition.rate < 15
+    ? { bg: 'from-primary to-primary/70', fg: 'text-primary-foreground', sub: 'text-primary-foreground/80', badge: t('attritionGood') }
+    : attrition.rate < 20
+    ? { bg: 'from-amber-400 to-amber-500', fg: 'text-amber-950', sub: 'text-amber-950/80', badge: t('attritionFair') }
+    : { bg: 'from-destructive to-destructive/80', fg: 'text-destructive-foreground', sub: 'text-destructive-foreground/80', badge: t('attritionHigh') };
+
 
 
   // Damaged and lost per item (exclude replaced ones — those were already swapped)
@@ -394,6 +471,42 @@ export function DashboardContent() {
               <p className="text-3xl font-bold text-primary-foreground">{totalPurchaseCost.toLocaleString()} {t('currency')}</p>
             </div>
             
+          </div>
+        </div>
+      </Card>
+
+      {/* Employee Attrition Rate */}
+      <Card className="overflow-hidden">
+        <div className={`bg-gradient-to-br ${attritionTone.bg} p-5`}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className={`text-sm font-medium ${attritionTone.sub}`}>{t('attritionRate')}</p>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full bg-background/25 ${attritionTone.fg}`}>
+                  {attritionTone.badge}
+                </span>
+              </div>
+              <p className={`text-3xl font-bold mt-1 ${attritionTone.fg}`}>
+                {attrition.rate.toFixed(1)}%
+              </p>
+              <p className={`text-xs mt-1 ${attritionTone.sub}`}>
+                {t('attritionPeriod')}: {attrition.label}
+              </p>
+              <div className={`grid grid-cols-2 gap-2 mt-3 text-xs ${attritionTone.sub}`}>
+                <div>
+                  <span className="opacity-80">{t('attritionTerminations')}:</span>{' '}
+                  <span className={`font-bold ${attritionTone.fg}`}>{attrition.terminations}</span>
+                </div>
+                <div>
+                  <span className="opacity-80">{t('attritionAvgHeadcount')}:</span>{' '}
+                  <span className={`font-bold ${attritionTone.fg}`}>{attrition.avgHeadcount.toFixed(1)}</span>
+                </div>
+              </div>
+              <p className={`text-[10px] mt-2 ${attritionTone.sub}`}>
+                {t('attritionFormulaHint')}
+              </p>
+            </div>
+            <Users className={`h-8 w-8 shrink-0 ${attritionTone.sub}`} />
           </div>
         </div>
       </Card>
