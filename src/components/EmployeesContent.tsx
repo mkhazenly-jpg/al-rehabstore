@@ -464,7 +464,6 @@ export function EmployeesContent() {
                   <SelectItem value="active">{t('active')}</SelectItem>
                   <SelectItem value="resigned">{t('resigned')}</SelectItem>
                   <SelectItem value="terminated">{t('terminated')}</SelectItem>
-                  <SelectItem value="archived">{t('archived')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
