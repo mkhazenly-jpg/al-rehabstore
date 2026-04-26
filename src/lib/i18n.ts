@@ -306,6 +306,8 @@ export const translations = {
     attritionGood: 'جيد',
     attritionFair: 'مقبول',
     attritionHigh: 'مرتفع',
+    attritionApplyLocation: 'تطبيق فلتر الموقع',
+    attritionAllLocations: 'تجاهل فلتر الموقع (كل المواقع)',
   },
   en: {
     appName: 'Al-Rahaba Warehouse',
