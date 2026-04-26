@@ -47,6 +47,15 @@ export function EmployeesContent() {
   const [isAddingDept, setIsAddingDept] = useState(false);
   const [showJobSuggestions, setShowJobSuggestions] = useState(false);
   const jobInputWrapRef = useRef<HTMLDivElement>(null);
+  const [nowTick, setNowTick] = useState(() => Date.now());
+
+  // Refresh "days of service" once a day (and on visibility change)
+  useEffect(() => {
+    const interval = setInterval(() => setNowTick(Date.now()), 1000 * 60 * 60); // hourly check is enough
+    const onVis = () => { if (!document.hidden) setNowTick(Date.now()); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { clearInterval(interval); document.removeEventListener('visibilitychange', onVis); };
+  }, []);
 
   // Close job suggestions on outside click
   useEffect(() => {
@@ -80,7 +89,8 @@ export function EmployeesContent() {
 
   const departments = [...new Set(employees.map(e => e.department).filter(Boolean))];
   const filtered = employees.filter(e => {
-    if (!showArchived && (e.status as string) === 'archived') return false;
+    const isArchived = (e.status as string) === 'archived';
+    if (showArchived ? !isArchived : isArchived) return false;
     if (!e.name.toLowerCase().includes(search.toLowerCase())) return false;
     if (filterShift !== 'all' && (e as any).shift !== filterShift) return false;
     if (filterDept !== 'all' && e.department !== filterDept) return false;
@@ -134,13 +144,15 @@ export function EmployeesContent() {
 
   const handleSave = async () => {
     const dept = form.department === '__new__' ? '' : form.department.trim();
+    // Auto-archive any non-active status (resigned / terminated / archived all become archived)
+    const finalStatus: EmployeeStatus = form.status === 'active' ? 'active' : 'archived';
     const payload: any = {
       name: form.name,
       hire_date: form.hire_date,
-      status: form.status,
+      status: finalStatus,
       department: dept || null,
       notes: form.notes || null,
-      termination_date: form.status !== 'active' ? (form.termination_date || null) : null,
+      termination_date: finalStatus !== 'active' ? (form.termination_date || new Date().toISOString().split('T')[0]) : null,
       shift: form.shift || null,
       mobile: form.mobile || null,
       job_title: form.job_title || null,
@@ -461,7 +473,6 @@ export function EmployeesContent() {
                   <SelectItem value="active">{t('active')}</SelectItem>
                   <SelectItem value="resigned">{t('resigned')}</SelectItem>
                   <SelectItem value="terminated">{t('terminated')}</SelectItem>
-                  <SelectItem value="archived">{t('archived')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -586,6 +597,29 @@ export function EmployeesContent() {
                   </span>
                   <span className="text-muted-foreground">{t('hireDate')}:</span>
                   <span>{selectedEmployee.hire_date}</span>
+                  {(() => {
+                    const hire = new Date(selectedEmployee.hire_date).getTime();
+                    const end = selectedEmployee.termination_date
+                      ? new Date(selectedEmployee.termination_date).getTime()
+                      : nowTick;
+                    const totalDays = Math.max(0, Math.floor((end - hire) / (1000 * 60 * 60 * 24)));
+                    const years = Math.floor(totalDays / 365);
+                    const months = Math.floor((totalDays % 365) / 30);
+                    const days = totalDays - years * 365 - months * 30;
+                    const parts: string[] = [];
+                    if (years > 0) parts.push(`${years} ${t('yearsLabel')}`);
+                    if (months > 0) parts.push(`${months} ${t('monthsLabel')}`);
+                    parts.push(`${days} ${t('daysLabel')}`);
+                    return (
+                      <>
+                        <span className="text-muted-foreground">{t('daysOfService')}:</span>
+                        <span className="font-medium">
+                          {totalDays} {t('day')}
+                          <span className="ms-1 text-xs text-muted-foreground">({parts.join(' • ')})</span>
+                        </span>
+                      </>
+                    );
+                  })()}
                   {selectedEmployee.termination_date && (
                     <>
                       <span className="text-muted-foreground">{t('terminationDate')}:</span>
