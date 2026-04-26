@@ -1,0 +1,1 @@
+ALTER TABLE public.employee_violations ADD COLUMN IF NOT EXISTS daily_wage numeric NOT NULL DEFAULT 0;

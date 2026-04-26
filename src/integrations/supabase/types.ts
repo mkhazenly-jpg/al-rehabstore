@@ -187,6 +187,7 @@ export type Database = {
           action_taken: Database["public"]["Enums"]["violation_action"]
           created_at: string
           created_by: string | null
+          daily_wage: number
           deduction_amount: number
           employee_id: string
           id: string
@@ -200,6 +201,7 @@ export type Database = {
           action_taken?: Database["public"]["Enums"]["violation_action"]
           created_at?: string
           created_by?: string | null
+          daily_wage?: number
           deduction_amount?: number
           employee_id: string
           id?: string
@@ -213,6 +215,7 @@ export type Database = {
           action_taken?: Database["public"]["Enums"]["violation_action"]
           created_at?: string
           created_by?: string | null
+          daily_wage?: number
           deduction_amount?: number
           employee_id?: string
           id?: string
