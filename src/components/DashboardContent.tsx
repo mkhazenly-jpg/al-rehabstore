@@ -276,7 +276,7 @@ export function DashboardContent() {
       endHeadcount,
       label,
     };
-  }, [allEmployees, selectedYear, selectedMonth, selectedLocation, monthNames, t]);
+  }, [allEmployees, selectedYear, selectedMonth, selectedLocation, attritionUseLocation, monthNames, t]);
 
   const attritionTone = attrition.rate < 10
     ? { bg: 'from-success to-success/70', fg: 'text-primary-foreground', sub: 'text-primary-foreground/80', badge: t('attritionExcellent') }
