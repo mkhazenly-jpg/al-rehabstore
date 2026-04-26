@@ -597,6 +597,29 @@ export function EmployeesContent() {
                   </span>
                   <span className="text-muted-foreground">{t('hireDate')}:</span>
                   <span>{selectedEmployee.hire_date}</span>
+                  {(() => {
+                    const hire = new Date(selectedEmployee.hire_date).getTime();
+                    const end = selectedEmployee.termination_date
+                      ? new Date(selectedEmployee.termination_date).getTime()
+                      : nowTick;
+                    const totalDays = Math.max(0, Math.floor((end - hire) / (1000 * 60 * 60 * 24)));
+                    const years = Math.floor(totalDays / 365);
+                    const months = Math.floor((totalDays % 365) / 30);
+                    const days = totalDays - years * 365 - months * 30;
+                    const parts: string[] = [];
+                    if (years > 0) parts.push(`${years} ${t('yearsLabel')}`);
+                    if (months > 0) parts.push(`${months} ${t('monthsLabel')}`);
+                    parts.push(`${days} ${t('daysLabel')}`);
+                    return (
+                      <>
+                        <span className="text-muted-foreground">{t('daysOfService')}:</span>
+                        <span className="font-medium">
+                          {totalDays} {t('day')}
+                          <span className="ms-1 text-xs text-muted-foreground">({parts.join(' • ')})</span>
+                        </span>
+                      </>
+                    );
+                  })()}
                   {selectedEmployee.termination_date && (
                     <>
                       <span className="text-muted-foreground">{t('terminationDate')}:</span>
