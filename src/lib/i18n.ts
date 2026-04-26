@@ -614,6 +614,8 @@ export const translations = {
     attritionGood: 'Good',
     attritionFair: 'Fair',
     attritionHigh: 'High',
+    attritionApplyLocation: 'Apply location filter',
+    attritionAllLocations: 'Ignore location filter (all locations)',
   },
 } as const;
 
