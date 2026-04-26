@@ -80,7 +80,8 @@ export function EmployeesContent() {
 
   const departments = [...new Set(employees.map(e => e.department).filter(Boolean))];
   const filtered = employees.filter(e => {
-    if (!showArchived && (e.status as string) === 'archived') return false;
+    const isArchived = (e.status as string) === 'archived';
+    if (showArchived ? !isArchived : isArchived) return false;
     if (!e.name.toLowerCase().includes(search.toLowerCase())) return false;
     if (filterShift !== 'all' && (e as any).shift !== filterShift) return false;
     if (filterDept !== 'all' && e.department !== filterDept) return false;
