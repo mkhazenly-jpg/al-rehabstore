@@ -195,6 +195,7 @@ export function ViolationsContent() {
       violation_date: local,
       action_taken: v.action_taken as ActionType,
       deduction_amount: Number(v.deduction_amount) || 1,
+      daily_wage: Number((v as any).daily_wage) || 0,
       notes: v.notes || '',
     });
     setDialogOpen(true);
