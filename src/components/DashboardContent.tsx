@@ -33,7 +33,7 @@ export function DashboardContent() {
   useEffect(() => { loadStats(); }, []);
 
   const loadStats = async () => {
-    const [stockRes, empRes, assignRes, additionsRes, allAssignRes, damagedLostRes, approvedAssignRes] = await Promise.all([
+    const [stockRes, empRes, assignRes, additionsRes, allAssignRes, damagedLostRes, approvedAssignRes, violationsRes] = await Promise.all([
       supabase.from('stock_items').select('*'),
       supabase.from('employees').select('status, location, hire_date, termination_date'),
       supabase.from('assignments').select('status, stock_item_id, quantity_assigned, created_at, employee_id, employees(location)'),
@@ -41,6 +41,7 @@ export function DashboardContent() {
       supabase.from('assignments').select('stock_item_id, quantity_assigned, status, created_at, employee_id, employees(location)').in('status', ['approved', 'pending']),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, notes, created_at, status, employee_id, employees(location)').not('notes', 'is', null),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, status, assignment_date, employee_id, unit_price_at_assignment, employees(name, location, status, termination_date), stock_items(name, unit_price, category)').eq('status', 'approved'),
+      supabase.from('employee_violations').select('id, action_taken, deduction_amount, daily_wage, violation_date, employee_id, employees(location)').eq('action_taken', 'deduction'),
     ]);
 
     const items = stockRes.data || [];
@@ -52,6 +53,7 @@ export function DashboardContent() {
     setAssignments(allAssignRes.data || []);
     setDamagedLostAssignments(damagedLostRes.data || []);
     setAllApprovedAssignments(approvedAssignRes.data || []);
+    setAllViolations(violationsRes.data || []);
   };
 
   const stats = useMemo(() => {
