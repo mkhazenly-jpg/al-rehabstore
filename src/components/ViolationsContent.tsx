@@ -55,6 +55,7 @@ export function ViolationsContent() {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [employeePickerOpen, setEmployeePickerOpen] = useState(false);
   const [editItem, setEditItem] = useState<Violation | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputWrapRef = useRef<HTMLDivElement>(null);
