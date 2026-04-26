@@ -213,6 +213,7 @@ export function ViolationsContent() {
       violation_date: new Date(form.violation_date).toISOString(),
       action_taken: form.action_taken,
       deduction_amount: form.deduction_amount,
+      daily_wage: Number(form.daily_wage) || 0,
       notes: form.notes || null,
     };
     if (editItem) {
