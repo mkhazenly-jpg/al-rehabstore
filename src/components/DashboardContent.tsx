@@ -475,6 +475,42 @@ export function DashboardContent() {
         </div>
       </Card>
 
+      {/* Employee Attrition Rate */}
+      <Card className="overflow-hidden">
+        <div className={`bg-gradient-to-br ${attritionTone.bg} p-5`}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className={`text-sm font-medium ${attritionTone.sub}`}>{t('attritionRate')}</p>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full bg-background/25 ${attritionTone.fg}`}>
+                  {attritionTone.badge}
+                </span>
+              </div>
+              <p className={`text-3xl font-bold mt-1 ${attritionTone.fg}`}>
+                {attrition.rate.toFixed(1)}%
+              </p>
+              <p className={`text-xs mt-1 ${attritionTone.sub}`}>
+                {t('attritionPeriod')}: {attrition.label}
+              </p>
+              <div className={`grid grid-cols-2 gap-2 mt-3 text-xs ${attritionTone.sub}`}>
+                <div>
+                  <span className="opacity-80">{t('attritionTerminations')}:</span>{' '}
+                  <span className={`font-bold ${attritionTone.fg}`}>{attrition.terminations}</span>
+                </div>
+                <div>
+                  <span className="opacity-80">{t('attritionAvgHeadcount')}:</span>{' '}
+                  <span className={`font-bold ${attritionTone.fg}`}>{attrition.avgHeadcount.toFixed(1)}</span>
+                </div>
+              </div>
+              <p className={`text-[10px] mt-2 ${attritionTone.sub}`}>
+                {t('attritionFormulaHint')}
+              </p>
+            </div>
+            <Users className={`h-8 w-8 shrink-0 ${attritionTone.sub}`} />
+          </div>
+        </div>
+      </Card>
+
       {/* Total assignment deductions for inactive employees */}
       <Card className="overflow-hidden border-amber-500/40">
         <div className="bg-gradient-to-br from-amber-400 to-amber-500 p-5">
