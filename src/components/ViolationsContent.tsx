@@ -623,20 +623,41 @@ export function ViolationsContent() {
               </Select>
             </div>
             {form.action_taken === 'deduction' && (
-              <div className="space-y-2">
-                <Label>{t('deductionDays')}</Label>
-                <Select
-                  value={String(form.deduction_amount)}
-                  onValueChange={v => setForm({ ...form, deduction_amount: Number(v) })}
-                >
-                  <SelectTrigger><SelectValue placeholder={t('selectDeduction')} /></SelectTrigger>
-                  <SelectContent>
-                    {DEDUCTION_DAY_OPTIONS.map(d => (
-                      <SelectItem key={d} value={String(d)}>{formatDays(d)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label>{t('deductionDays')}</Label>
+                  <Select
+                    value={String(form.deduction_amount)}
+                    onValueChange={v => setForm({ ...form, deduction_amount: Number(v) })}
+                  >
+                    <SelectTrigger><SelectValue placeholder={t('selectDeduction')} /></SelectTrigger>
+                    <SelectContent>
+                      {DEDUCTION_DAY_OPTIONS.map(d => (
+                        <SelectItem key={d} value={String(d)}>{formatDays(d)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('dailyWage')} ({t('currency')})</Label>
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="0.01"
+                    value={form.daily_wage || ''}
+                    onChange={e => setForm({ ...form, daily_wage: Number(e.target.value) || 0 })}
+                    placeholder={t('dailyWagePlaceholder')}
+                  />
+                  {form.daily_wage > 0 && form.deduction_amount > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {t('deductionMoney')}: <span className="font-semibold text-foreground">
+                        {(form.daily_wage * form.deduction_amount).toLocaleString()} {t('currency')}
+                      </span>
+                    </p>
+                  )}
+                </div>
+              </>
             )}
             <div className="space-y-2">
               <Label>{t('notes')}</Label>
