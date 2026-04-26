@@ -509,6 +509,21 @@ export function DashboardContent() {
               <p className={`text-[10px] mt-2 ${attritionTone.sub}`}>
                 {t('attritionFormulaHint')}
               </p>
+              <div className={`flex items-center gap-2 mt-3 pt-3 border-t border-background/20`}>
+                <Switch
+                  id="attrition-location-toggle"
+                  checked={attritionUseLocation}
+                  onCheckedChange={setAttritionUseLocation}
+                />
+                <Label
+                  htmlFor="attrition-location-toggle"
+                  className={`text-xs cursor-pointer ${attritionTone.fg}`}
+                >
+                  {attritionUseLocation
+                    ? `${t('attritionApplyLocation')}${selectedLocation !== 'all' ? ` (${selectedLocation})` : ''}`
+                    : t('attritionAllLocations')}
+                </Label>
+              </div>
             </div>
             <Users className={`h-8 w-8 shrink-0 ${attritionTone.sub}`} />
           </div>
