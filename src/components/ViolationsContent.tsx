@@ -281,10 +281,10 @@ export function ViolationsContent() {
       return;
     }
     const repeat = repeatMap[v.id] || 1;
-    const dateStr = new Date(v.violation_date).toLocaleString(
-      lang === 'ar' ? 'ar-EG' : 'en-US',
-      { dateStyle: 'short', timeStyle: 'short' }
-    );
+    const dateObj = new Date(v.violation_date);
+    const locale = lang === 'ar' ? 'ar-EG' : 'en-US';
+    const dateOnly = dateObj.toLocaleDateString(locale, { dateStyle: 'short' } as any);
+    const timeOnly = dateObj.toLocaleTimeString(locale, { timeStyle: 'short' } as any);
     const actionLabel = t(v.action_taken as never) as string;
     const locationStr = (v as any).violation_location || '-';
 
@@ -302,7 +302,8 @@ export function ViolationsContent() {
       `${v.violation_description}`,
       ``,
       `📍 *${t('whatsappLabelLocation')}:* ${locationStr}`,
-      `📅 *${t('whatsappLabelDate')}:* ${dateStr}`,
+      `📅 *${t('whatsappLabelDate')}:* ${dateOnly}`,
+      `🕒 *${t('whatsappLabelTime')}:* ${timeOnly}`,
       `🔁 *${t('whatsappLabelRepeat')}:* ${repeat}`,
       `⚖️ *${t('whatsappLabelAction')}:* ${actionLabel}`,
       ``,
