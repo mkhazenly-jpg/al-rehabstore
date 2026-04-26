@@ -9,6 +9,8 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 const PIE_COLORS = ['#10b981', '#f59e0b', '#3b82f6', '#ef4444', '#8b5cf6', '#ec4899'];
 
@@ -25,6 +27,7 @@ export function DashboardContent() {
   const [selectedYear, setSelectedYear] = useState<string>('all');
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
+  const [attritionUseLocation, setAttritionUseLocation] = useState<boolean>(true);
 
   useEffect(() => { loadStats(); }, []);
 
@@ -211,8 +214,9 @@ export function DashboardContent() {
   // Period is determined by selectedYear + selectedMonth filters.
   // When "all time" is selected we fall back to the trailing 12 months ending today.
   const attrition = useMemo(() => {
+    const effectiveLocation = attritionUseLocation ? selectedLocation : 'all';
     const filteredEmployees = allEmployees.filter((e: any) =>
-      selectedLocation === 'all' || e.location === selectedLocation
+      effectiveLocation === 'all' || e.location === effectiveLocation
     );
 
     let periodStart: Date;
@@ -272,7 +276,7 @@ export function DashboardContent() {
       endHeadcount,
       label,
     };
-  }, [allEmployees, selectedYear, selectedMonth, selectedLocation, monthNames, t]);
+  }, [allEmployees, selectedYear, selectedMonth, selectedLocation, attritionUseLocation, monthNames, t]);
 
   const attritionTone = attrition.rate < 10
     ? { bg: 'from-success to-success/70', fg: 'text-primary-foreground', sub: 'text-primary-foreground/80', badge: t('attritionExcellent') }
@@ -505,6 +509,21 @@ export function DashboardContent() {
               <p className={`text-[10px] mt-2 ${attritionTone.sub}`}>
                 {t('attritionFormulaHint')}
               </p>
+              <div className={`flex items-center gap-2 mt-3 pt-3 border-t border-background/20`}>
+                <Switch
+                  id="attrition-location-toggle"
+                  checked={attritionUseLocation}
+                  onCheckedChange={setAttritionUseLocation}
+                />
+                <Label
+                  htmlFor="attrition-location-toggle"
+                  className={`text-xs cursor-pointer ${attritionTone.fg}`}
+                >
+                  {attritionUseLocation
+                    ? `${t('attritionApplyLocation')}${selectedLocation !== 'all' ? ` (${selectedLocation})` : ''}`
+                    : t('attritionAllLocations')}
+                </Label>
+              </div>
             </div>
             <Users className={`h-8 w-8 shrink-0 ${attritionTone.sub}`} />
           </div>
