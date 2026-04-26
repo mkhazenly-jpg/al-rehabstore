@@ -135,13 +135,15 @@ export function EmployeesContent() {
 
   const handleSave = async () => {
     const dept = form.department === '__new__' ? '' : form.department.trim();
+    // Auto-archive any non-active status (resigned / terminated / archived all become archived)
+    const finalStatus: EmployeeStatus = form.status === 'active' ? 'active' : 'archived';
     const payload: any = {
       name: form.name,
       hire_date: form.hire_date,
-      status: form.status,
+      status: finalStatus,
       department: dept || null,
       notes: form.notes || null,
-      termination_date: form.status !== 'active' ? (form.termination_date || null) : null,
+      termination_date: finalStatus !== 'active' ? (form.termination_date || new Date().toISOString().split('T')[0]) : null,
       shift: form.shift || null,
       mobile: form.mobile || null,
       job_title: form.job_title || null,
