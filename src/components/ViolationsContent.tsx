@@ -176,6 +176,7 @@ export function ViolationsContent() {
       violation_date: new Date().toISOString().slice(0, 16),
       action_taken: 'warning',
       deduction_amount: 1,
+      daily_wage: 0,
       notes: '',
     });
     setDialogOpen(true);
