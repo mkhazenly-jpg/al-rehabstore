@@ -41,7 +41,7 @@ export function DashboardContent() {
       supabase.from('assignments').select('stock_item_id, quantity_assigned, status, created_at, employee_id, employees(location)').in('status', ['approved', 'pending']),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, notes, created_at, status, employee_id, employees(location)').not('notes', 'is', null),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, status, assignment_date, employee_id, unit_price_at_assignment, employees(name, location, status, termination_date), stock_items(name, unit_price, category)').eq('status', 'approved'),
-      supabase.from('employee_violations').select('id, action_taken, deduction_amount, daily_wage, violation_date, employee_id, employees(location)').eq('action_taken', 'deduction'),
+      supabase.from('employee_violations').select('id, action_taken, deduction_amount, daily_wage, violation_date, violation_type, description, employee_id, employees(name, location)').eq('action_taken', 'deduction'),
     ]);
 
     const items = stockRes.data || [];
@@ -211,19 +211,39 @@ export function DashboardContent() {
   );
 
   const [deductionsOpen, setDeductionsOpen] = useState(false);
+  const [violationDeductionsOpen, setViolationDeductionsOpen] = useState(false);
 
-  // Total monetary deductions from employee violations (filtered by year/month/location)
-  const totalViolationDeductions = useMemo(() => {
-    return allViolations.reduce((sum, v: any) => {
-      const d = new Date(v.violation_date);
-      if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return sum;
-      if (selectedMonth !== 'all' && d.getMonth() !== Number(selectedMonth)) return sum;
-      if (selectedLocation !== 'all' && v.employees?.location !== selectedLocation) return sum;
-      const wage = Number(v.daily_wage) || 0;
-      const days = Number(v.deduction_amount) || 0;
-      return sum + wage * days;
-    }, 0);
+  // Per-violation rows (filtered by year/month/location)
+  const violationDeductionRows = useMemo(() => {
+    return allViolations
+      .filter((v: any) => {
+        const d = new Date(v.violation_date);
+        if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return false;
+        if (selectedMonth !== 'all' && d.getMonth() !== Number(selectedMonth)) return false;
+        if (selectedLocation !== 'all' && v.employees?.location !== selectedLocation) return false;
+        return true;
+      })
+      .map((v: any) => {
+        const wage = Number(v.daily_wage) || 0;
+        const days = Number(v.deduction_amount) || 0;
+        return {
+          id: v.id,
+          employeeName: v.employees?.name || '-',
+          violationType: v.violation_type || '-',
+          description: v.description || '',
+          violationDate: v.violation_date,
+          dailyWage: wage,
+          days,
+          deduction: wage * days,
+        };
+      })
+      .sort((a, b) => (a.violationDate < b.violationDate ? 1 : -1));
   }, [allViolations, selectedYear, selectedMonth, selectedLocation]);
+
+  const totalViolationDeductions = useMemo(
+    () => violationDeductionRows.reduce((sum, r) => sum + r.deduction, 0),
+    [violationDeductionRows]
+  );
 
   // Attrition rate calculation
   // Formula: (terminations in period / average headcount in period) * 100
@@ -586,11 +606,72 @@ export function DashboardContent() {
               <p className="mt-2 text-xs text-amber-950/80 leading-relaxed">
                 {t('totalViolationDeductionsDesc')}
               </p>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="mt-3 bg-amber-950 text-amber-50 hover:bg-amber-950/90"
+                onClick={() => setViolationDeductionsOpen(true)}
+                disabled={violationDeductionRows.length === 0}
+              >
+                <Eye className="h-4 w-4" />
+                {t('viewDetails')}
+              </Button>
             </div>
             <BarChart3 className="h-8 w-8 text-amber-950/60 shrink-0" />
           </div>
         </div>
       </Card>
+
+      <Dialog open={violationDeductionsOpen} onOpenChange={setViolationDeductionsOpen}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{t('violationDeductionsBreakdown')}</DialogTitle>
+            <DialogDescription>{t('totalViolationDeductionsDesc')}</DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto">
+            {violationDeductionRows.length === 0 ? (
+              <p className="py-8 text-center text-muted-foreground">{t('noDeductions')}</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('employee')}</TableHead>
+                    <TableHead>{t('violationType')}</TableHead>
+                    <TableHead>{t('violationDate')}</TableHead>
+                    <TableHead className="text-center">{t('dailyWage')}</TableHead>
+                    <TableHead className="text-center">{t('deductionAmount')}</TableHead>
+                    <TableHead className="text-end">{t('deductionValue')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {violationDeductionRows.map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell className="font-medium">{r.employeeName}</TableCell>
+                      <TableCell>{t(r.violationType as any) || r.violationType}</TableCell>
+                      <TableCell>{r.violationDate}</TableCell>
+                      <TableCell className="text-center">{r.dailyWage.toLocaleString()}</TableCell>
+                      <TableCell className="text-center">{r.days}</TableCell>
+                      <TableCell className="text-end font-semibold">
+                        {r.deduction.toLocaleString()} {t('currency')}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+          {violationDeductionRows.length > 0 && (
+            <div className="border-t pt-3 mt-2 flex flex-wrap items-center justify-end gap-3 text-sm">
+              <div>
+                <span className="text-muted-foreground">{t('grandTotal')}: </span>
+                <span className="font-bold text-lg text-amber-700">
+                  {totalViolationDeductions.toLocaleString()} {t('currency')}
+                </span>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={deductionsOpen} onOpenChange={setDeductionsOpen}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
