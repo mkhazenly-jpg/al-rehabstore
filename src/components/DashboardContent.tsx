@@ -657,13 +657,11 @@ export function DashboardContent() {
             )}
           </div>
           {violationDeductionRows.length > 0 && (
-            <div className="border-t pt-3 mt-2 flex flex-wrap items-center justify-end gap-3 text-sm">
-              <div>
-                <span className="text-muted-foreground">{t('grandTotal')}: </span>
-                <span className="font-bold text-lg text-amber-700">
-                  {totalViolationDeductions.toLocaleString()} {t('currency')}
-                </span>
-              </div>
+            <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 flex items-center justify-between">
+              <span className="font-bold text-amber-950">{t('grandTotal')}</span>
+              <span className="font-bold text-xl text-amber-600">
+                {totalViolationDeductions.toLocaleString()} {t('currency')}
+              </span>
             </div>
           )}
         </DialogContent>
