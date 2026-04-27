@@ -636,10 +636,8 @@ export function DashboardContent() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t('employee')}</TableHead>
-                    <TableHead>{t('violationType')}</TableHead>
+                    <TableHead>{t('violationDescription')}</TableHead>
                     <TableHead>{t('violationDate')}</TableHead>
-                    <TableHead className="text-center">{t('dailyWage')}</TableHead>
-                    <TableHead className="text-center">{t('deductionAmount')}</TableHead>
                     <TableHead className="text-end">{t('deductionValue')}</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -647,11 +645,9 @@ export function DashboardContent() {
                   {violationDeductionRows.map((r) => (
                     <TableRow key={r.id}>
                       <TableCell className="font-medium">{r.employeeName}</TableCell>
-                      <TableCell>{r.violationType}</TableCell>
-                      <TableCell>{r.violationDate}</TableCell>
-                      <TableCell className="text-center">{r.dailyWage.toLocaleString()}</TableCell>
-                      <TableCell className="text-center">{r.days}</TableCell>
-                      <TableCell className="text-end font-semibold">
+                      <TableCell className="whitespace-pre-wrap">{r.description || r.violationType}</TableCell>
+                      <TableCell>{new Date(r.violationDate).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-GB')}</TableCell>
+                      <TableCell className="text-end font-bold text-amber-600">
                         {r.deduction.toLocaleString()} {t('currency')}
                       </TableCell>
                     </TableRow>
@@ -661,13 +657,11 @@ export function DashboardContent() {
             )}
           </div>
           {violationDeductionRows.length > 0 && (
-            <div className="border-t pt-3 mt-2 flex flex-wrap items-center justify-end gap-3 text-sm">
-              <div>
-                <span className="text-muted-foreground">{t('grandTotal')}: </span>
-                <span className="font-bold text-lg text-amber-700">
-                  {totalViolationDeductions.toLocaleString()} {t('currency')}
-                </span>
-              </div>
+            <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 flex items-center justify-between">
+              <span className="font-bold text-amber-950">{t('grandTotal')}</span>
+              <span className="font-bold text-xl text-amber-600">
+                {totalViolationDeductions.toLocaleString()} {t('currency')}
+              </span>
             </div>
           )}
         </DialogContent>
