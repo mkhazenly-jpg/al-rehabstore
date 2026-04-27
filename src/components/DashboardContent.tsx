@@ -211,19 +211,39 @@ export function DashboardContent() {
   );
 
   const [deductionsOpen, setDeductionsOpen] = useState(false);
+  const [violationDeductionsOpen, setViolationDeductionsOpen] = useState(false);
 
-  // Total monetary deductions from employee violations (filtered by year/month/location)
-  const totalViolationDeductions = useMemo(() => {
-    return allViolations.reduce((sum, v: any) => {
-      const d = new Date(v.violation_date);
-      if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return sum;
-      if (selectedMonth !== 'all' && d.getMonth() !== Number(selectedMonth)) return sum;
-      if (selectedLocation !== 'all' && v.employees?.location !== selectedLocation) return sum;
-      const wage = Number(v.daily_wage) || 0;
-      const days = Number(v.deduction_amount) || 0;
-      return sum + wage * days;
-    }, 0);
+  // Per-violation rows (filtered by year/month/location)
+  const violationDeductionRows = useMemo(() => {
+    return allViolations
+      .filter((v: any) => {
+        const d = new Date(v.violation_date);
+        if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return false;
+        if (selectedMonth !== 'all' && d.getMonth() !== Number(selectedMonth)) return false;
+        if (selectedLocation !== 'all' && v.employees?.location !== selectedLocation) return false;
+        return true;
+      })
+      .map((v: any) => {
+        const wage = Number(v.daily_wage) || 0;
+        const days = Number(v.deduction_amount) || 0;
+        return {
+          id: v.id,
+          employeeName: v.employees?.name || '-',
+          violationType: v.violation_type || '-',
+          description: v.description || '',
+          violationDate: v.violation_date,
+          dailyWage: wage,
+          days,
+          deduction: wage * days,
+        };
+      })
+      .sort((a, b) => (a.violationDate < b.violationDate ? 1 : -1));
   }, [allViolations, selectedYear, selectedMonth, selectedLocation]);
+
+  const totalViolationDeductions = useMemo(
+    () => violationDeductionRows.reduce((sum, r) => sum + r.deduction, 0),
+    [violationDeductionRows]
+  );
 
   // Attrition rate calculation
   // Formula: (terminations in period / average headcount in period) * 100
