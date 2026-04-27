@@ -41,7 +41,7 @@ export function DashboardContent() {
       supabase.from('assignments').select('stock_item_id, quantity_assigned, status, created_at, employee_id, employees(location)').in('status', ['approved', 'pending']),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, notes, created_at, status, employee_id, employees(location)').not('notes', 'is', null),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, status, assignment_date, employee_id, unit_price_at_assignment, employees(name, location, status, termination_date), stock_items(name, unit_price, category)').eq('status', 'approved'),
-      supabase.from('employee_violations').select('id, action_taken, deduction_amount, daily_wage, violation_date, violation_type, description, employee_id, employees(name, location)').eq('action_taken', 'deduction'),
+      supabase.from('employee_violations').select('id, action_taken, deduction_amount, daily_wage, violation_date, violation_description, employee_id, employees(name, location)').eq('action_taken', 'deduction'),
     ]);
 
     const items = stockRes.data || [];
@@ -229,8 +229,8 @@ export function DashboardContent() {
         return {
           id: v.id,
           employeeName: v.employees?.name || '-',
-          violationType: v.violation_type || '-',
-          description: v.description || '',
+          violationType: v.violation_description || '-',
+          description: v.violation_description || '',
           violationDate: v.violation_date,
           dailyWage: wage,
           days,
@@ -647,7 +647,7 @@ export function DashboardContent() {
                   {violationDeductionRows.map((r) => (
                     <TableRow key={r.id}>
                       <TableCell className="font-medium">{r.employeeName}</TableCell>
-                      <TableCell>{t(r.violationType as any) || r.violationType}</TableCell>
+                      <TableCell>{r.violationType}</TableCell>
                       <TableCell>{r.violationDate}</TableCell>
                       <TableCell className="text-center">{r.dailyWage.toLocaleString()}</TableCell>
                       <TableCell className="text-center">{r.days}</TableCell>
