@@ -647,7 +647,7 @@ export function DashboardContent() {
                   {violationDeductionRows.map((r) => (
                     <TableRow key={r.id}>
                       <TableCell className="font-medium">{r.employeeName}</TableCell>
-                      <TableCell>{t(r.violationType as any) || r.violationType}</TableCell>
+                      <TableCell>{r.violationType}</TableCell>
                       <TableCell>{r.violationDate}</TableCell>
                       <TableCell className="text-center">{r.dailyWage.toLocaleString()}</TableCell>
                       <TableCell className="text-center">{r.days}</TableCell>
