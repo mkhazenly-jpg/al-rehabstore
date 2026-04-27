@@ -588,6 +588,8 @@ export const translations = {
     deductionMoney: 'Deduction (money)',
     totalViolationDeductions: 'Total Violation Deductions',
     totalViolationDeductionsDesc: 'Total monetary deductions from employee violations within the selected period',
+    violationDeductionsBreakdown: 'Violation Deductions Breakdown',
+    violationType: 'Violation Type',
     backupStatus: 'Backup Status',
     lastBackupSuccess: 'Last Backup Succeeded',
     lastBackupFailed: 'Last Backup Failed',
