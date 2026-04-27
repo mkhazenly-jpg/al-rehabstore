@@ -229,8 +229,8 @@ export function DashboardContent() {
         return {
           id: v.id,
           employeeName: v.employees?.name || '-',
-          violationType: v.violation_type || '-',
-          description: v.description || '',
+          violationType: v.violation_description || '-',
+          description: v.violation_description || '',
           violationDate: v.violation_date,
           dailyWage: wage,
           days,
