@@ -451,6 +451,7 @@ export function ViolationsContent() {
                   <TableHead>{t('actionTaken')}</TableHead>
                   <TableHead>{t('deductionDays')}</TableHead>
                   <TableHead>{t('violationDate')}</TableHead>
+                  <TableHead>{t('whatsappStatus')}</TableHead>
                   <TableHead>{t('actions')}</TableHead>
                 </TableRow>
               </TableHeader>
