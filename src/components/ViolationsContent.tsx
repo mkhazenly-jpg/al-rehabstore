@@ -21,6 +21,14 @@ import type { Tables as DBTables } from '@/integrations/supabase/types';
 
 type Violation = DBTables<'employee_violations'> & { violation_location?: string | null };
 type Employee = DBTables<'employees'>;
+type ViolationNotification = {
+  id: string;
+  violation_id: string;
+  status: string;
+  error_message: string | null;
+  sent_at: string | null;
+  created_at: string;
+};
 
 type ActionType = 'warning' | 'verbal_warning' | 'deduction' | 'suspension' | 'termination';
 
@@ -49,6 +57,7 @@ export function ViolationsContent() {
   const { isAdmin } = useAuth();
   const [violations, setViolations] = useState<Violation[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [notifications, setNotifications] = useState<ViolationNotification[]>([]);
   const [search, setSearch] = useState('');
   const [filterEmployee, setFilterEmployee] = useState('all');
   const [filterRepeats, setFilterRepeats] = useState<number[]>([]);
@@ -100,13 +109,24 @@ export function ViolationsContent() {
   }, []);
 
   const loadData = async () => {
-    const [v, e] = await Promise.all([
+    const [v, e, n] = await Promise.all([
       supabase.from('employee_violations').select('*').order('violation_date', { ascending: false }),
       supabase.from('employees').select('*').order('name'),
+      supabase.from('violation_notifications' as any).select('id, violation_id, status, error_message, sent_at, created_at').order('created_at', { ascending: false }),
     ]);
     setViolations(v.data || []);
     setEmployees(e.data || []);
+    setNotifications(((n.data as any) || []) as ViolationNotification[]);
   };
+
+  // Latest notification per violation_id
+  const notifMap = useMemo(() => {
+    const m: Record<string, ViolationNotification> = {};
+    notifications.forEach((n) => {
+      if (!m[n.violation_id]) m[n.violation_id] = n;
+    });
+    return m;
+  }, [notifications]);
 
   const empMap = useMemo(() => {
     const m: Record<string, Employee> = {};
@@ -431,6 +451,7 @@ export function ViolationsContent() {
                   <TableHead>{t('actionTaken')}</TableHead>
                   <TableHead>{t('deductionDays')}</TableHead>
                   <TableHead>{t('violationDate')}</TableHead>
+                  <TableHead>{t('whatsappStatus')}</TableHead>
                   <TableHead>{t('actions')}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -454,6 +475,15 @@ export function ViolationsContent() {
                       </TableCell>
                       <TableCell>{v.action_taken === 'deduction' && Number(v.deduction_amount) > 0 ? formatDays(Number(v.deduction_amount)) : '-'}</TableCell>
                       <TableCell className="text-xs">{new Date(v.violation_date).toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US', { dateStyle: 'short', timeStyle: 'short' })}</TableCell>
+                      <TableCell>
+                        {(() => {
+                          const n = notifMap[v.id];
+                          if (!n) return <span className="rounded-full px-2 py-1 text-xs font-medium bg-muted text-muted-foreground">{t('waNotSent')}</span>;
+                          if (n.status === 'sent') return <span className="rounded-full px-2 py-1 text-xs font-medium bg-success/20 text-success" title={n.sent_at ? new Date(n.sent_at).toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US') : ''}>✓ {t('waSent')}</span>;
+                          if (n.status === 'failed') return <span className="rounded-full px-2 py-1 text-xs font-medium bg-destructive/20 text-destructive" title={n.error_message || ''}>✗ {t('waFailed')}</span>;
+                          return <span className="rounded-full px-2 py-1 text-xs font-medium bg-yellow-500/20 text-yellow-700 dark:text-yellow-400">⏳ {t('waPending')}</span>;
+                        })()}
+                      </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
                           <Button
@@ -482,7 +512,7 @@ export function ViolationsContent() {
                 })}
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                       {t('noViolations')}
                     </TableCell>
                   </TableRow>
