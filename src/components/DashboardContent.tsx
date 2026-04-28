@@ -350,6 +350,34 @@ export function DashboardContent() {
     totalConsumedByItem[a.stock_item_id] = (totalConsumedByItem[a.stock_item_id] || 0) + a.quantity_assigned;
   });
 
+  // Most consumed items - aggregated by category, with size breakdown for sized items
+  const mostConsumedData = (() => {
+    const byCategory: Record<string, { totalQty: number; sizes: Record<string, number>; itemNames: Set<string> }> = {};
+    filteredAssignments.forEach((a: any) => {
+      const item = stockItems.find((i: any) => i.id === a.stock_item_id);
+      if (!item) return;
+      const cat = item.category || '-';
+      if (!byCategory[cat]) byCategory[cat] = { totalQty: 0, sizes: {}, itemNames: new Set() };
+      byCategory[cat].totalQty += a.quantity_assigned || 0;
+      byCategory[cat].itemNames.add(item.name);
+      const size = item.size && item.size !== 'N/A' ? item.size : '-';
+      byCategory[cat].sizes[size] = (byCategory[cat].sizes[size] || 0) + (a.quantity_assigned || 0);
+    });
+    return Object.entries(byCategory)
+      .map(([cat, data]) => ({
+        category: cat,
+        totalQty: data.totalQty,
+        itemNames: Array.from(data.itemNames),
+        sizes: Object.entries(data.sizes)
+          .filter(([s]) => s !== '-')
+          .map(([size, qty]) => ({ size, qty }))
+          .sort((a, b) => b.qty - a.qty),
+      }))
+      .sort((a, b) => b.totalQty - a.totalQty);
+  })();
+
+  const topConsumedCategory = mostConsumedData[0];
+
   const totalPurchaseCost = stockItems.reduce((sum, item) => {
     const added = totalAddedByItem[item.id] || 0;
     return sum + (item.unit_price * added);
