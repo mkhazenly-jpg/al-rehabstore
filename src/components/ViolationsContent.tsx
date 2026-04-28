@@ -21,6 +21,14 @@ import type { Tables as DBTables } from '@/integrations/supabase/types';
 
 type Violation = DBTables<'employee_violations'> & { violation_location?: string | null };
 type Employee = DBTables<'employees'>;
+type ViolationNotification = {
+  id: string;
+  violation_id: string;
+  status: string;
+  error_message: string | null;
+  sent_at: string | null;
+  created_at: string;
+};
 
 type ActionType = 'warning' | 'verbal_warning' | 'deduction' | 'suspension' | 'termination';
 
