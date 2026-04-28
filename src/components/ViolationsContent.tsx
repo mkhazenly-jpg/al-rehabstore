@@ -342,6 +342,29 @@ export function ViolationsContent() {
     const message = lines.join('\n');
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
+
+    // Log notification attempt as 'sent' (wa.me opens WhatsApp; user dispatches)
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const { error: notifErr } = await supabase.from('violation_notifications' as any).insert({
+        violation_id: v.id,
+        employee_id: v.employee_id,
+        channel: 'whatsapp',
+        status: 'sent',
+        to_number: phone,
+        attempt_count: 1,
+        triggered_by: userData?.user?.id ?? null,
+        sent_at: new Date().toISOString(),
+      });
+      if (notifErr) {
+        console.error('Failed to log WhatsApp notification:', notifErr);
+        toast.error(lang === 'ar' ? 'تم فتح واتساب لكن فشل تسجيل الحالة' : 'WhatsApp opened but failed to log status');
+      } else {
+        await loadData();
+      }
+    } catch (err) {
+      console.error('Notification log error:', err);
+    }
   };
 
   const handleExport = () => {
