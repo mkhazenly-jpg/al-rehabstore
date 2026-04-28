@@ -411,6 +411,54 @@ export type Database = {
         }
         Relationships: []
       }
+      violation_notifications: {
+        Row: {
+          attempt_count: number
+          channel: string
+          created_at: string
+          employee_id: string
+          error_message: string | null
+          id: string
+          message_sid: string | null
+          sent_at: string | null
+          status: string
+          to_number: string | null
+          triggered_by: string | null
+          updated_at: string
+          violation_id: string
+        }
+        Insert: {
+          attempt_count?: number
+          channel?: string
+          created_at?: string
+          employee_id: string
+          error_message?: string | null
+          id?: string
+          message_sid?: string | null
+          sent_at?: string | null
+          status?: string
+          to_number?: string | null
+          triggered_by?: string | null
+          updated_at?: string
+          violation_id: string
+        }
+        Update: {
+          attempt_count?: number
+          channel?: string
+          created_at?: string
+          employee_id?: string
+          error_message?: string | null
+          id?: string
+          message_sid?: string | null
+          sent_at?: string | null
+          status?: string
+          to_number?: string | null
+          triggered_by?: string | null
+          updated_at?: string
+          violation_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
