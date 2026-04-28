@@ -379,6 +379,31 @@ export function DashboardContent() {
 
   const topConsumedCategory = mostConsumedData[0];
 
+  // Top employees by number of violations (filtered by year/month/location)
+  const topViolatorsData = (() => {
+    const byEmp: Record<string, { name: string; location: string; jobTitle: string; count: number; actions: Record<string, number> }> = {};
+    allViolations.forEach((v: any) => {
+      const d = new Date(v.violation_date);
+      if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return;
+      if (selectedMonth !== 'all' && d.getMonth() !== Number(selectedMonth)) return;
+      if (selectedLocation !== 'all' && v.employees?.location !== selectedLocation) return;
+      const key = v.employee_id || 'unknown';
+      if (!byEmp[key]) byEmp[key] = {
+        name: v.employees?.name || '-',
+        location: v.employees?.location || '-',
+        jobTitle: v.employees?.job_title || '-',
+        count: 0,
+        actions: {},
+      };
+      byEmp[key].count += 1;
+      const act = v.action_taken || '-';
+      byEmp[key].actions[act] = (byEmp[key].actions[act] || 0) + 1;
+    });
+    return Object.values(byEmp).sort((a, b) => b.count - a.count);
+  })();
+
+  const topViolator = topViolatorsData[0];
+
   const totalPurchaseCost = stockItems.reduce((sum, item) => {
     const added = totalAddedByItem[item.id] || 0;
     return sum + (item.unit_price * added);
