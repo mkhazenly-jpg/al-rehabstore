@@ -466,15 +466,37 @@ export async function exportFullBackup({ lang, t }: BackupOptions): Promise<void
   });
 
   // ---------- VIOLATIONS ----------
-  const violRows: Row[] = viols.map((v) => {
+  const violsSorted = [...viols].sort((a: any, b: any) => {
+    if (a.employee_id !== b.employee_id) return String(a.employee_id).localeCompare(String(b.employee_id));
+    return new Date(a.violation_date).getTime() - new Date(b.violation_date).getTime();
+  });
+  const repeatMap = new Map<string, number>();
+  const repeatById = new Map<string, number>();
+  violsSorted.forEach((v: any) => {
+    const c = (repeatMap.get(v.employee_id) || 0) + 1;
+    repeatMap.set(v.employee_id, c);
+    repeatById.set(v.id, c);
+  });
+  const violRowsSrc = [...viols].sort(
+    (a: any, b: any) => new Date(b.violation_date).getTime() - new Date(a.violation_date).getTime()
+  );
+  const violRows: Row[] = violRowsSrc.map((v: any) => {
     const emp = empMap.get(v.employee_id);
+    const days = num(v.deduction_amount);
+    const wage = num(v.daily_wage);
     return {
       [t('employee')]: emp?.name || '-',
       [t('department')]: emp?.department || '',
       [t('violationDescription')]: v.violation_description,
       [t('actionTaken')]: t(v.action_taken as never) as string,
-      [t('deductionAmount')]: num(v.deduction_amount),
+      [t('violationLocation')]: v.violation_location || emp?.location || '',
       [t('violationDate')]: fmtDate(v.violation_date, locale),
+      [t('violationTime')]: fmtTime(v.violation_date, locale),
+      [t('dailyWage')]: wage,
+      [t('deductionDays')]: days,
+      [t('deductionValue')]: wage * days,
+      [t('repeatCount')]: repeatById.get(v.id) || 1,
+      [t('recordedAt')]: fmtDateTime(v.created_at, locale),
       [t('notes')]: v.notes || '',
     };
   });
