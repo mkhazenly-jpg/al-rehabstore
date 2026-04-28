@@ -109,13 +109,24 @@ export function ViolationsContent() {
   }, []);
 
   const loadData = async () => {
-    const [v, e] = await Promise.all([
+    const [v, e, n] = await Promise.all([
       supabase.from('employee_violations').select('*').order('violation_date', { ascending: false }),
       supabase.from('employees').select('*').order('name'),
+      supabase.from('violation_notifications' as any).select('id, violation_id, status, error_message, sent_at, created_at').order('created_at', { ascending: false }),
     ]);
     setViolations(v.data || []);
     setEmployees(e.data || []);
+    setNotifications(((n.data as any) || []) as ViolationNotification[]);
   };
+
+  // Latest notification per violation_id
+  const notifMap = useMemo(() => {
+    const m: Record<string, ViolationNotification> = {};
+    notifications.forEach((n) => {
+      if (!m[n.violation_id]) m[n.violation_id] = n;
+    });
+    return m;
+  }, [notifications]);
 
   const empMap = useMemo(() => {
     const m: Record<string, Employee> = {};
