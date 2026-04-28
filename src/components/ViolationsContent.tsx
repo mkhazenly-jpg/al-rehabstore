@@ -476,6 +476,15 @@ export function ViolationsContent() {
                       <TableCell>{v.action_taken === 'deduction' && Number(v.deduction_amount) > 0 ? formatDays(Number(v.deduction_amount)) : '-'}</TableCell>
                       <TableCell className="text-xs">{new Date(v.violation_date).toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US', { dateStyle: 'short', timeStyle: 'short' })}</TableCell>
                       <TableCell>
+                        {(() => {
+                          const n = notifMap[v.id];
+                          if (!n) return <span className="rounded-full px-2 py-1 text-xs font-medium bg-muted text-muted-foreground">{t('waNotSent')}</span>;
+                          if (n.status === 'sent') return <span className="rounded-full px-2 py-1 text-xs font-medium bg-success/20 text-success" title={n.sent_at ? new Date(n.sent_at).toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US') : ''}>✓ {t('waSent')}</span>;
+                          if (n.status === 'failed') return <span className="rounded-full px-2 py-1 text-xs font-medium bg-destructive/20 text-destructive" title={n.error_message || ''}>✗ {t('waFailed')}</span>;
+                          return <span className="rounded-full px-2 py-1 text-xs font-medium bg-yellow-500/20 text-yellow-700 dark:text-yellow-400">⏳ {t('waPending')}</span>;
+                        })()}
+                      </TableCell>
+                      <TableCell>
                         <div className="flex gap-1">
                           <Button
                             variant="ghost"
