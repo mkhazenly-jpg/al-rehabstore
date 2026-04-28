@@ -565,9 +565,14 @@ export async function buildBackupBuffer(): Promise<Uint8Array> {
     {
       name: 'المخالفات',
       title: tr('violations'),
-      headers: [tr('employee'), tr('department'), tr('violationDescription'), tr('actionTaken'), tr('deductionAmount'), tr('violationDate'), tr('notes')],
+      headers: [
+        tr('employee'), tr('department'), tr('violationDescription'), tr('actionTaken'),
+        tr('violationLocation'), tr('violationDate'), tr('violationTime'),
+        tr('dailyWage'), tr('deductionDays'), tr('deductionValue'),
+        tr('repeatCount'), tr('recordedAt'), tr('notes'),
+      ],
       rows: violRows,
-      currencyCols: [tr('deductionAmount')],
+      currencyCols: [tr('dailyWage'), tr('deductionValue')],
     },
   ];
 
