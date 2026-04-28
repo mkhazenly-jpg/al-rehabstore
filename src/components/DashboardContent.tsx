@@ -750,6 +750,8 @@ export function DashboardContent() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={violationDeductionsOpen} onOpenChange={setViolationDeductionsOpen}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>{t('violationDeductionsBreakdown')}</DialogTitle>
