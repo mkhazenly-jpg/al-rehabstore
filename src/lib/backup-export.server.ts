@@ -219,6 +219,22 @@ function fmtDate(value: string | null | undefined): string {
     return String(value);
   }
 }
+function fmtTime(value: string | null | undefined): string {
+  if (!value) return '';
+  try {
+    return new Date(value).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return '';
+  }
+}
+function fmtDateTime(value: string | null | undefined): string {
+  if (!value) return '';
+  try {
+    return new Date(value).toLocaleString('ar-EG');
+  } catch {
+    return String(value);
+  }
+}
 function num(v: unknown): number {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
