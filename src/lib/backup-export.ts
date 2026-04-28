@@ -148,6 +148,22 @@ function fmtDate(value: string | null | undefined, locale = 'ar-EG'): string {
     return String(value);
   }
 }
+function fmtTime(value: string | null | undefined, locale = 'ar-EG'): string {
+  if (!value) return '';
+  try {
+    return new Date(value).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return '';
+  }
+}
+function fmtDateTime(value: string | null | undefined, locale = 'ar-EG'): string {
+  if (!value) return '';
+  try {
+    return new Date(value).toLocaleString(locale);
+  } catch {
+    return String(value);
+  }
+}
 
 function num(v: unknown): number {
   const n = Number(v);
@@ -450,15 +466,37 @@ export async function exportFullBackup({ lang, t }: BackupOptions): Promise<void
   });
 
   // ---------- VIOLATIONS ----------
-  const violRows: Row[] = viols.map((v) => {
+  const violsSorted = [...viols].sort((a: any, b: any) => {
+    if (a.employee_id !== b.employee_id) return String(a.employee_id).localeCompare(String(b.employee_id));
+    return new Date(a.violation_date).getTime() - new Date(b.violation_date).getTime();
+  });
+  const repeatMap = new Map<string, number>();
+  const repeatById = new Map<string, number>();
+  violsSorted.forEach((v: any) => {
+    const c = (repeatMap.get(v.employee_id) || 0) + 1;
+    repeatMap.set(v.employee_id, c);
+    repeatById.set(v.id, c);
+  });
+  const violRowsSrc = [...viols].sort(
+    (a: any, b: any) => new Date(b.violation_date).getTime() - new Date(a.violation_date).getTime()
+  );
+  const violRows: Row[] = violRowsSrc.map((v: any) => {
     const emp = empMap.get(v.employee_id);
+    const days = num(v.deduction_amount);
+    const wage = num(v.daily_wage);
     return {
       [t('employee')]: emp?.name || '-',
       [t('department')]: emp?.department || '',
       [t('violationDescription')]: v.violation_description,
       [t('actionTaken')]: t(v.action_taken as never) as string,
-      [t('deductionAmount')]: num(v.deduction_amount),
+      [t('violationLocation')]: v.violation_location || emp?.location || '',
       [t('violationDate')]: fmtDate(v.violation_date, locale),
+      [t('violationTime')]: fmtTime(v.violation_date, locale),
+      [t('dailyWage')]: wage,
+      [t('deductionDays')]: days,
+      [t('deductionValue')]: wage * days,
+      [t('repeatCount')]: repeatById.get(v.id) || 1,
+      [t('recordedAt')]: fmtDateTime(v.created_at, locale),
       [t('notes')]: v.notes || '',
     };
   });
@@ -506,9 +544,14 @@ export async function exportFullBackup({ lang, t }: BackupOptions): Promise<void
     {
       name: lang === 'ar' ? 'المخالفات' : 'Violations',
       title: t('violations'),
-      headers: [t('employee'), t('department'), t('violationDescription'), t('actionTaken'), t('deductionAmount'), t('violationDate'), t('notes')],
+      headers: [
+        t('employee'), t('department'), t('violationDescription'), t('actionTaken'),
+        t('violationLocation'), t('violationDate'), t('violationTime'),
+        t('dailyWage'), t('deductionDays'), t('deductionValue'),
+        t('repeatCount'), t('recordedAt'), t('notes'),
+      ],
       rows: violRows,
-      currencyCols: [t('deductionAmount')],
+      currencyCols: [t('dailyWage'), t('deductionValue')],
     },
   ];
 
