@@ -218,6 +218,7 @@ export function DashboardContent() {
   const violationDeductionRows = useMemo(() => {
     return allViolations
       .filter((v: any) => {
+        if (v.action_taken !== 'deduction') return false;
         const d = new Date(v.violation_date);
         if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return false;
         if (selectedMonth !== 'all' && d.getMonth() !== Number(selectedMonth)) return false;
