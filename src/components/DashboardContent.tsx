@@ -652,50 +652,46 @@ export function DashboardContent() {
       </Card>
 
       {/* Most Consumed Items */}
-      <Card className="overflow-hidden border-amber-500/40">
-        <div className="bg-gradient-to-br from-amber-400 to-amber-500 p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-amber-950">{t('mostConsumedItems')}</p>
-              {topConsumedCategory ? (
-                <>
-                  <p className="mt-1 text-2xl font-bold text-amber-950">
-                    {categoryNames[topConsumedCategory.category] || topConsumedCategory.category}
-                  </p>
-                  <p className="text-sm text-amber-950/90 mt-0.5">
-                    {topConsumedCategory.totalQty} {t('piece')}
-                  </p>
-                  {topConsumedCategory.sizes.length > 0 && (
-                    <div className="mt-2">
-                      <p className="text-xs font-semibold text-amber-950/90">{t('mostConsumedSizes')}:</p>
-                      <div className="flex flex-wrap gap-1.5 mt-1">
-                        {topConsumedCategory.sizes.slice(0, 5).map(s => (
-                          <span key={s.size} className="rounded-md bg-amber-950/15 text-amber-950 px-2 py-0.5 text-xs font-semibold">
-                            {s.size}: {s.qty}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  <p className="mt-2 text-xs text-amber-950/80 leading-relaxed">
-                    {t('mostConsumedItemsDesc')}
-                  </p>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="mt-3 bg-amber-950 text-amber-50 hover:bg-amber-950/90"
-                    onClick={() => setMostConsumedOpen(true)}
-                  >
-                    <Eye className="h-4 w-4" />
-                    {t('viewDetails')}
-                  </Button>
-                </>
-              ) : (
-                <p className="mt-2 text-sm text-amber-950/80">{t('noConsumption')}</p>
-              )}
+      <Card className="overflow-hidden border-0 shadow-lg">
+        <div className="bg-gradient-to-br from-amber-400 to-amber-500 p-6">
+          {topConsumedCategory ? (
+            <div className="flex items-center gap-4 flex-row-reverse">
+              {/* Right column: title + ranked list + description */}
+              <div className="min-w-0 flex-1 text-right">
+                <h3 className="text-xl font-bold text-amber-950 mb-3">{t('mostConsumedItems')}</h3>
+                <ul className="space-y-2">
+                  {mostConsumedData.slice(0, 3).map((row, idx) => (
+                    <li key={row.category} className="text-amber-950 font-bold text-lg leading-tight">
+                      <span>{idx + 1}. </span>
+                      <span>{categoryNames[row.category] || row.category}</span>
+                      <span className="font-semibold"> ({row.totalQty} {t('piece')})</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-4 text-sm text-amber-950/85 leading-relaxed">
+                  {t('mostConsumedItemsDesc')}
+                </p>
+              </div>
+              {/* Left column: white pill button */}
+              <div className="shrink-0">
+                <Button
+                  onClick={() => setMostConsumedOpen(true)}
+                  className="bg-white text-amber-900 hover:bg-white/90 rounded-full shadow-md px-5 h-11 font-semibold"
+                >
+                  <Eye className="h-4 w-4" />
+                  {t('viewDetails')}
+                </Button>
+              </div>
             </div>
-            <BarChart3 className="h-8 w-8 text-amber-950/60 shrink-0" />
-          </div>
+          ) : (
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1 text-right">
+                <h3 className="text-xl font-bold text-amber-950 mb-2">{t('mostConsumedItems')}</h3>
+                <p className="text-sm text-amber-950/80">{t('noConsumption')}</p>
+              </div>
+              <BarChart3 className="h-8 w-8 text-amber-950/60 shrink-0" />
+            </div>
+          )}
         </div>
       </Card>
 
