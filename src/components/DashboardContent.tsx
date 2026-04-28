@@ -212,6 +212,7 @@ export function DashboardContent() {
 
   const [deductionsOpen, setDeductionsOpen] = useState(false);
   const [violationDeductionsOpen, setViolationDeductionsOpen] = useState(false);
+  const [mostConsumedOpen, setMostConsumedOpen] = useState(false);
 
   // Per-violation rows (filtered by year/month/location)
   const violationDeductionRows = useMemo(() => {
@@ -348,6 +349,34 @@ export function DashboardContent() {
   filteredAssignments.forEach(a => {
     totalConsumedByItem[a.stock_item_id] = (totalConsumedByItem[a.stock_item_id] || 0) + a.quantity_assigned;
   });
+
+  // Most consumed items - aggregated by category, with size breakdown for sized items
+  const mostConsumedData = (() => {
+    const byCategory: Record<string, { totalQty: number; sizes: Record<string, number>; itemNames: Set<string> }> = {};
+    filteredAssignments.forEach((a: any) => {
+      const item = stockItems.find((i: any) => i.id === a.stock_item_id);
+      if (!item) return;
+      const cat = item.category || '-';
+      if (!byCategory[cat]) byCategory[cat] = { totalQty: 0, sizes: {}, itemNames: new Set() };
+      byCategory[cat].totalQty += a.quantity_assigned || 0;
+      byCategory[cat].itemNames.add(item.name);
+      const size = item.size && item.size !== 'N/A' ? item.size : '-';
+      byCategory[cat].sizes[size] = (byCategory[cat].sizes[size] || 0) + (a.quantity_assigned || 0);
+    });
+    return Object.entries(byCategory)
+      .map(([cat, data]) => ({
+        category: cat,
+        totalQty: data.totalQty,
+        itemNames: Array.from(data.itemNames),
+        sizes: Object.entries(data.sizes)
+          .filter(([s]) => s !== '-')
+          .map(([size, qty]) => ({ size, qty }))
+          .sort((a, b) => b.qty - a.qty),
+      }))
+      .sort((a, b) => b.totalQty - a.totalQty);
+  })();
+
+  const topConsumedCategory = mostConsumedData[0];
 
   const totalPurchaseCost = stockItems.reduce((sum, item) => {
     const added = totalAddedByItem[item.id] || 0;
@@ -621,6 +650,106 @@ export function DashboardContent() {
           </div>
         </div>
       </Card>
+
+      {/* Most Consumed Items */}
+      <Card className="overflow-hidden border-amber-500/40">
+        <div className="bg-gradient-to-br from-amber-400 to-amber-500 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-amber-950">{t('mostConsumedItems')}</p>
+              {topConsumedCategory ? (
+                <>
+                  <p className="mt-1 text-2xl font-bold text-amber-950">
+                    {categoryNames[topConsumedCategory.category] || topConsumedCategory.category}
+                  </p>
+                  <p className="text-sm text-amber-950/90 mt-0.5">
+                    {topConsumedCategory.totalQty} {t('piece')}
+                  </p>
+                  {topConsumedCategory.sizes.length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-xs font-semibold text-amber-950/90">{t('mostConsumedSizes')}:</p>
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {topConsumedCategory.sizes.slice(0, 5).map(s => (
+                          <span key={s.size} className="rounded-md bg-amber-950/15 text-amber-950 px-2 py-0.5 text-xs font-semibold">
+                            {s.size}: {s.qty}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <p className="mt-2 text-xs text-amber-950/80 leading-relaxed">
+                    {t('mostConsumedItemsDesc')}
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="mt-3 bg-amber-950 text-amber-50 hover:bg-amber-950/90"
+                    onClick={() => setMostConsumedOpen(true)}
+                  >
+                    <Eye className="h-4 w-4" />
+                    {t('viewDetails')}
+                  </Button>
+                </>
+              ) : (
+                <p className="mt-2 text-sm text-amber-950/80">{t('noConsumption')}</p>
+              )}
+            </div>
+            <BarChart3 className="h-8 w-8 text-amber-950/60 shrink-0" />
+          </div>
+        </div>
+      </Card>
+
+      <Dialog open={mostConsumedOpen} onOpenChange={setMostConsumedOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{t('mostConsumedItems')}</DialogTitle>
+            <DialogDescription>{t('mostConsumedItemsDesc')}</DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto space-y-4">
+            {mostConsumedData.length === 0 ? (
+              <p className="py-8 text-center text-muted-foreground">{t('noConsumption')}</p>
+            ) : (
+              mostConsumedData.map((row, idx) => (
+                <Card key={row.category} className="overflow-hidden">
+                  <div className="p-4 bg-muted/30">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs text-muted-foreground">#{idx + 1}</p>
+                        <p className="font-bold text-lg">{categoryNames[row.category] || row.category}</p>
+                      </div>
+                      <div className="text-end">
+                        <p className="text-xs text-muted-foreground">{t('consumedQty')}</p>
+                        <p className="font-bold text-xl text-amber-600">{row.totalQty} {t('piece')}</p>
+                      </div>
+                    </div>
+                    {row.sizes.length > 0 && (
+                      <div className="mt-3">
+                        <p className="text-xs font-semibold text-muted-foreground mb-2">{t('mostConsumedSizes')}:</p>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>{t('size')}</TableHead>
+                              <TableHead className="text-end">{t('consumedQty')}</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {row.sizes.map(s => (
+                              <TableRow key={s.size}>
+                                <TableCell className="font-medium">{s.size}</TableCell>
+                                <TableCell className="text-end font-semibold">{s.qty}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={violationDeductionsOpen} onOpenChange={setViolationDeductionsOpen}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
