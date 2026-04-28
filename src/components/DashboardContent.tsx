@@ -722,6 +722,85 @@ export function DashboardContent() {
         </div>
       </Card>
 
+      {/* Top Violators */}
+      <Card className="overflow-hidden border-0 shadow-lg">
+        <div className="bg-gradient-to-br from-amber-400 to-amber-500 p-6">
+          {topViolator ? (
+            <div className="flex items-center gap-4 flex-row-reverse">
+              <div className="min-w-0 flex-1 text-right">
+                <h3 className="text-xl font-bold text-amber-950 mb-3">{t('topViolatorsTitle')}</h3>
+                <ul className="space-y-2">
+                  {topViolatorsData.slice(0, 3).map((row, idx) => (
+                    <li key={row.name + idx} className="text-amber-950 font-bold text-lg leading-tight">
+                      <span>{idx + 1}. </span>
+                      <span>{row.name}</span>
+                      <span className="font-semibold"> ({row.count} {t('violationsCount')})</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-4 text-sm text-amber-950/85 leading-relaxed">
+                  {t('topViolatorsDesc')}
+                </p>
+              </div>
+              <div className="shrink-0">
+                <Button
+                  onClick={() => setTopViolatorsOpen(true)}
+                  className="bg-white text-amber-900 hover:bg-white/90 rounded-full shadow-md px-5 h-11 font-semibold"
+                >
+                  <Eye className="h-4 w-4" />
+                  {t('viewDetails')}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1 text-right">
+                <h3 className="text-xl font-bold text-amber-950 mb-2">{t('topViolatorsTitle')}</h3>
+                <p className="text-sm text-amber-950/80">{t('noViolations')}</p>
+              </div>
+              <Users className="h-8 w-8 text-amber-950/60 shrink-0" />
+            </div>
+          )}
+        </div>
+      </Card>
+
+      <Dialog open={topViolatorsOpen} onOpenChange={setTopViolatorsOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{t('topViolatorsTitle')}</DialogTitle>
+            <DialogDescription>{t('topViolatorsDesc')}</DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto">
+            {topViolatorsData.length === 0 ? (
+              <p className="py-8 text-center text-muted-foreground">{t('noViolations')}</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12">#</TableHead>
+                    <TableHead>{t('employee')}</TableHead>
+                    <TableHead>{t('jobTitle')}</TableHead>
+                    <TableHead>{t('location')}</TableHead>
+                    <TableHead className="text-end">{t('violationsCount')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {topViolatorsData.map((row, idx) => (
+                    <TableRow key={row.name + idx}>
+                      <TableCell className="font-semibold text-muted-foreground">{idx + 1}</TableCell>
+                      <TableCell className="font-medium">{row.name}</TableCell>
+                      <TableCell>{row.jobTitle}</TableCell>
+                      <TableCell>{row.location}</TableCell>
+                      <TableCell className="text-end font-bold text-amber-600">{row.count}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={mostConsumedOpen} onOpenChange={setMostConsumedOpen}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
