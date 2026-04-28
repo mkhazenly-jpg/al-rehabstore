@@ -148,6 +148,22 @@ function fmtDate(value: string | null | undefined, locale = 'ar-EG'): string {
     return String(value);
   }
 }
+function fmtTime(value: string | null | undefined, locale = 'ar-EG'): string {
+  if (!value) return '';
+  try {
+    return new Date(value).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return '';
+  }
+}
+function fmtDateTime(value: string | null | undefined, locale = 'ar-EG'): string {
+  if (!value) return '';
+  try {
+    return new Date(value).toLocaleString(locale);
+  } catch {
+    return String(value);
+  }
+}
 
 function num(v: unknown): number {
   const n = Number(v);
