@@ -544,9 +544,14 @@ export async function exportFullBackup({ lang, t }: BackupOptions): Promise<void
     {
       name: lang === 'ar' ? 'المخالفات' : 'Violations',
       title: t('violations'),
-      headers: [t('employee'), t('department'), t('violationDescription'), t('actionTaken'), t('deductionAmount'), t('violationDate'), t('notes')],
+      headers: [
+        t('employee'), t('department'), t('violationDescription'), t('actionTaken'),
+        t('violationLocation'), t('violationDate'), t('violationTime'),
+        t('dailyWage'), t('deductionDays'), t('deductionValue'),
+        t('repeatCount'), t('recordedAt'), t('notes'),
+      ],
       rows: violRows,
-      currencyCols: [t('deductionAmount')],
+      currencyCols: [t('dailyWage'), t('deductionValue')],
     },
   ];
 
