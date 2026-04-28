@@ -296,7 +296,7 @@ export function ViolationsContent() {
     return digits;
   };
 
-  const handleSendWhatsapp = (v: Violation) => {
+  const handleSendWhatsapp = async (v: Violation) => {
     const emp = empMap[v.employee_id];
     if (!emp?.mobile || !emp.mobile.trim()) {
       toast.error(t('whatsappNoMobile'));
