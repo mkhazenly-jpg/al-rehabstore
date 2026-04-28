@@ -41,7 +41,7 @@ export function DashboardContent() {
       supabase.from('assignments').select('stock_item_id, quantity_assigned, status, created_at, employee_id, employees(location)').in('status', ['approved', 'pending']),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, notes, created_at, status, employee_id, employees(location)').not('notes', 'is', null),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, status, assignment_date, employee_id, unit_price_at_assignment, employees(name, location, status, termination_date), stock_items(name, unit_price, category)').eq('status', 'approved'),
-      supabase.from('employee_violations').select('id, action_taken, deduction_amount, daily_wage, violation_date, violation_description, employee_id, employees(name, location)').eq('action_taken', 'deduction'),
+      supabase.from('employee_violations').select('id, action_taken, deduction_amount, daily_wage, violation_date, violation_description, employee_id, employees(name, location, job_title)'),
     ]);
 
     const items = stockRes.data || [];
@@ -213,11 +213,13 @@ export function DashboardContent() {
   const [deductionsOpen, setDeductionsOpen] = useState(false);
   const [violationDeductionsOpen, setViolationDeductionsOpen] = useState(false);
   const [mostConsumedOpen, setMostConsumedOpen] = useState(false);
+  const [topViolatorsOpen, setTopViolatorsOpen] = useState(false);
 
   // Per-violation rows (filtered by year/month/location)
   const violationDeductionRows = useMemo(() => {
     return allViolations
       .filter((v: any) => {
+        if (v.action_taken !== 'deduction') return false;
         const d = new Date(v.violation_date);
         if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return false;
         if (selectedMonth !== 'all' && d.getMonth() !== Number(selectedMonth)) return false;
@@ -377,6 +379,31 @@ export function DashboardContent() {
   })();
 
   const topConsumedCategory = mostConsumedData[0];
+
+  // Top employees by number of violations (filtered by year/month/location)
+  const topViolatorsData = (() => {
+    const byEmp: Record<string, { name: string; location: string; jobTitle: string; count: number; actions: Record<string, number> }> = {};
+    allViolations.forEach((v: any) => {
+      const d = new Date(v.violation_date);
+      if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return;
+      if (selectedMonth !== 'all' && d.getMonth() !== Number(selectedMonth)) return;
+      if (selectedLocation !== 'all' && v.employees?.location !== selectedLocation) return;
+      const key = v.employee_id || 'unknown';
+      if (!byEmp[key]) byEmp[key] = {
+        name: v.employees?.name || '-',
+        location: v.employees?.location || '-',
+        jobTitle: v.employees?.job_title || '-',
+        count: 0,
+        actions: {},
+      };
+      byEmp[key].count += 1;
+      const act = v.action_taken || '-';
+      byEmp[key].actions[act] = (byEmp[key].actions[act] || 0) + 1;
+    });
+    return Object.values(byEmp).sort((a, b) => b.count - a.count);
+  })();
+
+  const topViolator = topViolatorsData[0];
 
   const totalPurchaseCost = stockItems.reduce((sum, item) => {
     const added = totalAddedByItem[item.id] || 0;
@@ -694,6 +721,85 @@ export function DashboardContent() {
           )}
         </div>
       </Card>
+
+      {/* Top Violators */}
+      <Card className="overflow-hidden border-0 shadow-lg">
+        <div className="bg-gradient-to-br from-amber-400 to-amber-500 p-6">
+          {topViolator ? (
+            <div className="flex items-center gap-4 flex-row-reverse">
+              <div className="min-w-0 flex-1 text-right">
+                <h3 className="text-xl font-bold text-amber-950 mb-3">{t('topViolatorsTitle')}</h3>
+                <ul className="space-y-2">
+                  {topViolatorsData.slice(0, 3).map((row, idx) => (
+                    <li key={row.name + idx} className="text-amber-950 font-bold text-lg leading-tight">
+                      <span>{idx + 1}. </span>
+                      <span>{row.name}</span>
+                      <span className="font-semibold"> ({row.count} {t('violationsCount')})</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-4 text-sm text-amber-950/85 leading-relaxed">
+                  {t('topViolatorsDesc')}
+                </p>
+              </div>
+              <div className="shrink-0">
+                <Button
+                  onClick={() => setTopViolatorsOpen(true)}
+                  className="bg-white text-amber-900 hover:bg-white/90 rounded-full shadow-md px-5 h-11 font-semibold"
+                >
+                  <Eye className="h-4 w-4" />
+                  {t('viewDetails')}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1 text-right">
+                <h3 className="text-xl font-bold text-amber-950 mb-2">{t('topViolatorsTitle')}</h3>
+                <p className="text-sm text-amber-950/80">{t('noViolations')}</p>
+              </div>
+              <Users className="h-8 w-8 text-amber-950/60 shrink-0" />
+            </div>
+          )}
+        </div>
+      </Card>
+
+      <Dialog open={topViolatorsOpen} onOpenChange={setTopViolatorsOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{t('topViolatorsTitle')}</DialogTitle>
+            <DialogDescription>{t('topViolatorsDesc')}</DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto">
+            {topViolatorsData.length === 0 ? (
+              <p className="py-8 text-center text-muted-foreground">{t('noViolations')}</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12">#</TableHead>
+                    <TableHead>{t('employee')}</TableHead>
+                    <TableHead>{t('jobTitle')}</TableHead>
+                    <TableHead>{t('location')}</TableHead>
+                    <TableHead className="text-end">{t('violationsCount')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {topViolatorsData.map((row, idx) => (
+                    <TableRow key={row.name + idx}>
+                      <TableCell className="font-semibold text-muted-foreground">{idx + 1}</TableCell>
+                      <TableCell className="font-medium">{row.name}</TableCell>
+                      <TableCell>{row.jobTitle}</TableCell>
+                      <TableCell>{row.location}</TableCell>
+                      <TableCell className="text-end font-bold text-amber-600">{row.count}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={mostConsumedOpen} onOpenChange={setMostConsumedOpen}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
