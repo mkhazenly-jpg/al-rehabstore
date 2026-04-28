@@ -57,6 +57,7 @@ export function ViolationsContent() {
   const { isAdmin } = useAuth();
   const [violations, setViolations] = useState<Violation[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [notifications, setNotifications] = useState<ViolationNotification[]>([]);
   const [search, setSearch] = useState('');
   const [filterEmployee, setFilterEmployee] = useState('all');
   const [filterRepeats, setFilterRepeats] = useState<number[]>([]);
