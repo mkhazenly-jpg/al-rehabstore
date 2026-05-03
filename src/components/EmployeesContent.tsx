@@ -101,7 +101,7 @@ export function EmployeesContent() {
   const openAdd = () => {
     setEditItem(null);
     setIsAddingDept(false);
-    setForm({ name: '', hire_date: new Date().toISOString().split('T')[0], status: 'active', termination_date: '', department: '', notes: '', shift: '', mobile: '', job_title: '', location: '' });
+    setForm({ name: '', hire_date: new Date().toISOString().split('T')[0], status: 'active', termination_date: '', department: '', notes: '', shift: '', mobile: '', emergency_contact: '', job_title: '', location: '' });
     setDialogOpen(true);
   };
 
