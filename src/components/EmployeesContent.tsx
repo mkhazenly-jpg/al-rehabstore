@@ -551,6 +551,10 @@ export function EmployeesContent() {
               <Input value={form.mobile} onChange={e => setForm({ ...form, mobile: e.target.value })} />
             </div>
             <div className="space-y-2">
+              <Label>{t('emergencyContact')}</Label>
+              <Input value={form.emergency_contact} onChange={e => setForm({ ...form, emergency_contact: e.target.value })} />
+            </div>
+            <div className="space-y-2">
               <Label>{t('shift')}</Label>
               <Select value={form.shift} onValueChange={(v: any) => setForm({ ...form, shift: v })}>
                 <SelectTrigger><SelectValue placeholder="-" /></SelectTrigger>
