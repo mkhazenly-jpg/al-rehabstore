@@ -43,7 +43,7 @@ export function EmployeesContent() {
   const [assignments, setAssignments] = useState<any[]>([]);
   const [empViolations, setEmpViolations] = useState<any[]>([]);
   const [editItem, setEditItem] = useState<Employee | null>(null);
-  const [form, setForm] = useState({ name: '', hire_date: '', status: 'active' as EmployeeStatus, termination_date: '', department: '', notes: '', shift: '' as '' | 'morning' | 'night', mobile: '', job_title: '', location: '' as '' | 'RDC' | 'SDC' });
+  const [form, setForm] = useState({ name: '', hire_date: '', status: 'active' as EmployeeStatus, termination_date: '', department: '', notes: '', shift: '' as '' | 'morning' | 'night', mobile: '', emergency_contact: '', job_title: '', location: '' as '' | 'RDC' | 'SDC' });
   const [isAddingDept, setIsAddingDept] = useState(false);
   const [showJobSuggestions, setShowJobSuggestions] = useState(false);
   const jobInputWrapRef = useRef<HTMLDivElement>(null);
