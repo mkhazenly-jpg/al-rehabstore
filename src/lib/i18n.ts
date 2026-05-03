@@ -452,6 +452,7 @@ export const translations = {
     morning: 'Morning',
     night: 'Night',
     mobile: 'Mobile',
+    emergencyContact: 'Emergency Contact',
     jobTitle: 'Job Title',
     safetyShoeSize: 'Safety Shoe Size',
     unauthorized: 'Unauthorized',
