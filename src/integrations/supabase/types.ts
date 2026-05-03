@@ -239,6 +239,7 @@ export type Database = {
         Row: {
           created_at: string
           department: string | null
+          emergency_contact: string | null
           hire_date: string
           id: string
           job_title: string | null
@@ -254,6 +255,7 @@ export type Database = {
         Insert: {
           created_at?: string
           department?: string | null
+          emergency_contact?: string | null
           hire_date?: string
           id?: string
           job_title?: string | null
@@ -269,6 +271,7 @@ export type Database = {
         Update: {
           created_at?: string
           department?: string | null
+          emergency_contact?: string | null
           hire_date?: string
           id?: string
           job_title?: string | null

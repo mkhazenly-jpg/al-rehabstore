@@ -43,7 +43,7 @@ export function EmployeesContent() {
   const [assignments, setAssignments] = useState<any[]>([]);
   const [empViolations, setEmpViolations] = useState<any[]>([]);
   const [editItem, setEditItem] = useState<Employee | null>(null);
-  const [form, setForm] = useState({ name: '', hire_date: '', status: 'active' as EmployeeStatus, termination_date: '', department: '', notes: '', shift: '' as '' | 'morning' | 'night', mobile: '', job_title: '', location: '' as '' | 'RDC' | 'SDC' });
+  const [form, setForm] = useState({ name: '', hire_date: '', status: 'active' as EmployeeStatus, termination_date: '', department: '', notes: '', shift: '' as '' | 'morning' | 'night', mobile: '', emergency_contact: '', job_title: '', location: '' as '' | 'RDC' | 'SDC' });
   const [isAddingDept, setIsAddingDept] = useState(false);
   const [showJobSuggestions, setShowJobSuggestions] = useState(false);
   const jobInputWrapRef = useRef<HTMLDivElement>(null);
@@ -101,7 +101,7 @@ export function EmployeesContent() {
   const openAdd = () => {
     setEditItem(null);
     setIsAddingDept(false);
-    setForm({ name: '', hire_date: new Date().toISOString().split('T')[0], status: 'active', termination_date: '', department: '', notes: '', shift: '', mobile: '', job_title: '', location: '' });
+    setForm({ name: '', hire_date: new Date().toISOString().split('T')[0], status: 'active', termination_date: '', department: '', notes: '', shift: '', mobile: '', emergency_contact: '', job_title: '', location: '' });
     setDialogOpen(true);
   };
 
@@ -117,6 +117,7 @@ export function EmployeesContent() {
       notes: emp.notes || '',
       shift: (emp as any).shift || '',
       mobile: (emp as any).mobile || '',
+      emergency_contact: (emp as any).emergency_contact || '',
       job_title: (emp as any).job_title || '',
       location: (emp as any).location || '',
     });
@@ -155,6 +156,7 @@ export function EmployeesContent() {
       termination_date: finalStatus !== 'active' ? (form.termination_date || new Date().toISOString().split('T')[0]) : null,
       shift: form.shift || null,
       mobile: form.mobile || null,
+      emergency_contact: form.emergency_contact || null,
       job_title: form.job_title || null,
       location: form.location || null,
     };
@@ -549,6 +551,10 @@ export function EmployeesContent() {
               <Input value={form.mobile} onChange={e => setForm({ ...form, mobile: e.target.value })} />
             </div>
             <div className="space-y-2">
+              <Label>{t('emergencyContact')}</Label>
+              <Input value={form.emergency_contact} onChange={e => setForm({ ...form, emergency_contact: e.target.value })} />
+            </div>
+            <div className="space-y-2">
               <Label>{t('shift')}</Label>
               <Select value={form.shift} onValueChange={(v: any) => setForm({ ...form, shift: v })}>
                 <SelectTrigger><SelectValue placeholder="-" /></SelectTrigger>
@@ -632,6 +638,8 @@ export function EmployeesContent() {
                   <span>{(selectedEmployee as any).job_title || '-'}</span>
                   <span className="text-muted-foreground">{t('mobile')}:</span>
                   <span>{(selectedEmployee as any).mobile || '-'}</span>
+                  <span className="text-muted-foreground">{t('emergencyContact')}:</span>
+                  <span>{(selectedEmployee as any).emergency_contact || '-'}</span>
                   <span className="text-muted-foreground">{t('shift')}:</span>
                   <span>{(selectedEmployee as any).shift ? t((selectedEmployee as any).shift as any) : '-'}</span>
                   <span className="text-muted-foreground">{t('location')}:</span>
