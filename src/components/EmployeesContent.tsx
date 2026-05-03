@@ -117,6 +117,7 @@ export function EmployeesContent() {
       notes: emp.notes || '',
       shift: (emp as any).shift || '',
       mobile: (emp as any).mobile || '',
+      emergency_contact: (emp as any).emergency_contact || '',
       job_title: (emp as any).job_title || '',
       location: (emp as any).location || '',
     });
