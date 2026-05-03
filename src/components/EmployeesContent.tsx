@@ -638,6 +638,8 @@ export function EmployeesContent() {
                   <span>{(selectedEmployee as any).job_title || '-'}</span>
                   <span className="text-muted-foreground">{t('mobile')}:</span>
                   <span>{(selectedEmployee as any).mobile || '-'}</span>
+                  <span className="text-muted-foreground">{t('emergencyContact')}:</span>
+                  <span>{(selectedEmployee as any).emergency_contact || '-'}</span>
                   <span className="text-muted-foreground">{t('shift')}:</span>
                   <span>{(selectedEmployee as any).shift ? t((selectedEmployee as any).shift as any) : '-'}</span>
                   <span className="text-muted-foreground">{t('location')}:</span>
