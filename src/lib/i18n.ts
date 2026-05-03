@@ -122,6 +122,7 @@ export const translations = {
     morning: 'صباحي',
     night: 'مسائي',
     mobile: 'رقم الموبايل',
+    emergencyContact: 'رقم الطوارئ',
     jobTitle: 'الوظيفة',
     safetyShoeSize: 'مقاس حذاء السلامة',
     unauthorized: 'غير مصرح',
