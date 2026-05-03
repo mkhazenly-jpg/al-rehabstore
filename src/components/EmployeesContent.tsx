@@ -156,6 +156,7 @@ export function EmployeesContent() {
       termination_date: finalStatus !== 'active' ? (form.termination_date || new Date().toISOString().split('T')[0]) : null,
       shift: form.shift || null,
       mobile: form.mobile || null,
+      emergency_contact: form.emergency_contact || null,
       job_title: form.job_title || null,
       location: form.location || null,
     };
