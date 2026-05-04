@@ -14,6 +14,7 @@ import { Route as UnauthorizedRouteImport } from './routes/unauthorized'
 import { Route as StockRouteImport } from './routes/stock'
 import { Route as EmployeesRouteImport } from './routes/employees'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as BulkMessagesRouteImport } from './routes/bulk-messages'
 import { Route as AssignmentsRouteImport } from './routes/assignments'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
@@ -43,6 +44,11 @@ const EmployeesRoute = EmployeesRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BulkMessagesRoute = BulkMessagesRouteImport.update({
+  id: '/bulk-messages',
+  path: '/bulk-messages',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AssignmentsRoute = AssignmentsRouteImport.update({
@@ -75,6 +81,7 @@ const ApiPublicHooksAutoBackupRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/assignments': typeof AssignmentsRoute
+  '/bulk-messages': typeof BulkMessagesRoute
   '/dashboard': typeof DashboardRoute
   '/employees': typeof EmployeesRoute
   '/stock': typeof StockRoute
@@ -87,6 +94,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/assignments': typeof AssignmentsRoute
+  '/bulk-messages': typeof BulkMessagesRoute
   '/dashboard': typeof DashboardRoute
   '/employees': typeof EmployeesRoute
   '/stock': typeof StockRoute
@@ -100,6 +108,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/assignments': typeof AssignmentsRoute
+  '/bulk-messages': typeof BulkMessagesRoute
   '/dashboard': typeof DashboardRoute
   '/employees': typeof EmployeesRoute
   '/stock': typeof StockRoute
@@ -114,6 +123,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/assignments'
+    | '/bulk-messages'
     | '/dashboard'
     | '/employees'
     | '/stock'
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/assignments'
+    | '/bulk-messages'
     | '/dashboard'
     | '/employees'
     | '/stock'
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/assignments'
+    | '/bulk-messages'
     | '/dashboard'
     | '/employees'
     | '/stock'
@@ -151,6 +163,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AssignmentsRoute: typeof AssignmentsRoute
+  BulkMessagesRoute: typeof BulkMessagesRoute
   DashboardRoute: typeof DashboardRoute
   EmployeesRoute: typeof EmployeesRoute
   StockRoute: typeof StockRoute
@@ -198,6 +211,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/bulk-messages': {
+      id: '/bulk-messages'
+      path: '/bulk-messages'
+      fullPath: '/bulk-messages'
+      preLoaderRoute: typeof BulkMessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/assignments': {
       id: '/assignments'
       path: '/assignments'
@@ -239,6 +259,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AssignmentsRoute: AssignmentsRoute,
+  BulkMessagesRoute: BulkMessagesRoute,
   DashboardRoute: DashboardRoute,
   EmployeesRoute: EmployeesRoute,
   StockRoute: StockRoute,
