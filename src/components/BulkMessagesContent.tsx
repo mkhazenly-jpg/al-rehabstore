@@ -118,29 +118,60 @@ export function BulkMessagesContent() {
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) {
+      toast.error(lang === 'ar' ? 'يجب تسجيل الدخول لرفع الملفات' : 'Login required to upload');
+      return;
+    }
     setUploading(true);
+    const toastId = toast.loading(lang === 'ar' ? 'جارٍ رفع الملفات...' : 'Uploading...');
     try {
       const uploaded: Attachment[] = [];
+      let failed = 0;
       for (const file of Array.from(files)) {
         if (file.size > MAX_FILE_MB * 1024 * 1024) {
           toast.error(`${file.name}: > ${MAX_FILE_MB}MB`);
+          failed++;
           continue;
         }
-        const ext = file.name.split('.').pop() || 'bin';
-        const path = `${crypto.randomUUID()}.${ext}`;
+        const ext = (file.name.split('.').pop() || 'bin').toLowerCase();
+        const path = `${Date.now()}-${crypto.randomUUID()}.${ext}`;
         const { error } = await supabase.storage.from(ATTACHMENT_BUCKET).upload(path, file, {
-          contentType: file.type, upsert: false,
+          contentType: file.type || 'application/octet-stream', upsert: false,
         });
-        if (error) { toast.error(`${file.name}: ${error.message}`); continue; }
+        if (error) {
+          console.error('Upload error:', error);
+          toast.error(`${file.name}: ${error.message}`);
+          failed++;
+          continue;
+        }
         const { data: pub } = supabase.storage.from(ATTACHMENT_BUCKET).getPublicUrl(path);
         uploaded.push({ name: file.name, url: pub.publicUrl, size: file.size });
       }
-      if (uploaded.length) setAttachments(prev => [...prev, ...uploaded]);
+      if (uploaded.length) {
+        setAttachments(prev => [...prev, ...uploaded]);
+        toast.success(
+          lang === 'ar'
+            ? `تم رفع ${uploaded.length} ملف بنجاح`
+            : `Uploaded ${uploaded.length} file(s)`,
+          { id: toastId }
+        );
+      } else {
+        toast.error(
+          lang === 'ar' ? 'لم يتم رفع أي ملف' : 'No files uploaded',
+          { id: toastId }
+        );
+      }
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message || 'Upload failed', { id: toastId });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
+
+  const isImage = (url: string) => /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(url);
 
   const removeAttachment = (url: string) => {
     setAttachments(prev => prev.filter(a => a.url !== url));
