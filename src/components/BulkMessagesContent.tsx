@@ -300,17 +300,27 @@ export function BulkMessagesContent() {
             {attachments.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {attachments.map(a => (
-                  <Badge key={a.url} variant="secondary" className="gap-1 py-1">
-                    <Paperclip className="h-3 w-3" />
-                    <span className="max-w-[180px] truncate">{a.name}</span>
+                  <div key={a.url} className="relative flex items-center gap-2 border rounded-md p-2 bg-muted/30 max-w-[260px]">
+                    {isImage(a.url) ? (
+                      <img src={a.url} alt={a.name} className="h-12 w-12 object-cover rounded" />
+                    ) : (
+                      <div className="h-12 w-12 flex items-center justify-center bg-background rounded border">
+                        <Paperclip className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-medium truncate max-w-[160px]">{a.name}</span>
+                      <span className="text-[10px] text-muted-foreground">{(a.size / 1024).toFixed(1)} KB</span>
+                    </div>
                     <button
                       onClick={() => removeAttachment(a.url)}
-                      className="ms-1 hover:text-destructive"
+                      className="ms-1 text-muted-foreground hover:text-destructive"
                       type="button"
+                      aria-label="remove"
                     >
-                      <X className="h-3 w-3" />
+                      <X className="h-4 w-4" />
                     </button>
-                  </Badge>
+                  </div>
                 ))}
               </div>
             )}
