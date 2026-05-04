@@ -1,7 +1,7 @@
 import { Link, useLocation } from '@tanstack/react-router';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
-import { LayoutDashboard, Package, Users, ClipboardList, LogOut, Globe, Menu, X, Shield, AlertTriangle, History } from 'lucide-react';
+import { LayoutDashboard, Package, Users, ClipboardList, LogOut, Globe, Menu, X, Shield, AlertTriangle, History, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 
