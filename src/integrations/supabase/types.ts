@@ -462,6 +462,45 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_send_attempts: {
+        Row: {
+          campaign_id: string | null
+          created_at: string
+          employee_id: string
+          error_message: string | null
+          id: string
+          message: string
+          sent_at: string
+          status: string
+          to_number: string
+          triggered_by: string | null
+        }
+        Insert: {
+          campaign_id?: string | null
+          created_at?: string
+          employee_id: string
+          error_message?: string | null
+          id?: string
+          message: string
+          sent_at?: string
+          status?: string
+          to_number: string
+          triggered_by?: string | null
+        }
+        Update: {
+          campaign_id?: string | null
+          created_at?: string
+          employee_id?: string
+          error_message?: string | null
+          id?: string
+          message?: string
+          sent_at?: string
+          status?: string
+          to_number?: string
+          triggered_by?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
