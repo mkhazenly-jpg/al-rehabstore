@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/hooks/use-language';
 import { Button } from '@/components/ui/button';
@@ -9,13 +9,23 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Send, MessageCircle, Loader2 } from 'lucide-react';
+import { Send, MessageCircle, Loader2, Paperclip, X } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Tables as DBTables } from '@/integrations/supabase/types';
 
 type Employee = DBTables<'employees'>;
 
 const ALL = '__all__';
+const ATTACHMENT_BUCKET = 'bulk-attachments';
+const MAX_FILE_MB = 25;
+const ACCEPTED = [
+  'image/*', 'video/*',
+  'application/pdf',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+].join(',');
 
 function normalizePhoneForWhatsApp(raw: string): string {
   let digits = raw.replace(/[^\d+]/g, '');
@@ -34,6 +44,8 @@ function applyVars(template: string, emp: Employee): string {
     .replaceAll('{shift}', emp.shift || '');
 }
 
+type Attachment = { name: string; url: string; size: number };
+
 export function BulkMessagesContent() {
   const { t, lang } = useLanguage();
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -44,8 +56,12 @@ export function BulkMessagesContent() {
   const [activeOnly, setActiveOnly] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [sending, setSending] = useState(false);
+  const sendingRef = useRef(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [logs, setLogs] = useState<any[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadEmployees = async () => {
     const { data, error } = await supabase.from('employees').select('*').order('name');
@@ -100,54 +116,110 @@ export function BulkMessagesContent() {
   const selectAll = () => setSelectedIds(new Set(eligible.map(e => e.id)));
   const clearAll = () => setSelectedIds(new Set());
 
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    try {
+      const uploaded: Attachment[] = [];
+      for (const file of Array.from(files)) {
+        if (file.size > MAX_FILE_MB * 1024 * 1024) {
+          toast.error(`${file.name}: > ${MAX_FILE_MB}MB`);
+          continue;
+        }
+        const ext = file.name.split('.').pop() || 'bin';
+        const path = `${crypto.randomUUID()}.${ext}`;
+        const { error } = await supabase.storage.from(ATTACHMENT_BUCKET).upload(path, file, {
+          contentType: file.type, upsert: false,
+        });
+        if (error) { toast.error(`${file.name}: ${error.message}`); continue; }
+        const { data: pub } = supabase.storage.from(ATTACHMENT_BUCKET).getPublicUrl(path);
+        uploaded.push({ name: file.name, url: pub.publicUrl, size: file.size });
+      }
+      if (uploaded.length) setAttachments(prev => [...prev, ...uploaded]);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const removeAttachment = (url: string) => {
+    setAttachments(prev => prev.filter(a => a.url !== url));
+  };
+
+  const buildFinalMessage = (template: string, emp: Employee) => {
+    let text = applyVars(template, emp);
+    if (attachments.length > 0) {
+      const links = attachments.map(a => `📎 ${a.name}\n${a.url}`).join('\n\n');
+      text = text ? `${text}\n\n${links}` : links;
+    }
+    return text;
+  };
+
   const handleSendAll = async () => {
-    if (!message.trim()) { toast.error(t('bulkMessageRequired')); return; }
+    // Prevent rapid double-clicks via synchronous ref guard
+    if (sendingRef.current) return;
+    if (!message.trim() && attachments.length === 0) { toast.error(t('bulkMessageRequired')); return; }
     const targets = eligible.filter(e => selectedIds.has(e.id));
     if (targets.length === 0) { toast.error(t('bulkNoRecipients')); return; }
 
+    sendingRef.current = true;
     setSending(true);
     setProgress({ done: 0, total: targets.length });
     const campaignId = crypto.randomUUID();
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData?.user?.id ?? null;
 
-    for (let i = 0; i < targets.length; i++) {
-      const emp = targets[i];
-      const phone = normalizePhoneForWhatsApp(emp.mobile!);
-      if (phone.length < 8) {
+    // Track which employees were already logged in this campaign to avoid duplicates
+    const sentInCampaign = new Set<string>();
+
+    try {
+      for (let i = 0; i < targets.length; i++) {
+        const emp = targets[i];
+        if (sentInCampaign.has(emp.id)) {
+          setProgress({ done: i + 1, total: targets.length });
+          continue;
+        }
+
+        const phone = normalizePhoneForWhatsApp(emp.mobile!);
+        if (phone.length < 8) {
+          await supabase.from('whatsapp_send_attempts' as any).insert({
+            employee_id: emp.id, to_number: emp.mobile, message: buildFinalMessage(message, emp),
+            campaign_id: campaignId, status: 'failed', error_message: 'invalid phone',
+            triggered_by: userId,
+          });
+          sentInCampaign.add(emp.id);
+          setProgress({ done: i + 1, total: targets.length });
+          continue;
+        }
+
+        const text = buildFinalMessage(message, emp);
+        const url = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+        window.open(url, '_blank', 'noopener,noreferrer');
+
         await supabase.from('whatsapp_send_attempts' as any).insert({
-          employee_id: emp.id, to_number: emp.mobile, message: applyVars(message, emp),
-          campaign_id: campaignId, status: 'failed', error_message: 'invalid phone',
-          triggered_by: userId,
+          employee_id: emp.id, to_number: phone, message: text,
+          campaign_id: campaignId, status: 'opened', triggered_by: userId,
         });
+        sentInCampaign.add(emp.id);
+
         setProgress({ done: i + 1, total: targets.length });
-        continue;
-      }
-      const text = applyVars(message, emp);
-      const url = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
-      window.open(url, '_blank', 'noopener,noreferrer');
 
-      await supabase.from('whatsapp_send_attempts' as any).insert({
-        employee_id: emp.id, to_number: phone, message: text,
-        campaign_id: campaignId, status: 'opened', triggered_by: userId,
-      });
-
-      setProgress({ done: i + 1, total: targets.length });
-
-      if (i < targets.length - 1) {
-        const proceed = window.confirm(
-          `(${i + 1}/${targets.length}) ${emp.name}\n\n${t('bulkConfirmNext')}`
-        );
-        if (!proceed) {
-          toast.info(t('bulkSkipped'));
-          break;
+        if (i < targets.length - 1) {
+          const proceed = window.confirm(
+            `(${i + 1}/${targets.length}) ${emp.name}\n\n${t('bulkConfirmNext')}`
+          );
+          if (!proceed) {
+            toast.info(t('bulkSkipped'));
+            break;
+          }
         }
       }
+      toast.success(t('bulkDone'));
+      await loadLogs();
+    } finally {
+      sendingRef.current = false;
+      setSending(false);
     }
-
-    setSending(false);
-    toast.success(t('bulkDone'));
-    await loadLogs();
   };
 
   return (
@@ -159,7 +231,7 @@ export function BulkMessagesContent() {
 
       <Card>
         <CardHeader><CardTitle className="text-base">{t('bulkMessageText')}</CardTitle></CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-3">
           <Textarea
             value={message}
             onChange={e => setMessage(e.target.value)}
@@ -168,6 +240,57 @@ export function BulkMessagesContent() {
             dir="auto"
           />
           <p className="text-xs text-muted-foreground">{t('bulkMessageHint')}</p>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept={ACCEPTED}
+                className="hidden"
+                onChange={e => handleFiles(e.target.files)}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={uploading || sending}
+                onClick={() => fileInputRef.current?.click()}
+                className="gap-2"
+              >
+                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+                {lang === 'ar' ? 'إرفاق ملفات (صور/فيديو/PDF/PPT/Excel)' : 'Attach files (image/video/PDF/PPT/Excel)'}
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                {lang === 'ar' ? `حد أقصى ${MAX_FILE_MB} ميجا للملف` : `Max ${MAX_FILE_MB}MB per file`}
+              </span>
+            </div>
+            {attachments.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {attachments.map(a => (
+                  <Badge key={a.url} variant="secondary" className="gap-1 py-1">
+                    <Paperclip className="h-3 w-3" />
+                    <span className="max-w-[180px] truncate">{a.name}</span>
+                    <button
+                      onClick={() => removeAttachment(a.url)}
+                      className="ms-1 hover:text-destructive"
+                      type="button"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+            {attachments.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {lang === 'ar'
+                  ? 'سيتم إرفاق روابط الملفات تلقائيًا في الرسالة.'
+                  : 'File links will be appended to the message automatically.'}
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -270,7 +393,12 @@ export function BulkMessagesContent() {
       </Card>
 
       <div className="flex items-center gap-3 sticky bottom-2 bg-background/80 backdrop-blur p-2 rounded-lg border">
-        <Button onClick={handleSendAll} disabled={sending || selectedIds.size === 0} className="gap-2">
+        <Button
+          onClick={handleSendAll}
+          disabled={sending || uploading || selectedIds.size === 0}
+          aria-disabled={sending || uploading}
+          className="gap-2"
+        >
           {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           {sending ? t('bulkSending') : `${t('bulkSendAll')} (${selectedIds.size})`}
         </Button>
