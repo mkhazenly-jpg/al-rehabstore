@@ -112,13 +112,17 @@ export function DashboardContent() {
     };
   }, [allEmployees, stockItems, assignments, selectedLocation, selectedYear, selectedMonth, additions]);
 
-  // Get available years from additions
+  // Get available years from all date sources, plus current year and a few recent years as fallback
   const availableYears = useMemo(() => {
     const years = new Set<number>();
-    additions.forEach(a => years.add(new Date(a.added_at).getFullYear()));
-    assignments.forEach(a => years.add(new Date(a.created_at).getFullYear()));
+    const now = new Date().getFullYear();
+    for (let i = 0; i < 5; i++) years.add(now - i);
+    additions.forEach(a => { if (a.added_at) years.add(new Date(a.added_at).getFullYear()); });
+    assignments.forEach(a => { if (a.created_at) years.add(new Date(a.created_at).getFullYear()); });
+    allViolations.forEach((v: any) => { if (v.violation_date) years.add(new Date(v.violation_date).getFullYear()); });
+    allEmployees.forEach((e: any) => { if (e.hire_date) years.add(new Date(e.hire_date).getFullYear()); });
     return Array.from(years).sort((a, b) => b - a);
-  }, [additions, assignments]);
+  }, [additions, assignments, allViolations, allEmployees]);
 
   const monthNames: Record<string, string> = {
     '0': t('january'), '1': t('february'), '2': t('march'), '3': t('april'),
