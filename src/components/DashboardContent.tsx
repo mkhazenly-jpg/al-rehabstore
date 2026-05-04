@@ -57,14 +57,60 @@ export function DashboardContent() {
   };
 
   const stats = useMemo(() => {
-    const filteredEmployees = allEmployees.filter((e: any) => selectedLocation === 'all' || e.location === selectedLocation);
-    const pending = assignments.filter((a: any) => a.status === 'pending' && (selectedLocation === 'all' || a.employees?.location === selectedLocation));
+    // Determine the active period from year/month filters
+    let periodStart: Date | null = null;
+    let periodEnd: Date | null = null;
+    if (selectedYear !== 'all') {
+      const y = Number(selectedYear);
+      if (selectedMonth !== 'all') {
+        const m = Number(selectedMonth);
+        periodStart = new Date(y, m, 1);
+        periodEnd = new Date(y, m + 1, 0, 23, 59, 59);
+      } else {
+        periodStart = new Date(y, 0, 1);
+        periodEnd = new Date(y, 11, 31, 23, 59, 59);
+      }
+    }
+
+    // Active employees: filter by location AND active during the selected period
+    const filteredEmployees = allEmployees.filter((e: any) => {
+      if (selectedLocation !== 'all' && e.location !== selectedLocation) return false;
+      if (periodStart && periodEnd) {
+        const hireMs = e.hire_date ? new Date(e.hire_date).getTime() : null;
+        const termMs = e.termination_date ? new Date(e.termination_date).getTime() : null;
+        if (hireMs === null || hireMs > periodEnd.getTime()) return false;
+        if (termMs !== null && termMs < periodStart.getTime()) return false;
+      }
+      return true;
+    });
+
+    // Pending assignments filtered by period (created_at) + location
+    const pending = assignments.filter((a: any) => {
+      if (a.status !== 'pending') return false;
+      if (selectedLocation !== 'all' && a.employees?.location !== selectedLocation) return false;
+      if (periodStart && periodEnd) {
+        const d = new Date(a.created_at).getTime();
+        if (d < periodStart.getTime() || d > periodEnd.getTime()) return false;
+      }
+      return true;
+    });
+
+    // Total stock: when filtering by period, show items added in that period; else total items count
+    let totalStock = stockItems.length;
+    if (periodStart && periodEnd) {
+      totalStock = additions.reduce((sum: number, a: any) => {
+        const d = new Date(a.added_at).getTime();
+        if (d < periodStart!.getTime() || d > periodEnd!.getTime()) return sum;
+        return sum + (a.quantity_added || 0);
+      }, 0);
+    }
+
     return {
-      totalStock: stockItems.length,
+      totalStock,
       totalEmployees: filteredEmployees.length,
       pendingAssignments: pending.length,
     };
-  }, [allEmployees, stockItems, assignments, selectedLocation]);
+  }, [allEmployees, stockItems, assignments, selectedLocation, selectedYear, selectedMonth, additions]);
 
   // Get available years from additions
   const availableYears = useMemo(() => {
