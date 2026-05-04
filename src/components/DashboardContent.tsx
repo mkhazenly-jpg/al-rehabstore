@@ -98,7 +98,11 @@ export function DashboardContent() {
     // Total stock: when filtering by period, show items added in that period; else total items count
     let totalStock = stockItems.length;
     if (periodStart && periodEnd) {
-      totalStock = filteredAdditions.reduce((sum: number, a: any) => sum + (a.quantity_added || 0), 0);
+      totalStock = additions.reduce((sum: number, a: any) => {
+        const d = new Date(a.added_at).getTime();
+        if (d < periodStart!.getTime() || d > periodEnd!.getTime()) return sum;
+        return sum + (a.quantity_added || 0);
+      }, 0);
     }
 
     return {
@@ -106,7 +110,7 @@ export function DashboardContent() {
       totalEmployees: filteredEmployees.length,
       pendingAssignments: pending.length,
     };
-  }, [allEmployees, stockItems, assignments, selectedLocation, selectedYear, selectedMonth, filteredAdditions]);
+  }, [allEmployees, stockItems, assignments, selectedLocation, selectedYear, selectedMonth, additions]);
 
   // Get available years from additions
   const availableYears = useMemo(() => {
