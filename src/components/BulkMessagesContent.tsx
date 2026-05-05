@@ -317,7 +317,15 @@ export function BulkMessagesContent() {
   const handleSendAll = async () => {
     // Prevent rapid double-clicks via synchronous ref guard
     if (sendingRef.current) return;
-    if (!message.trim() && attachments.length === 0) { toast.error(t('bulkMessageRequired')); return; }
+    if (!message.trim() && uploadedAttachments.length === 0) { toast.error(t('bulkMessageRequired')); return; }
+    if (attachments.some(a => a.status === 'uploading')) {
+      toast.error(lang === 'ar' ? 'انتظر حتى يكتمل رفع الملفات' : 'Wait until uploads finish');
+      return;
+    }
+    if (attachments.some(a => a.status === 'error')) {
+      toast.error(lang === 'ar' ? 'احذف الملفات التي فشل رفعها أو أعد رفعها قبل الإرسال' : 'Remove failed uploads or upload them again before sending');
+      return;
+    }
     const targets = eligible.filter(e => selectedIds.has(e.id));
     if (targets.length === 0) { toast.error(t('bulkNoRecipients')); return; }
 
@@ -328,53 +336,35 @@ export function BulkMessagesContent() {
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData?.user?.id ?? null;
 
-    // Track which employees were already logged in this campaign to avoid duplicates
-    const sentInCampaign = new Set<string>();
-
     try {
-      for (let i = 0; i < targets.length; i++) {
-        const emp = targets[i];
-        if (sentInCampaign.has(emp.id)) {
-          setProgress({ done: i + 1, total: targets.length });
-          continue;
-        }
+      const seen = new Set<string>();
+      const queue: SendQueueItem[] = [];
 
-        const phone = normalizePhoneForWhatsApp(emp.mobile!);
+      for (const emp of targets) {
+        if (seen.has(emp.id)) continue;
+        seen.add(emp.id);
+        const phone = normalizePhoneForWhatsApp(emp.mobile || '');
+        const text = buildFinalMessage(message, emp);
         if (phone.length < 8) {
           await supabase.from('whatsapp_send_attempts' as any).insert({
-            employee_id: emp.id, to_number: emp.mobile, message: buildFinalMessage(message, emp),
+            employee_id: emp.id, to_number: emp.mobile || '', message: text,
             campaign_id: campaignId, status: 'failed', error_message: 'invalid phone',
             triggered_by: userId,
           });
-          sentInCampaign.add(emp.id);
-          setProgress({ done: i + 1, total: targets.length });
           continue;
         }
-
-        const text = buildFinalMessage(message, emp);
-        const url = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
-        window.open(url, '_blank', 'noopener,noreferrer');
-
-        await supabase.from('whatsapp_send_attempts' as any).insert({
-          employee_id: emp.id, to_number: phone, message: text,
-          campaign_id: campaignId, status: 'opened', triggered_by: userId,
-        });
-        sentInCampaign.add(emp.id);
-
-        setProgress({ done: i + 1, total: targets.length });
-
-        if (i < targets.length - 1) {
-          const proceed = window.confirm(
-            `(${i + 1}/${targets.length}) ${emp.name}\n\n${t('bulkConfirmNext')}`
-          );
-          if (!proceed) {
-            toast.info(t('bulkSkipped'));
-            break;
-          }
-        }
+        queue.push({ employeeId: emp.id, name: emp.name, phone, text, status: 'pending' });
       }
-      toast.success(t('bulkDone'));
-      await loadLogs();
+
+      if (queue.length === 0) {
+        toast.error(t('bulkNoRecipients'));
+        await loadLogs();
+        return;
+      }
+
+      saveSendSession({ campaignId, userId, queue, index: 0 });
+      setProgress({ done: 0, total: queue.length });
+      toast.success(lang === 'ar' ? `تم تجهيز ${queue.length} رسالة. اضغط فتح التالي للإرسال.` : `${queue.length} messages queued. Press open next to send.`);
     } finally {
       sendingRef.current = false;
       setSending(false);
