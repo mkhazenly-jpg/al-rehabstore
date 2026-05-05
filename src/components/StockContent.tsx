@@ -134,35 +134,37 @@ export function StockContent() {
   const filtered = items.filter(i => {
     const matchSearch = i.name.toLowerCase().includes(search.toLowerCase());
     const matchCat = categoryFilter === 'all' || i.category === categoryFilter;
-    return matchSearch && matchCat;
+    const matchLoc = locationFilter === 'all' || (i as any).location === locationFilter;
+    return matchSearch && matchCat && matchLoc;
   });
 
   const openAdd = () => {
     setEditItem(null);
     setExistingMatch(null);
-    setForm({ name: '', category: 'safety shoes', size: '', quantity_in_stock: 0, unit: 'piece', unit_price: 0 });
+    setForm({ name: '', category: 'safety shoes', size: '', quantity_in_stock: 0, unit: 'piece', unit_price: 0, location: '' });
     setDialogOpen(true);
   };
 
   const openEdit = (item: StockItem) => {
     setEditItem(item);
     setExistingMatch(null);
-    setForm({ name: item.name, category: item.category, size: item.size, quantity_in_stock: item.quantity_in_stock, unit: item.unit, unit_price: (item as any).unit_price || 0 });
+    setForm({ name: item.name, category: item.category, size: item.size, quantity_in_stock: item.quantity_in_stock, unit: item.unit, unit_price: (item as any).unit_price || 0, location: ((item as any).location as any) || '' });
     setDialogOpen(true);
   };
 
-  // Check for existing item when category/size changes (only in add mode)
+  // Check for existing item when category/size/location changes (only in add mode)
   useEffect(() => {
     if (editItem) {
       setExistingMatch(null);
       return;
     }
     const sizeVal = form.category === 'safety shoes' ? form.size.trim() : 'N/A';
+    const locVal = form.location || null;
     const match = items.find(
-      i => i.category === form.category && i.size.trim() === sizeVal
+      i => i.category === form.category && i.size.trim() === sizeVal && (((i as any).location || null) === locVal)
     );
     setExistingMatch(match || null);
-  }, [form.category, form.size, editItem, items]);
+  }, [form.category, form.size, form.location, editItem, items]);
 
   const handleSave = async () => {
     const sizeVal = form.category === 'safety shoes' ? form.size.trim() : 'N/A';
