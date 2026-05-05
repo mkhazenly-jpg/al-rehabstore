@@ -390,6 +390,17 @@ export function StockContent() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label>{t('location')}</Label>
+              <Select value={form.location || 'none'} onValueChange={(v: any) => setForm({ ...form, location: v === 'none' ? '' : v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">-</SelectItem>
+                  <SelectItem value="RDC">RDC</SelectItem>
+                  <SelectItem value="SDC">SDC</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             {form.category === 'safety shoes' && (
               <div className="space-y-2">
                 <Label>{t('size')}</Label>
