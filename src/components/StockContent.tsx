@@ -169,27 +169,31 @@ export function StockContent() {
   const handleSave = async () => {
     const sizeVal = form.category === 'safety shoes' ? form.size.trim() : 'N/A';
     const nameVal = form.category;
+    const locationVal = form.location || null;
+    const { location: _loc, ...rest } = form;
     let stockItemId: string | null = editItem?.id ?? existingMatch?.id ?? null;
     let stockError = null;
 
     if (editItem) {
-      const { error } = await supabase.from('stock_items').update({ ...form, name: nameVal, size: sizeVal }).eq('id', editItem.id);
+      const { error } = await supabase.from('stock_items').update({ ...rest, name: nameVal, size: sizeVal, location: locationVal } as any).eq('id', editItem.id);
       stockError = error;
     } else if (existingMatch) {
-      const updatePayload: { quantity_in_stock: number; unit_price?: number } = {
+      const updatePayload: { quantity_in_stock: number; unit_price?: number; location?: string | null } = {
         quantity_in_stock: existingMatch.quantity_in_stock + form.quantity_in_stock,
       };
-      // Update unit price if a new price was entered (> 0)
       if (form.unit_price > 0) {
         updatePayload.unit_price = form.unit_price;
       }
+      if (locationVal && !(existingMatch as any).location) {
+        updatePayload.location = locationVal;
+      }
       const { error } = await supabase
         .from('stock_items')
-        .update(updatePayload)
+        .update(updatePayload as any)
         .eq('id', existingMatch.id);
       stockError = error;
     } else {
-      const { data, error } = await supabase.from('stock_items').insert({ ...form, name: nameVal, size: sizeVal }).select('id').single();
+      const { data, error } = await supabase.from('stock_items').insert({ ...rest, name: nameVal, size: sizeVal, location: locationVal } as any).select('id').single();
       stockError = error;
       stockItemId = data?.id ?? null;
     }
