@@ -244,19 +244,74 @@ export function BulkMessagesContent() {
     }
   };
 
-  const isImage = (url: string) => /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(url);
+  const uploadedAttachments = useMemo(() => attachments.filter(a => a.status === 'uploaded' && a.url), [attachments]);
 
-  const removeAttachment = (url: string) => {
-    setAttachments(prev => prev.filter(a => a.url !== url));
+  const isImage = (a: Attachment) => a.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(a.url || a.localUrl || '');
+
+  const getAttachmentIcon = (a: Attachment) => {
+    if (a.type.startsWith('video/')) return <Video className="h-5 w-5 text-muted-foreground" />;
+    if (a.type.includes('pdf') || a.type.includes('presentation') || a.type.includes('spreadsheet') || /\.(pdf|pptx?|xlsx?)(\?|$)/i.test(a.name)) {
+      return <FileText className="h-5 w-5 text-muted-foreground" />;
+    }
+    return <Paperclip className="h-5 w-5 text-muted-foreground" />;
+  };
+
+  const removeAttachment = (id: string) => {
+    setAttachments(prev => {
+      const removed = prev.find(a => a.id === id);
+      if (removed?.localUrl) URL.revokeObjectURL(removed.localUrl);
+      return prev.filter(a => a.id !== id);
+    });
   };
 
   const buildFinalMessage = (template: string, emp: Employee) => {
     let text = applyVars(template, emp);
-    if (attachments.length > 0) {
-      const links = attachments.map(a => `📎 ${a.name}\n${a.url}`).join('\n\n');
+    if (uploadedAttachments.length > 0) {
+      const links = uploadedAttachments.map(a => `📎 ${a.name}\n${a.url}`).join('\n\n');
       text = text ? `${text}\n\n${links}` : links;
     }
     return text;
+  };
+
+  const openCurrentRecipient = async () => {
+    if (!sendSession || sendingRef.current) return;
+    const item = sendSession.queue[sendSession.index];
+    if (!item) {
+      saveSendSession(null);
+      toast.success(t('bulkDone'));
+      await loadLogs();
+      return;
+    }
+
+    sendingRef.current = true;
+    setSending(true);
+    const nextSession: SendSession = {
+      ...sendSession,
+      queue: sendSession.queue.map((q, idx) => idx === sendSession.index ? { ...q, status: 'opened' } : q),
+      index: sendSession.index + 1,
+    };
+    saveSendSession(nextSession);
+    setProgress({ done: nextSession.index, total: nextSession.queue.length });
+
+    try {
+      await supabase.from('whatsapp_send_attempts' as any).insert({
+        employee_id: item.employeeId,
+        to_number: item.phone,
+        message: item.text,
+        campaign_id: sendSession.campaignId,
+        status: 'opened',
+        triggered_by: sendSession.userId,
+      });
+      await loadLogs();
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message || (lang === 'ar' ? 'تعذر تسجيل الإرسال' : 'Could not log send'));
+    } finally {
+      sendingRef.current = false;
+      setSending(false);
+    }
+
+    window.location.href = `https://wa.me/${item.phone}?text=${encodeURIComponent(item.text)}`;
   };
 
   const handleSendAll = async () => {
