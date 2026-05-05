@@ -91,6 +91,7 @@ export function BulkMessagesContent() {
   const [uploading, setUploading] = useState(false);
   const [sendSession, setSendSession] = useState<SendSession | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputId = 'bulk-attachment-input';
 
   const loadEmployees = async () => {
     const { data, error } = await supabase.from('employees').select('*').order('name');
@@ -399,24 +400,22 @@ export function BulkMessagesContent() {
           <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
               <input
+                id={fileInputId}
                 ref={fileInputRef}
                 type="file"
                 multiple
                 accept={ACCEPTED}
-                className="hidden"
+                className="sr-only"
                 onChange={e => handleFiles(e.target.files)}
               />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={uploading || sending}
-                onClick={() => fileInputRef.current?.click()}
-                className="gap-2"
+              <Label
+                htmlFor={uploading || sending ? undefined : fileInputId}
+                className="inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground aria-disabled:pointer-events-none aria-disabled:opacity-50"
+                aria-disabled={uploading || sending}
               >
                 {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
                 {lang === 'ar' ? 'إرفاق ملفات (صور/فيديو/PDF/PPT/Excel)' : 'Attach files (image/video/PDF/PPT/Excel)'}
-              </Button>
+              </Label>
               <span className="text-xs text-muted-foreground">
                 {lang === 'ar' ? `حد أقصى ${MAX_FILE_MB} ميجا للملف` : `Max ${MAX_FILE_MB}MB per file`}
               </span>
