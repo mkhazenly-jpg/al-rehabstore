@@ -314,6 +314,12 @@ export function BulkMessagesContent() {
     window.location.href = `https://wa.me/${item.phone}?text=${encodeURIComponent(item.text)}`;
   };
 
+  const cancelSendSession = () => {
+    saveSendSession(null);
+    setProgress({ done: 0, total: 0 });
+    toast.info(t('bulkSkipped'));
+  };
+
   const handleSendAll = async () => {
     // Prevent rapid double-clicks via synchronous ref guard
     if (sendingRef.current) return;
@@ -561,19 +567,30 @@ export function BulkMessagesContent() {
         </CardContent>
       </Card>
 
-      <div className="flex items-center gap-3 sticky bottom-2 bg-background/80 backdrop-blur p-2 rounded-lg border">
+      <div className="flex flex-wrap items-center gap-3 sticky bottom-2 bg-background/80 backdrop-blur p-2 rounded-lg border">
         <Button
           onClick={handleSendAll}
-          disabled={sending || uploading || selectedIds.size === 0}
+          disabled={sending || uploading || selectedIds.size === 0 || !!sendSession}
           aria-disabled={sending || uploading}
           className="gap-2"
         >
           {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          {sending ? t('bulkSending') : `${t('bulkSendAll')} (${selectedIds.size})`}
+          {sending ? t('bulkSending') : sendSession ? (lang === 'ar' ? 'الإرسال قيد التنفيذ' : 'Sending in progress') : `${t('bulkSendAll')} (${selectedIds.size})`}
         </Button>
-        {sending && (
-          <span className="text-sm text-muted-foreground">
-            {t('bulkProgress')}: {progress.done}/{progress.total}
+        {sendSession && sendSession.index < sendSession.queue.length && (
+          <>
+            <Button onClick={openCurrentRecipient} disabled={sending} variant="secondary" className="gap-2">
+              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+              {lang === 'ar' ? `فتح التالي: ${sendSession.queue[sendSession.index]?.name}` : `Open next: ${sendSession.queue[sendSession.index]?.name}`}
+            </Button>
+            <Button onClick={cancelSendSession} disabled={sending} variant="outline">
+              {lang === 'ar' ? 'إلغاء الباقي' : 'Cancel remaining'}
+            </Button>
+          </>
+        )}
+        {(sending || sendSession) && (
+          <span className="text-sm text-muted-foreground whitespace-nowrap">
+            {t('bulkProgress')}: {sendSession ? sendSession.index : progress.done}/{sendSession ? sendSession.queue.length : progress.total}
           </span>
         )}
       </div>
