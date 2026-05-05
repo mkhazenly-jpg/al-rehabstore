@@ -241,9 +241,9 @@ export function BulkMessagesContent() {
           { id: toastId }
         );
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
-      toast.error(e?.message || 'Upload failed', { id: toastId });
+      toast.error(getErrorMessage(e, 'Upload failed'), { id: toastId });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -300,7 +300,7 @@ export function BulkMessagesContent() {
     setProgress({ done: nextSession.index, total: nextSession.queue.length });
 
     try {
-      await supabase.from('whatsapp_send_attempts' as any).insert({
+      await supabase.from('whatsapp_send_attempts').insert({
         employee_id: item.employeeId,
         to_number: item.phone,
         message: item.text,
@@ -309,9 +309,9 @@ export function BulkMessagesContent() {
         triggered_by: sendSession.userId,
       });
       await loadLogs();
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
-      toast.error(e?.message || (lang === 'ar' ? 'تعذر تسجيل الإرسال' : 'Could not log send'));
+      toast.error(getErrorMessage(e, lang === 'ar' ? 'تعذر تسجيل الإرسال' : 'Could not log send'));
     } finally {
       sendingRef.current = false;
       setSending(false);
@@ -358,7 +358,7 @@ export function BulkMessagesContent() {
         const phone = normalizePhoneForWhatsApp(emp.mobile || '');
         const text = buildFinalMessage(message, emp);
         if (phone.length < 8) {
-          await supabase.from('whatsapp_send_attempts' as any).insert({
+          await supabase.from('whatsapp_send_attempts').insert({
             employee_id: emp.id, to_number: emp.mobile || '', message: text,
             campaign_id: campaignId, status: 'failed', error_message: 'invalid phone',
             triggered_by: userId,
