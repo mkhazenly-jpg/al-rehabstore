@@ -36,9 +36,10 @@ export function StockContent() {
   const [totalValue, setTotalValue] = useState<Record<string, number>>({});
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [locationFilter, setLocationFilter] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<StockItem | null>(null);
-  const [form, setForm] = useState({ name: '', category: 'safety shoes', size: '', quantity_in_stock: 0, unit: 'piece', unit_price: 0 });
+  const [form, setForm] = useState({ name: '', category: 'safety shoes', size: '', quantity_in_stock: 0, unit: 'piece', unit_price: 0, location: '' as '' | 'RDC' | 'SDC' });
   const [existingMatch, setExistingMatch] = useState<StockItem | null>(null);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [historyItem, setHistoryItem] = useState<StockItem | null>(null);
@@ -133,60 +134,66 @@ export function StockContent() {
   const filtered = items.filter(i => {
     const matchSearch = i.name.toLowerCase().includes(search.toLowerCase());
     const matchCat = categoryFilter === 'all' || i.category === categoryFilter;
-    return matchSearch && matchCat;
+    const matchLoc = locationFilter === 'all' || (i as any).location === locationFilter;
+    return matchSearch && matchCat && matchLoc;
   });
 
   const openAdd = () => {
     setEditItem(null);
     setExistingMatch(null);
-    setForm({ name: '', category: 'safety shoes', size: '', quantity_in_stock: 0, unit: 'piece', unit_price: 0 });
+    setForm({ name: '', category: 'safety shoes', size: '', quantity_in_stock: 0, unit: 'piece', unit_price: 0, location: '' });
     setDialogOpen(true);
   };
 
   const openEdit = (item: StockItem) => {
     setEditItem(item);
     setExistingMatch(null);
-    setForm({ name: item.name, category: item.category, size: item.size, quantity_in_stock: item.quantity_in_stock, unit: item.unit, unit_price: (item as any).unit_price || 0 });
+    setForm({ name: item.name, category: item.category, size: item.size, quantity_in_stock: item.quantity_in_stock, unit: item.unit, unit_price: (item as any).unit_price || 0, location: ((item as any).location as any) || '' });
     setDialogOpen(true);
   };
 
-  // Check for existing item when category/size changes (only in add mode)
+  // Check for existing item when category/size/location changes (only in add mode)
   useEffect(() => {
     if (editItem) {
       setExistingMatch(null);
       return;
     }
     const sizeVal = form.category === 'safety shoes' ? form.size.trim() : 'N/A';
+    const locVal = form.location || null;
     const match = items.find(
-      i => i.category === form.category && i.size.trim() === sizeVal
+      i => i.category === form.category && i.size.trim() === sizeVal && (((i as any).location || null) === locVal)
     );
     setExistingMatch(match || null);
-  }, [form.category, form.size, editItem, items]);
+  }, [form.category, form.size, form.location, editItem, items]);
 
   const handleSave = async () => {
     const sizeVal = form.category === 'safety shoes' ? form.size.trim() : 'N/A';
     const nameVal = form.category;
+    const locationVal = form.location || null;
+    const { location: _loc, ...rest } = form;
     let stockItemId: string | null = editItem?.id ?? existingMatch?.id ?? null;
     let stockError = null;
 
     if (editItem) {
-      const { error } = await supabase.from('stock_items').update({ ...form, name: nameVal, size: sizeVal }).eq('id', editItem.id);
+      const { error } = await supabase.from('stock_items').update({ ...rest, name: nameVal, size: sizeVal, location: locationVal } as any).eq('id', editItem.id);
       stockError = error;
     } else if (existingMatch) {
-      const updatePayload: { quantity_in_stock: number; unit_price?: number } = {
+      const updatePayload: { quantity_in_stock: number; unit_price?: number; location?: string | null } = {
         quantity_in_stock: existingMatch.quantity_in_stock + form.quantity_in_stock,
       };
-      // Update unit price if a new price was entered (> 0)
       if (form.unit_price > 0) {
         updatePayload.unit_price = form.unit_price;
       }
+      if (locationVal && !(existingMatch as any).location) {
+        updatePayload.location = locationVal;
+      }
       const { error } = await supabase
         .from('stock_items')
-        .update(updatePayload)
+        .update(updatePayload as any)
         .eq('id', existingMatch.id);
       stockError = error;
     } else {
-      const { data, error } = await supabase.from('stock_items').insert({ ...form, name: nameVal, size: sizeVal }).select('id').single();
+      const { data, error } = await supabase.from('stock_items').insert({ ...rest, name: nameVal, size: sizeVal, location: locationVal } as any).select('id').single();
       stockError = error;
       stockItemId = data?.id ?? null;
     }
@@ -236,6 +243,7 @@ export function StockContent() {
         [t('name')]: i.name,
         [t('category')]: i.category,
         [t('size')]: i.size,
+        [t('location')]: (i as any).location || '-',
         [t('quantity')]: i.quantity_in_stock,
         [t('unitPrice')]: (i as any).unit_price || 0,
         [t('totalPrice')]: totalValue[i.id] || 0,
@@ -281,6 +289,16 @@ export function StockContent() {
             {categoryOptions.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select value={locationFilter} onValueChange={setLocationFilter}>
+          <SelectTrigger className="w-full sm:w-36">
+            <SelectValue placeholder={t('location')} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('location')}: {t('allLocations')}</SelectItem>
+            <SelectItem value="RDC">RDC</SelectItem>
+            <SelectItem value="SDC">SDC</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <Card>
@@ -292,6 +310,7 @@ export function StockContent() {
                   <TableHead>{t('name')}</TableHead>
                   <TableHead>{t('category')}</TableHead>
                   <TableHead>{t('size')}</TableHead>
+                  <TableHead>{t('location')}</TableHead>
                   <TableHead>{t('quantity')}</TableHead>
                   <TableHead>{t('unitPrice')}</TableHead>
                   <TableHead>{t('totalPrice')}</TableHead>
@@ -306,6 +325,7 @@ export function StockContent() {
                     <TableCell className="font-medium">{item.name}</TableCell>
                     <TableCell>{item.category}</TableCell>
                     <TableCell>{item.size}</TableCell>
+                    <TableCell className="text-xs">{(item as any).location || '-'}</TableCell>
                     <TableCell>
                       <span className={`flex items-center gap-1 ${item.quantity_in_stock <= minThreshold ? 'text-destructive font-bold' : ''}`}>
                         {item.quantity_in_stock}
@@ -335,7 +355,7 @@ export function StockContent() {
                 ))}
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">-</TableCell>
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">-</TableCell>
                   </TableRow>
                 )}
               </TableBody>
@@ -368,6 +388,17 @@ export function StockContent() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {categoryOptions.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>{t('location')}</Label>
+              <Select value={form.location || 'none'} onValueChange={(v: any) => setForm({ ...form, location: v === 'none' ? '' : v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">-</SelectItem>
+                  <SelectItem value="RDC">RDC</SelectItem>
+                  <SelectItem value="SDC">SDC</SelectItem>
                 </SelectContent>
               </Select>
             </div>

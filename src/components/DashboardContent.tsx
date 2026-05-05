@@ -95,10 +95,17 @@ export function DashboardContent() {
       return true;
     });
 
+    // Filter stock items by location
+    const filteredStockItems = stockItems.filter((s: any) =>
+      selectedLocation === 'all' || s.location === selectedLocation
+    );
+    const stockIdsForLoc = new Set(filteredStockItems.map((s: any) => s.id));
+
     // Total stock: when filtering by period, show items added in that period; else total items count
-    let totalStock = stockItems.length;
+    let totalStock = filteredStockItems.length;
     if (periodStart && periodEnd) {
       totalStock = additions.reduce((sum: number, a: any) => {
+        if (selectedLocation !== 'all' && !stockIdsForLoc.has(a.stock_item_id)) return sum;
         const d = new Date(a.added_at).getTime();
         if (d < periodStart!.getTime() || d > periodEnd!.getTime()) return sum;
         return sum + (a.quantity_added || 0);

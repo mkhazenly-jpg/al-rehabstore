@@ -364,6 +364,7 @@ export type Database = {
           created_by: string | null
           id: string
           last_updated: string
+          location: string | null
           name: string
           quantity_in_stock: number
           size: string
@@ -376,6 +377,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           last_updated?: string
+          location?: string | null
           name: string
           quantity_in_stock?: number
           size?: string
@@ -388,6 +390,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           last_updated?: string
+          location?: string | null
           name?: string
           quantity_in_stock?: number
           size?: string
