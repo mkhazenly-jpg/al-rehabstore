@@ -309,6 +309,7 @@ export function StockContent() {
                   <TableHead>{t('name')}</TableHead>
                   <TableHead>{t('category')}</TableHead>
                   <TableHead>{t('size')}</TableHead>
+                  <TableHead>{t('location')}</TableHead>
                   <TableHead>{t('quantity')}</TableHead>
                   <TableHead>{t('unitPrice')}</TableHead>
                   <TableHead>{t('totalPrice')}</TableHead>
