@@ -9,11 +9,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Send, MessageCircle, Loader2, Paperclip, X, CheckCircle2, AlertCircle, ImageIcon, Video, FileText, ExternalLink } from 'lucide-react';
+import { Send, MessageCircle, Loader2, Paperclip, X, CheckCircle2, AlertCircle, Video, FileText, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Tables as DBTables } from '@/integrations/supabase/types';
 
 type Employee = DBTables<'employees'>;
+type SendLog = Pick<DBTables<'whatsapp_send_attempts'>, 'id' | 'employee_id' | 'to_number' | 'status' | 'sent_at' | 'error_message'>;
 
 const ALL = '__all__';
 const ATTACHMENT_BUCKET = 'bulk-attachments';
@@ -44,6 +45,10 @@ function applyVars(template: string, emp: Employee): string {
     .replaceAll('{location}', emp.location || '')
     .replaceAll('{department}', emp.department || '')
     .replaceAll('{shift}', emp.shift || '');
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
 }
 
 type AttachmentStatus = 'uploading' | 'uploaded' | 'error';
@@ -86,7 +91,7 @@ export function BulkMessagesContent() {
   const [sending, setSending] = useState(false);
   const sendingRef = useRef(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<SendLog[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const [sendSession, setSendSession] = useState<SendSession | null>(null);
@@ -100,10 +105,10 @@ export function BulkMessagesContent() {
   };
 
   const loadLogs = async () => {
-    const { data } = await supabase.from('whatsapp_send_attempts' as any)
+    const { data } = await supabase.from('whatsapp_send_attempts')
       .select('id, employee_id, to_number, status, sent_at, error_message')
       .order('sent_at', { ascending: false }).limit(100);
-    setLogs((data as any[]) || []);
+    setLogs(data || []);
   };
 
   useEffect(() => { loadEmployees(); loadLogs(); }, []);
