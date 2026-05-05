@@ -324,6 +324,7 @@ export function StockContent() {
                     <TableCell className="font-medium">{item.name}</TableCell>
                     <TableCell>{item.category}</TableCell>
                     <TableCell>{item.size}</TableCell>
+                    <TableCell className="text-xs">{(item as any).location || '-'}</TableCell>
                     <TableCell>
                       <span className={`flex items-center gap-1 ${item.quantity_in_stock <= minThreshold ? 'text-destructive font-bold' : ''}`}>
                         {item.quantity_in_stock}
