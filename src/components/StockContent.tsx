@@ -36,9 +36,10 @@ export function StockContent() {
   const [totalValue, setTotalValue] = useState<Record<string, number>>({});
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [locationFilter, setLocationFilter] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<StockItem | null>(null);
-  const [form, setForm] = useState({ name: '', category: 'safety shoes', size: '', quantity_in_stock: 0, unit: 'piece', unit_price: 0 });
+  const [form, setForm] = useState({ name: '', category: 'safety shoes', size: '', quantity_in_stock: 0, unit: 'piece', unit_price: 0, location: '' as '' | 'RDC' | 'SDC' });
   const [existingMatch, setExistingMatch] = useState<StockItem | null>(null);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [historyItem, setHistoryItem] = useState<StockItem | null>(null);
