@@ -243,6 +243,7 @@ export function StockContent() {
         [t('name')]: i.name,
         [t('category')]: i.category,
         [t('size')]: i.size,
+        [t('location')]: (i as any).location || '-',
         [t('quantity')]: i.quantity_in_stock,
         [t('unitPrice')]: (i as any).unit_price || 0,
         [t('totalPrice')]: totalValue[i.id] || 0,
