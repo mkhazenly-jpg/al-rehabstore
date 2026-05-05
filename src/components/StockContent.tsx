@@ -288,6 +288,16 @@ export function StockContent() {
             {categoryOptions.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select value={locationFilter} onValueChange={setLocationFilter}>
+          <SelectTrigger className="w-full sm:w-36">
+            <SelectValue placeholder={t('location')} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('location')}: {t('allLocations')}</SelectItem>
+            <SelectItem value="RDC">RDC</SelectItem>
+            <SelectItem value="SDC">SDC</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <Card>
