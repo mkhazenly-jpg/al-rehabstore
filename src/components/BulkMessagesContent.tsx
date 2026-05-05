@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Send, MessageCircle, Loader2, Paperclip, X } from 'lucide-react';
+import { Send, MessageCircle, Loader2, Paperclip, X, CheckCircle2, AlertCircle, ImageIcon, Video, FileText, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Tables as DBTables } from '@/integrations/supabase/types';
 
@@ -18,6 +18,7 @@ type Employee = DBTables<'employees'>;
 const ALL = '__all__';
 const ATTACHMENT_BUCKET = 'bulk-attachments';
 const MAX_FILE_MB = 25;
+const SEND_SESSION_KEY = 'bulk-whatsapp-send-session';
 const ACCEPTED = [
   'image/*', 'video/*',
   'application/pdf',
@@ -44,7 +45,33 @@ function applyVars(template: string, emp: Employee): string {
     .replaceAll('{shift}', emp.shift || '');
 }
 
-type Attachment = { name: string; url: string; size: number };
+type AttachmentStatus = 'uploading' | 'uploaded' | 'error';
+type Attachment = {
+  id: string;
+  name: string;
+  url?: string;
+  localUrl?: string;
+  size: number;
+  type: string;
+  status: AttachmentStatus;
+  error?: string;
+};
+
+type SendQueueItem = {
+  employeeId: string;
+  name: string;
+  phone: string;
+  text: string;
+  status: 'pending' | 'opened' | 'failed';
+  error?: string;
+};
+
+type SendSession = {
+  campaignId: string;
+  userId: string | null;
+  queue: SendQueueItem[];
+  index: number;
+};
 
 export function BulkMessagesContent() {
   const { t, lang } = useLanguage();
