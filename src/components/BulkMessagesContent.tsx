@@ -21,6 +21,7 @@ const MAX_FILE_MB = 25;
 const SEND_SESSION_KEY = 'bulk-whatsapp-send-session';
 const ACCEPTED = [
   'image/*', 'video/*',
+  '.pdf', '.ppt', '.pptx', '.xls', '.xlsx',
   'application/pdf',
   'application/vnd.ms-powerpoint',
   'application/vnd.openxmlformats-officedocument.presentationml.presentation',
@@ -88,6 +89,7 @@ export function BulkMessagesContent() {
   const [logs, setLogs] = useState<any[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [sendSession, setSendSession] = useState<SendSession | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadEmployees = async () => {
@@ -143,6 +145,35 @@ export function BulkMessagesContent() {
   const selectAll = () => setSelectedIds(new Set(eligible.map(e => e.id)));
   const clearAll = () => setSelectedIds(new Set());
 
+  useEffect(() => {
+    const saved = window.localStorage.getItem(SEND_SESSION_KEY);
+    if (!saved) return;
+    try {
+      const session = JSON.parse(saved) as SendSession;
+      if (session.queue?.length && session.index < session.queue.length) setSendSession(session);
+      else window.localStorage.removeItem(SEND_SESSION_KEY);
+    } catch {
+      window.localStorage.removeItem(SEND_SESSION_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      attachments.forEach(a => {
+        if (a.localUrl) URL.revokeObjectURL(a.localUrl);
+      });
+    };
+  }, [attachments]);
+
+  const saveSendSession = (session: SendSession | null) => {
+    setSendSession(session);
+    if (session && session.index < session.queue.length) {
+      window.localStorage.setItem(SEND_SESSION_KEY, JSON.stringify(session));
+    } else {
+      window.localStorage.removeItem(SEND_SESSION_KEY);
+    }
+  };
+
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     const { data: userData } = await supabase.auth.getUser();
@@ -153,10 +184,24 @@ export function BulkMessagesContent() {
     setUploading(true);
     const toastId = toast.loading(lang === 'ar' ? 'جارٍ رفع الملفات...' : 'Uploading...');
     try {
-      const uploaded: Attachment[] = [];
+      const fileItems = Array.from(files).map(file => ({
+        file,
+        item: {
+          id: crypto.randomUUID(),
+          name: file.name,
+          localUrl: URL.createObjectURL(file),
+          size: file.size,
+          type: file.type || 'application/octet-stream',
+          status: 'uploading' as AttachmentStatus,
+        },
+      }));
+      setAttachments(prev => [...prev, ...fileItems.map(({ item }) => item)]);
+
+      let uploaded = 0;
       let failed = 0;
-      for (const file of Array.from(files)) {
+      for (const { file, item } of fileItems) {
         if (file.size > MAX_FILE_MB * 1024 * 1024) {
+          setAttachments(prev => prev.map(a => a.id === item.id ? { ...a, status: 'error', error: `> ${MAX_FILE_MB}MB` } : a));
           toast.error(`${file.name}: > ${MAX_FILE_MB}MB`);
           failed++;
           continue;
@@ -168,19 +213,20 @@ export function BulkMessagesContent() {
         });
         if (error) {
           console.error('Upload error:', error);
+          setAttachments(prev => prev.map(a => a.id === item.id ? { ...a, status: 'error', error: error.message } : a));
           toast.error(`${file.name}: ${error.message}`);
           failed++;
           continue;
         }
         const { data: pub } = supabase.storage.from(ATTACHMENT_BUCKET).getPublicUrl(path);
-        uploaded.push({ name: file.name, url: pub.publicUrl, size: file.size });
+        setAttachments(prev => prev.map(a => a.id === item.id ? { ...a, status: 'uploaded', url: pub.publicUrl } : a));
+        uploaded++;
       }
-      if (uploaded.length) {
-        setAttachments(prev => [...prev, ...uploaded]);
+      if (uploaded) {
         toast.success(
           lang === 'ar'
-            ? `تم رفع ${uploaded.length} ملف بنجاح`
-            : `Uploaded ${uploaded.length} file(s)`,
+            ? `تم رفع ${uploaded} ملف بنجاح${failed ? ` وفشل ${failed}` : ''}`
+            : `Uploaded ${uploaded} file(s)${failed ? `, ${failed} failed` : ''}`,
           { id: toastId }
         );
       } else {
