@@ -9,17 +9,20 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Send, MessageCircle, Loader2, Paperclip, X } from 'lucide-react';
+import { Send, MessageCircle, Loader2, Paperclip, X, CheckCircle2, AlertCircle, Video, FileText, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Tables as DBTables } from '@/integrations/supabase/types';
 
 type Employee = DBTables<'employees'>;
+type SendLog = Pick<DBTables<'whatsapp_send_attempts'>, 'id' | 'employee_id' | 'to_number' | 'status' | 'sent_at' | 'error_message'>;
 
 const ALL = '__all__';
 const ATTACHMENT_BUCKET = 'bulk-attachments';
 const MAX_FILE_MB = 25;
+const SEND_SESSION_KEY = 'bulk-whatsapp-send-session';
 const ACCEPTED = [
   'image/*', 'video/*',
+  '.pdf', '.ppt', '.pptx', '.xls', '.xlsx',
   'application/pdf',
   'application/vnd.ms-powerpoint',
   'application/vnd.openxmlformats-officedocument.presentationml.presentation',
@@ -44,7 +47,37 @@ function applyVars(template: string, emp: Employee): string {
     .replaceAll('{shift}', emp.shift || '');
 }
 
-type Attachment = { name: string; url: string; size: number };
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
+type AttachmentStatus = 'uploading' | 'uploaded' | 'error';
+type Attachment = {
+  id: string;
+  name: string;
+  url?: string;
+  localUrl?: string;
+  size: number;
+  type: string;
+  status: AttachmentStatus;
+  error?: string;
+};
+
+type SendQueueItem = {
+  employeeId: string;
+  name: string;
+  phone: string;
+  text: string;
+  status: 'pending' | 'opened' | 'failed';
+  error?: string;
+};
+
+type SendSession = {
+  campaignId: string;
+  userId: string | null;
+  queue: SendQueueItem[];
+  index: number;
+};
 
 export function BulkMessagesContent() {
   const { t, lang } = useLanguage();
@@ -58,10 +91,12 @@ export function BulkMessagesContent() {
   const [sending, setSending] = useState(false);
   const sendingRef = useRef(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<SendLog[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [sendSession, setSendSession] = useState<SendSession | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputId = 'bulk-attachment-input';
 
   const loadEmployees = async () => {
     const { data, error } = await supabase.from('employees').select('*').order('name');
@@ -70,10 +105,10 @@ export function BulkMessagesContent() {
   };
 
   const loadLogs = async () => {
-    const { data } = await supabase.from('whatsapp_send_attempts' as any)
+    const { data } = await supabase.from('whatsapp_send_attempts')
       .select('id, employee_id, to_number, status, sent_at, error_message')
       .order('sent_at', { ascending: false }).limit(100);
-    setLogs((data as any[]) || []);
+    setLogs(data || []);
   };
 
   useEffect(() => { loadEmployees(); loadLogs(); }, []);
@@ -116,6 +151,35 @@ export function BulkMessagesContent() {
   const selectAll = () => setSelectedIds(new Set(eligible.map(e => e.id)));
   const clearAll = () => setSelectedIds(new Set());
 
+  useEffect(() => {
+    const saved = window.localStorage.getItem(SEND_SESSION_KEY);
+    if (!saved) return;
+    try {
+      const session = JSON.parse(saved) as SendSession;
+      if (session.queue?.length && session.index < session.queue.length) setSendSession(session);
+      else window.localStorage.removeItem(SEND_SESSION_KEY);
+    } catch {
+      window.localStorage.removeItem(SEND_SESSION_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      attachments.forEach(a => {
+        if (a.localUrl) URL.revokeObjectURL(a.localUrl);
+      });
+    };
+  }, [attachments]);
+
+  const saveSendSession = (session: SendSession | null) => {
+    setSendSession(session);
+    if (session && session.index < session.queue.length) {
+      window.localStorage.setItem(SEND_SESSION_KEY, JSON.stringify(session));
+    } else {
+      window.localStorage.removeItem(SEND_SESSION_KEY);
+    }
+  };
+
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     const { data: userData } = await supabase.auth.getUser();
@@ -126,10 +190,24 @@ export function BulkMessagesContent() {
     setUploading(true);
     const toastId = toast.loading(lang === 'ar' ? 'جارٍ رفع الملفات...' : 'Uploading...');
     try {
-      const uploaded: Attachment[] = [];
+      const fileItems = Array.from(files).map(file => ({
+        file,
+        item: {
+          id: crypto.randomUUID(),
+          name: file.name,
+          localUrl: URL.createObjectURL(file),
+          size: file.size,
+          type: file.type || 'application/octet-stream',
+          status: 'uploading' as AttachmentStatus,
+        },
+      }));
+      setAttachments(prev => [...prev, ...fileItems.map(({ item }) => item)]);
+
+      let uploaded = 0;
       let failed = 0;
-      for (const file of Array.from(files)) {
+      for (const { file, item } of fileItems) {
         if (file.size > MAX_FILE_MB * 1024 * 1024) {
+          setAttachments(prev => prev.map(a => a.id === item.id ? { ...a, status: 'error', error: `> ${MAX_FILE_MB}MB` } : a));
           toast.error(`${file.name}: > ${MAX_FILE_MB}MB`);
           failed++;
           continue;
@@ -141,19 +219,20 @@ export function BulkMessagesContent() {
         });
         if (error) {
           console.error('Upload error:', error);
+          setAttachments(prev => prev.map(a => a.id === item.id ? { ...a, status: 'error', error: error.message } : a));
           toast.error(`${file.name}: ${error.message}`);
           failed++;
           continue;
         }
         const { data: pub } = supabase.storage.from(ATTACHMENT_BUCKET).getPublicUrl(path);
-        uploaded.push({ name: file.name, url: pub.publicUrl, size: file.size });
+        setAttachments(prev => prev.map(a => a.id === item.id ? { ...a, status: 'uploaded', url: pub.publicUrl } : a));
+        uploaded++;
       }
-      if (uploaded.length) {
-        setAttachments(prev => [...prev, ...uploaded]);
+      if (uploaded) {
         toast.success(
           lang === 'ar'
-            ? `تم رفع ${uploaded.length} ملف بنجاح`
-            : `Uploaded ${uploaded.length} file(s)`,
+            ? `تم رفع ${uploaded} ملف بنجاح${failed ? ` وفشل ${failed}` : ''}`
+            : `Uploaded ${uploaded} file(s)${failed ? `, ${failed} failed` : ''}`,
           { id: toastId }
         );
       } else {
@@ -162,34 +241,103 @@ export function BulkMessagesContent() {
           { id: toastId }
         );
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
-      toast.error(e?.message || 'Upload failed', { id: toastId });
+      toast.error(getErrorMessage(e, 'Upload failed'), { id: toastId });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
-  const isImage = (url: string) => /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(url);
+  const uploadedAttachments = useMemo(() => attachments.filter(a => a.status === 'uploaded' && a.url), [attachments]);
 
-  const removeAttachment = (url: string) => {
-    setAttachments(prev => prev.filter(a => a.url !== url));
+  const isImage = (a: Attachment) => a.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(a.url || a.localUrl || '');
+
+  const getAttachmentIcon = (a: Attachment) => {
+    if (a.type.startsWith('video/')) return <Video className="h-5 w-5 text-muted-foreground" />;
+    if (a.type.includes('pdf') || a.type.includes('presentation') || a.type.includes('spreadsheet') || /\.(pdf|pptx?|xlsx?)(\?|$)/i.test(a.name)) {
+      return <FileText className="h-5 w-5 text-muted-foreground" />;
+    }
+    return <Paperclip className="h-5 w-5 text-muted-foreground" />;
+  };
+
+  const removeAttachment = (id: string) => {
+    setAttachments(prev => {
+      const removed = prev.find(a => a.id === id);
+      if (removed?.localUrl) URL.revokeObjectURL(removed.localUrl);
+      return prev.filter(a => a.id !== id);
+    });
   };
 
   const buildFinalMessage = (template: string, emp: Employee) => {
     let text = applyVars(template, emp);
-    if (attachments.length > 0) {
-      const links = attachments.map(a => `📎 ${a.name}\n${a.url}`).join('\n\n');
+    if (uploadedAttachments.length > 0) {
+      const links = uploadedAttachments.map(a => `📎 ${a.name}\n${a.url}`).join('\n\n');
       text = text ? `${text}\n\n${links}` : links;
     }
     return text;
   };
 
+  const openCurrentRecipient = async () => {
+    if (!sendSession || sendingRef.current) return;
+    const item = sendSession.queue[sendSession.index];
+    if (!item) {
+      saveSendSession(null);
+      toast.success(t('bulkDone'));
+      await loadLogs();
+      return;
+    }
+
+    sendingRef.current = true;
+    setSending(true);
+    const nextSession: SendSession = {
+      ...sendSession,
+      queue: sendSession.queue.map((q, idx) => idx === sendSession.index ? { ...q, status: 'opened' } : q),
+      index: sendSession.index + 1,
+    };
+    saveSendSession(nextSession);
+    setProgress({ done: nextSession.index, total: nextSession.queue.length });
+
+    try {
+      await supabase.from('whatsapp_send_attempts').insert({
+        employee_id: item.employeeId,
+        to_number: item.phone,
+        message: item.text,
+        campaign_id: sendSession.campaignId,
+        status: 'opened',
+        triggered_by: sendSession.userId,
+      });
+      await loadLogs();
+    } catch (e: unknown) {
+      console.error(e);
+      toast.error(getErrorMessage(e, lang === 'ar' ? 'تعذر تسجيل الإرسال' : 'Could not log send'));
+    } finally {
+      sendingRef.current = false;
+      setSending(false);
+    }
+
+    window.location.href = `https://wa.me/${item.phone}?text=${encodeURIComponent(item.text)}`;
+  };
+
+  const cancelSendSession = () => {
+    saveSendSession(null);
+    setProgress({ done: 0, total: 0 });
+    toast.info(t('bulkSkipped'));
+  };
+
   const handleSendAll = async () => {
     // Prevent rapid double-clicks via synchronous ref guard
     if (sendingRef.current) return;
-    if (!message.trim() && attachments.length === 0) { toast.error(t('bulkMessageRequired')); return; }
+    if (!message.trim() && uploadedAttachments.length === 0) { toast.error(t('bulkMessageRequired')); return; }
+    if (attachments.some(a => a.status === 'uploading')) {
+      toast.error(lang === 'ar' ? 'انتظر حتى يكتمل رفع الملفات' : 'Wait until uploads finish');
+      return;
+    }
+    if (attachments.some(a => a.status === 'error')) {
+      toast.error(lang === 'ar' ? 'احذف الملفات التي فشل رفعها أو أعد رفعها قبل الإرسال' : 'Remove failed uploads or upload them again before sending');
+      return;
+    }
     const targets = eligible.filter(e => selectedIds.has(e.id));
     if (targets.length === 0) { toast.error(t('bulkNoRecipients')); return; }
 
@@ -200,53 +348,35 @@ export function BulkMessagesContent() {
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData?.user?.id ?? null;
 
-    // Track which employees were already logged in this campaign to avoid duplicates
-    const sentInCampaign = new Set<string>();
-
     try {
-      for (let i = 0; i < targets.length; i++) {
-        const emp = targets[i];
-        if (sentInCampaign.has(emp.id)) {
-          setProgress({ done: i + 1, total: targets.length });
-          continue;
-        }
+      const seen = new Set<string>();
+      const queue: SendQueueItem[] = [];
 
-        const phone = normalizePhoneForWhatsApp(emp.mobile!);
+      for (const emp of targets) {
+        if (seen.has(emp.id)) continue;
+        seen.add(emp.id);
+        const phone = normalizePhoneForWhatsApp(emp.mobile || '');
+        const text = buildFinalMessage(message, emp);
         if (phone.length < 8) {
-          await supabase.from('whatsapp_send_attempts' as any).insert({
-            employee_id: emp.id, to_number: emp.mobile, message: buildFinalMessage(message, emp),
+          await supabase.from('whatsapp_send_attempts').insert({
+            employee_id: emp.id, to_number: emp.mobile || '', message: text,
             campaign_id: campaignId, status: 'failed', error_message: 'invalid phone',
             triggered_by: userId,
           });
-          sentInCampaign.add(emp.id);
-          setProgress({ done: i + 1, total: targets.length });
           continue;
         }
-
-        const text = buildFinalMessage(message, emp);
-        const url = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
-        window.open(url, '_blank', 'noopener,noreferrer');
-
-        await supabase.from('whatsapp_send_attempts' as any).insert({
-          employee_id: emp.id, to_number: phone, message: text,
-          campaign_id: campaignId, status: 'opened', triggered_by: userId,
-        });
-        sentInCampaign.add(emp.id);
-
-        setProgress({ done: i + 1, total: targets.length });
-
-        if (i < targets.length - 1) {
-          const proceed = window.confirm(
-            `(${i + 1}/${targets.length}) ${emp.name}\n\n${t('bulkConfirmNext')}`
-          );
-          if (!proceed) {
-            toast.info(t('bulkSkipped'));
-            break;
-          }
-        }
+        queue.push({ employeeId: emp.id, name: emp.name, phone, text, status: 'pending' });
       }
-      toast.success(t('bulkDone'));
-      await loadLogs();
+
+      if (queue.length === 0) {
+        toast.error(t('bulkNoRecipients'));
+        await loadLogs();
+        return;
+      }
+
+      saveSendSession({ campaignId, userId, queue, index: 0 });
+      setProgress({ done: 0, total: queue.length });
+      toast.success(lang === 'ar' ? `تم تجهيز ${queue.length} رسالة. اضغط فتح التالي للإرسال.` : `${queue.length} messages queued. Press open next to send.`);
     } finally {
       sendingRef.current = false;
       setSending(false);
@@ -275,24 +405,22 @@ export function BulkMessagesContent() {
           <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
               <input
+                id={fileInputId}
                 ref={fileInputRef}
                 type="file"
                 multiple
                 accept={ACCEPTED}
-                className="hidden"
+                className="sr-only"
                 onChange={e => handleFiles(e.target.files)}
               />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={uploading || sending}
-                onClick={() => fileInputRef.current?.click()}
-                className="gap-2"
+              <Label
+                htmlFor={uploading || sending ? undefined : fileInputId}
+                className="inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground aria-disabled:pointer-events-none aria-disabled:opacity-50"
+                aria-disabled={uploading || sending}
               >
                 {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
                 {lang === 'ar' ? 'إرفاق ملفات (صور/فيديو/PDF/PPT/Excel)' : 'Attach files (image/video/PDF/PPT/Excel)'}
-              </Button>
+              </Label>
               <span className="text-xs text-muted-foreground">
                 {lang === 'ar' ? `حد أقصى ${MAX_FILE_MB} ميجا للملف` : `Max ${MAX_FILE_MB}MB per file`}
               </span>
@@ -300,20 +428,30 @@ export function BulkMessagesContent() {
             {attachments.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {attachments.map(a => (
-                  <div key={a.url} className="relative flex items-center gap-2 border rounded-md p-2 bg-muted/30 max-w-[260px]">
-                    {isImage(a.url) ? (
-                      <img src={a.url} alt={a.name} className="h-12 w-12 object-cover rounded" />
+                  <div key={a.id} className="relative flex items-center gap-2 border rounded-md p-2 bg-muted/30 max-w-[280px]">
+                    {isImage(a) ? (
+                      <img src={a.url || a.localUrl} alt={a.name} className="h-12 w-12 object-cover rounded" />
                     ) : (
                       <div className="h-12 w-12 flex items-center justify-center bg-background rounded border">
-                        <Paperclip className="h-5 w-5 text-muted-foreground" />
+                        {getAttachmentIcon(a)}
                       </div>
                     )}
                     <div className="flex flex-col min-w-0">
                       <span className="text-xs font-medium truncate max-w-[160px]">{a.name}</span>
                       <span className="text-[10px] text-muted-foreground">{(a.size / 1024).toFixed(1)} KB</span>
+                      <span className="text-[10px] flex items-center gap-1 text-muted-foreground">
+                        {a.status === 'uploading' && <><Loader2 className="h-3 w-3 animate-spin" />{lang === 'ar' ? 'جارٍ الرفع' : 'Uploading'}</>}
+                        {a.status === 'uploaded' && <><CheckCircle2 className="h-3 w-3 text-primary" />{lang === 'ar' ? 'جاهز للإرسال' : 'Ready'}</>}
+                        {a.status === 'error' && <><AlertCircle className="h-3 w-3 text-destructive" />{a.error || (lang === 'ar' ? 'فشل الرفع' : 'Failed')}</>}
+                      </span>
                     </div>
+                    {a.url && (
+                      <a href={a.url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary" aria-label="open attachment">
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    )}
                     <button
-                      onClick={() => removeAttachment(a.url)}
+                      onClick={() => removeAttachment(a.id)}
                       className="ms-1 text-muted-foreground hover:text-destructive"
                       type="button"
                       aria-label="remove"
@@ -433,19 +571,30 @@ export function BulkMessagesContent() {
         </CardContent>
       </Card>
 
-      <div className="flex items-center gap-3 sticky bottom-2 bg-background/80 backdrop-blur p-2 rounded-lg border">
+      <div className="flex flex-wrap items-center gap-3 sticky bottom-2 bg-background/80 backdrop-blur p-2 rounded-lg border">
         <Button
           onClick={handleSendAll}
-          disabled={sending || uploading || selectedIds.size === 0}
+          disabled={sending || uploading || selectedIds.size === 0 || !!sendSession}
           aria-disabled={sending || uploading}
           className="gap-2"
         >
           {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          {sending ? t('bulkSending') : `${t('bulkSendAll')} (${selectedIds.size})`}
+          {sending ? t('bulkSending') : sendSession ? (lang === 'ar' ? 'الإرسال قيد التنفيذ' : 'Sending in progress') : `${t('bulkSendAll')} (${selectedIds.size})`}
         </Button>
-        {sending && (
-          <span className="text-sm text-muted-foreground">
-            {t('bulkProgress')}: {progress.done}/{progress.total}
+        {sendSession && sendSession.index < sendSession.queue.length && (
+          <>
+            <Button onClick={openCurrentRecipient} disabled={sending} variant="secondary" className="gap-2">
+              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+              {lang === 'ar' ? `فتح التالي: ${sendSession.queue[sendSession.index]?.name}` : `Open next: ${sendSession.queue[sendSession.index]?.name}`}
+            </Button>
+            <Button onClick={cancelSendSession} disabled={sending} variant="outline">
+              {lang === 'ar' ? 'إلغاء الباقي' : 'Cancel remaining'}
+            </Button>
+          </>
+        )}
+        {(sending || sendSession) && (
+          <span className="text-sm text-muted-foreground whitespace-nowrap">
+            {t('bulkProgress')}: {sendSession ? sendSession.index : progress.done}/{sendSession ? sendSession.queue.length : progress.total}
           </span>
         )}
       </div>
