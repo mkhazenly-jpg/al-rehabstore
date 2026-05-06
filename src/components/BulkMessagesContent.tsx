@@ -51,6 +51,12 @@ function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
+function createId() {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 type AttachmentStatus = 'uploading' | 'uploaded' | 'error';
 type Attachment = {
   id: string;
@@ -96,6 +102,7 @@ export function BulkMessagesContent() {
   const [uploading, setUploading] = useState(false);
   const [sendSession, setSendSession] = useState<SendSession | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const attachmentsRef = useRef<Attachment[]>([]);
   const fileInputId = 'bulk-attachment-input';
 
   const loadEmployees = async () => {
@@ -163,13 +170,13 @@ export function BulkMessagesContent() {
     }
   }, []);
 
-  useEffect(() => {
-    return () => {
-      attachments.forEach(a => {
-        if (a.localUrl) URL.revokeObjectURL(a.localUrl);
-      });
-    };
-  }, [attachments]);
+  useEffect(() => { attachmentsRef.current = attachments; }, [attachments]);
+
+  useEffect(() => () => {
+    attachmentsRef.current.forEach(a => {
+      if (a.localUrl) URL.revokeObjectURL(a.localUrl);
+    });
+  }, []);
 
   const saveSendSession = (session: SendSession | null) => {
     setSendSession(session);
