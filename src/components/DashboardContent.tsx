@@ -101,8 +101,8 @@ export function DashboardContent() {
     );
     const stockIdsForLoc = new Set(filteredStockItems.map((s: any) => s.id));
 
-    // Total stock: when filtering by period, show items added in that period; else total items count
-    let totalStock = filteredStockItems.length;
+    // Total stock quantity: when filtering by period, sum additions in that period; else sum quantity_in_stock
+    let totalStock = filteredStockItems.reduce((sum: number, s: any) => sum + (s.quantity_in_stock || 0), 0);
     if (periodStart && periodEnd) {
       totalStock = additions.reduce((sum: number, a: any) => {
         if (selectedLocation !== 'all' && !stockIdsForLoc.has(a.stock_item_id)) return sum;
@@ -112,8 +112,12 @@ export function DashboardContent() {
       }, 0);
     }
 
+    // Total distinct items count (filtered by location; period not applied here)
+    const totalItemsCount = filteredStockItems.length;
+
     return {
       totalStock,
+      totalItemsCount,
       totalEmployees: filteredEmployees.length,
       pendingAssignments: pending.length,
     };
@@ -137,36 +141,44 @@ export function DashboardContent() {
     '8': t('september'), '9': t('october'), '10': t('november'), '11': t('december'),
   };
 
-  // Filter additions and assignments by selected date
+  // Helper: stock item ids that match the selected location filter
+  const stockIdsByLocation = useMemo(() => {
+    if (selectedLocation === 'all') return null;
+    return new Set(stockItems.filter((s: any) => s.location === selectedLocation).map((s: any) => s.id));
+  }, [stockItems, selectedLocation]);
+
+  // Filter additions by selected date AND by stock item location
   const filteredAdditions = useMemo(() => {
     return additions.filter(a => {
+      if (stockIdsByLocation && !stockIdsByLocation.has(a.stock_item_id)) return false;
       const d = new Date(a.added_at);
       if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return false;
       if (selectedMonth !== 'all' && d.getMonth() !== Number(selectedMonth)) return false;
       return true;
     });
-  }, [additions, selectedYear, selectedMonth]);
+  }, [additions, selectedYear, selectedMonth, stockIdsByLocation]);
 
+  // Filter assignments by date AND by stock item location (consumption uses item location, not employee location)
   const filteredAssignments = useMemo(() => {
     return assignments.filter(a => {
       const d = new Date(a.created_at);
       if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return false;
       if (selectedMonth !== 'all' && d.getMonth() !== Number(selectedMonth)) return false;
-      if (selectedLocation !== 'all' && a.employees?.location !== selectedLocation) return false;
+      if (stockIdsByLocation && !stockIdsByLocation.has(a.stock_item_id)) return false;
       return true;
     });
-  }, [assignments, selectedYear, selectedMonth, selectedLocation]);
+  }, [assignments, selectedYear, selectedMonth, stockIdsByLocation]);
 
-  // Filter damaged/lost assignments by date
+  // Filter damaged/lost assignments by date and stock item location
   const filteredDamagedLost = useMemo(() => {
     return damagedLostAssignments.filter(a => {
       const d = new Date(a.created_at);
       if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return false;
       if (selectedMonth !== 'all' && d.getMonth() !== Number(selectedMonth)) return false;
-      if (selectedLocation !== 'all' && a.employees?.location !== selectedLocation) return false;
+      if (stockIdsByLocation && !stockIdsByLocation.has(a.stock_item_id)) return false;
       return true;
     });
-  }, [damagedLostAssignments, selectedYear, selectedMonth, selectedLocation]);
+  }, [damagedLostAssignments, selectedYear, selectedMonth, stockIdsByLocation]);
 
   // Filter approved assignments by date and calculate renewal needed
   const filteredApprovedAssignments = useMemo(() => {
@@ -477,13 +489,15 @@ export function DashboardContent() {
     }
   });
 
-  const itemConsumption = stockItems.map(item => {
-    const added = totalAddedByItem[item.id] || 0;
-    const consumed = totalConsumedByItem[item.id] || 0;
-    const remaining = item.quantity_in_stock;
-    const pct = added > 0 ? Math.round((consumed / added) * 100) : 0;
-    return { ...item, added, consumed, remaining, pct };
-  }).filter(item => item.added > 0 || item.consumed > 0 || selectedYear === 'all');
+  const itemConsumption = stockItems
+    .filter(item => selectedLocation === 'all' || item.location === selectedLocation)
+    .map(item => {
+      const added = totalAddedByItem[item.id] || 0;
+      const consumed = totalConsumedByItem[item.id] || 0;
+      const remaining = item.quantity_in_stock;
+      const pct = added > 0 ? Math.round((consumed / added) * 100) : 0;
+      return { ...item, added, consumed, remaining, pct };
+    }).filter(item => item.added > 0 || item.consumed > 0 || selectedYear === 'all');
 
   const categoryNames: Record<string, string> = {
     safety_shoes: t('safetyShoes'),
@@ -495,6 +509,7 @@ export function DashboardContent() {
 
   const cards = [
     { title: t('totalStock'), value: stats.totalStock, icon: Package, gradient: 'from-primary to-primary/80' },
+    { title: t('totalItemsCount'), value: stats.totalItemsCount, icon: Package, gradient: 'from-ring to-ring/80' },
     { title: t('activeEmployees'), value: stats.totalEmployees, icon: Users, gradient: 'from-success to-success/80' },
   ];
 
