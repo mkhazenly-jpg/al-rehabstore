@@ -489,13 +489,15 @@ export function DashboardContent() {
     }
   });
 
-  const itemConsumption = stockItems.map(item => {
-    const added = totalAddedByItem[item.id] || 0;
-    const consumed = totalConsumedByItem[item.id] || 0;
-    const remaining = item.quantity_in_stock;
-    const pct = added > 0 ? Math.round((consumed / added) * 100) : 0;
-    return { ...item, added, consumed, remaining, pct };
-  }).filter(item => item.added > 0 || item.consumed > 0 || selectedYear === 'all');
+  const itemConsumption = stockItems
+    .filter(item => selectedLocation === 'all' || item.location === selectedLocation)
+    .map(item => {
+      const added = totalAddedByItem[item.id] || 0;
+      const consumed = totalConsumedByItem[item.id] || 0;
+      const remaining = item.quantity_in_stock;
+      const pct = added > 0 ? Math.round((consumed / added) * 100) : 0;
+      return { ...item, added, consumed, remaining, pct };
+    }).filter(item => item.added > 0 || item.consumed > 0 || selectedYear === 'all');
 
   const categoryNames: Record<string, string> = {
     safety_shoes: t('safetyShoes'),
