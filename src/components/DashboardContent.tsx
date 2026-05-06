@@ -644,10 +644,22 @@ export function DashboardContent() {
         {cards.map((card) => (
           <Card key={card.title} className="overflow-hidden">
             <div className={`bg-gradient-to-br ${card.gradient} p-4`}>
-              <div className="flex items-center justify-between">
+              <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium text-primary-foreground/80">{card.title}</p>
                   <p className="text-3xl font-bold text-primary-foreground">{card.value}</p>
+                  {card.key === 'totalStock' && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="mt-3 bg-background/95 text-foreground hover:bg-background"
+                      onClick={() => setStockDetailsOpen(true)}
+                      disabled={stockDetailRows.length === 0}
+                    >
+                      <Eye className="h-4 w-4" />
+                      {t('viewDetails')}
+                    </Button>
+                  )}
                 </div>
                 <card.icon className="h-8 w-8 text-primary-foreground/60" />
               </div>
