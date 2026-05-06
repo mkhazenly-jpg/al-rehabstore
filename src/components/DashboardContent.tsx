@@ -141,36 +141,44 @@ export function DashboardContent() {
     '8': t('september'), '9': t('october'), '10': t('november'), '11': t('december'),
   };
 
-  // Filter additions and assignments by selected date
+  // Helper: stock item ids that match the selected location filter
+  const stockIdsByLocation = useMemo(() => {
+    if (selectedLocation === 'all') return null;
+    return new Set(stockItems.filter((s: any) => s.location === selectedLocation).map((s: any) => s.id));
+  }, [stockItems, selectedLocation]);
+
+  // Filter additions by selected date AND by stock item location
   const filteredAdditions = useMemo(() => {
     return additions.filter(a => {
+      if (stockIdsByLocation && !stockIdsByLocation.has(a.stock_item_id)) return false;
       const d = new Date(a.added_at);
       if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return false;
       if (selectedMonth !== 'all' && d.getMonth() !== Number(selectedMonth)) return false;
       return true;
     });
-  }, [additions, selectedYear, selectedMonth]);
+  }, [additions, selectedYear, selectedMonth, stockIdsByLocation]);
 
+  // Filter assignments by date AND by stock item location (consumption uses item location, not employee location)
   const filteredAssignments = useMemo(() => {
     return assignments.filter(a => {
       const d = new Date(a.created_at);
       if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return false;
       if (selectedMonth !== 'all' && d.getMonth() !== Number(selectedMonth)) return false;
-      if (selectedLocation !== 'all' && a.employees?.location !== selectedLocation) return false;
+      if (stockIdsByLocation && !stockIdsByLocation.has(a.stock_item_id)) return false;
       return true;
     });
-  }, [assignments, selectedYear, selectedMonth, selectedLocation]);
+  }, [assignments, selectedYear, selectedMonth, stockIdsByLocation]);
 
-  // Filter damaged/lost assignments by date
+  // Filter damaged/lost assignments by date and stock item location
   const filteredDamagedLost = useMemo(() => {
     return damagedLostAssignments.filter(a => {
       const d = new Date(a.created_at);
       if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return false;
       if (selectedMonth !== 'all' && d.getMonth() !== Number(selectedMonth)) return false;
-      if (selectedLocation !== 'all' && a.employees?.location !== selectedLocation) return false;
+      if (stockIdsByLocation && !stockIdsByLocation.has(a.stock_item_id)) return false;
       return true;
     });
-  }, [damagedLostAssignments, selectedYear, selectedMonth, selectedLocation]);
+  }, [damagedLostAssignments, selectedYear, selectedMonth, stockIdsByLocation]);
 
   // Filter approved assignments by date and calculate renewal needed
   const filteredApprovedAssignments = useMemo(() => {
