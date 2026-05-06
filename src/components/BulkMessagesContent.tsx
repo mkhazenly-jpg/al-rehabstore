@@ -200,7 +200,7 @@ export function BulkMessagesContent() {
       const fileItems = Array.from(files).map(file => ({
         file,
         item: {
-          id: crypto.randomUUID(),
+          id: createId(),
           name: file.name,
           localUrl: URL.createObjectURL(file),
           size: file.size,
@@ -220,7 +220,7 @@ export function BulkMessagesContent() {
           continue;
         }
         const ext = (file.name.split('.').pop() || 'bin').toLowerCase();
-        const path = `${Date.now()}-${crypto.randomUUID()}.${ext}`;
+        const path = `${userData.user.id}/${Date.now()}-${createId()}.${ext}`;
         const { error } = await supabase.storage.from(ATTACHMENT_BUCKET).upload(path, file, {
           contentType: file.type || 'application/octet-stream', upsert: false,
         });
