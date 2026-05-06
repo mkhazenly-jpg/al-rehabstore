@@ -101,8 +101,8 @@ export function DashboardContent() {
     );
     const stockIdsForLoc = new Set(filteredStockItems.map((s: any) => s.id));
 
-    // Total stock: when filtering by period, show items added in that period; else total items count
-    let totalStock = filteredStockItems.length;
+    // Total stock quantity: when filtering by period, sum additions in that period; else sum quantity_in_stock
+    let totalStock = filteredStockItems.reduce((sum: number, s: any) => sum + (s.quantity_in_stock || 0), 0);
     if (periodStart && periodEnd) {
       totalStock = additions.reduce((sum: number, a: any) => {
         if (selectedLocation !== 'all' && !stockIdsForLoc.has(a.stock_item_id)) return sum;
@@ -112,8 +112,12 @@ export function DashboardContent() {
       }, 0);
     }
 
+    // Total distinct items count (filtered by location; period not applied here)
+    const totalItemsCount = filteredStockItems.length;
+
     return {
       totalStock,
+      totalItemsCount,
       totalEmployees: filteredEmployees.length,
       pendingAssignments: pending.length,
     };
