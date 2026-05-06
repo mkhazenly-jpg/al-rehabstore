@@ -913,6 +913,69 @@ export function DashboardContent() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={stockDetailsOpen} onOpenChange={setStockDetailsOpen}>
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{t('stockDetailsTitle')}</DialogTitle>
+            <DialogDescription>{t('stockDetailsDesc')}</DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto space-y-4">
+            {stockDetailRows.length === 0 ? (
+              <p className="py-8 text-center text-muted-foreground">{t('noStockDetails')}</p>
+            ) : (
+              Object.entries(stockDetailsByCategory).map(([category, rows]) => (
+                <div key={category} className="rounded-lg border overflow-hidden">
+                  <div className="flex items-center justify-between gap-3 bg-muted/40 px-4 py-3">
+                    <h3 className="font-bold">{categoryNames[category] || category}</h3>
+                    <span className="text-sm text-muted-foreground">
+                      {rows.reduce((sum, item) => sum + item.remaining, 0).toLocaleString()} {t('piece')}
+                    </span>
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t('item')}</TableHead>
+                        <TableHead>{t('size')}</TableHead>
+                        <TableHead>{t('location')}</TableHead>
+                        <TableHead className="text-center">{t('totalAdded')}</TableHead>
+                        <TableHead className="text-center">{t('totalConsumed')}</TableHead>
+                        <TableHead className="text-center">{t('remaining')}</TableHead>
+                        <TableHead className="text-end">{t('totalPrice')}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {rows.map(item => (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-medium">{item.name}</TableCell>
+                          <TableCell>{item.size || '—'}</TableCell>
+                          <TableCell>{item.location || '—'}</TableCell>
+                          <TableCell className="text-center">{item.added.toLocaleString()}</TableCell>
+                          <TableCell className="text-center">{item.consumed.toLocaleString()}</TableCell>
+                          <TableCell className="text-center font-bold text-primary">{item.remaining.toLocaleString()}</TableCell>
+                          <TableCell className="text-end font-semibold">{item.totalValue.toLocaleString()} {t('currency')}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ))
+            )}
+          </div>
+          {stockDetailRows.length > 0 && (
+            <div className="border-t pt-3 mt-2 flex flex-wrap items-center justify-between gap-3 text-sm">
+              <div>
+                <span className="text-muted-foreground">{t('totalStock')}: </span>
+                <span className="font-bold">{stats.totalStock.toLocaleString()} {t('piece')}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">{t('grandTotal')}: </span>
+                <span className="font-bold text-lg text-primary">{stockDetailsTotalValue.toLocaleString()} {t('currency')}</span>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={mostConsumedOpen} onOpenChange={setMostConsumedOpen}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
