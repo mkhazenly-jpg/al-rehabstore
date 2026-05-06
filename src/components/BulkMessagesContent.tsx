@@ -411,23 +411,26 @@ export function BulkMessagesContent() {
 
           <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={uploading || sending}
+                onClick={() => fileInputRef.current?.click()}
+                className="gap-2"
+              >
+                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+                {lang === 'ar' ? 'إرفاق ملفات (صور/فيديو/PDF/PPT/Excel)' : 'Attach files (image/video/PDF/PPT/Excel)'}
+              </Button>
               <input
                 id={fileInputId}
                 ref={fileInputRef}
                 type="file"
                 multiple
                 accept={ACCEPTED}
-                className="sr-only"
+                className="hidden"
+                disabled={uploading || sending}
                 onChange={e => handleFiles(e.target.files)}
               />
-              <Label
-                htmlFor={uploading || sending ? undefined : fileInputId}
-                className="inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground aria-disabled:pointer-events-none aria-disabled:opacity-50"
-                aria-disabled={uploading || sending}
-              >
-                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
-                {lang === 'ar' ? 'إرفاق ملفات (صور/فيديو/PDF/PPT/Excel)' : 'Attach files (image/video/PDF/PPT/Excel)'}
-              </Label>
               <span className="text-xs text-muted-foreground">
                 {lang === 'ar' ? `حد أقصى ${MAX_FILE_MB} ميجا للملف` : `Max ${MAX_FILE_MB}MB per file`}
               </span>
