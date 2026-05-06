@@ -283,6 +283,7 @@ export function DashboardContent() {
   const [violationDeductionsOpen, setViolationDeductionsOpen] = useState(false);
   const [mostConsumedOpen, setMostConsumedOpen] = useState(false);
   const [topViolatorsOpen, setTopViolatorsOpen] = useState(false);
+  const [stockDetailsOpen, setStockDetailsOpen] = useState(false);
 
   // Per-violation rows (filtered by year/month/location)
   const violationDeductionRows = useMemo(() => {
@@ -499,6 +500,33 @@ export function DashboardContent() {
       return { ...item, added, consumed, remaining, pct };
     }).filter(item => item.added > 0 || item.consumed > 0 || selectedYear === 'all');
 
+  const stockDetailRows = stockItems
+    .filter(item => selectedLocation === 'all' || item.location === selectedLocation)
+    .map(item => {
+      const added = totalAddedByItem[item.id] || 0;
+      const consumed = totalConsumedByItem[item.id] || 0;
+      const remaining = Number(item.quantity_in_stock) || 0;
+      const unitPrice = Number(item.unit_price) || 0;
+      return { ...item, added, consumed, remaining, unitPrice, totalValue: remaining * unitPrice };
+    })
+    .filter(item => selectedYear === 'all' || item.added > 0 || item.consumed > 0)
+    .sort((a, b) => {
+      const cat = String(a.category || '').localeCompare(String(b.category || ''), lang === 'ar' ? 'ar' : 'en');
+      if (cat !== 0) return cat;
+      const name = String(a.name || '').localeCompare(String(b.name || ''), lang === 'ar' ? 'ar' : 'en');
+      if (name !== 0) return name;
+      return b.remaining - a.remaining;
+    });
+
+  const stockDetailsByCategory = stockDetailRows.reduce<Record<string, typeof stockDetailRows>>((acc, item) => {
+    const key = item.category || '-';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(item);
+    return acc;
+  }, {});
+
+  const stockDetailsTotalValue = stockDetailRows.reduce((sum, item) => sum + item.totalValue, 0);
+
   const categoryNames: Record<string, string> = {
     safety_shoes: t('safetyShoes'),
     'safety shoes': t('safetyShoes'),
@@ -508,9 +536,9 @@ export function DashboardContent() {
   };
 
   const cards = [
-    { title: t('totalStock'), value: stats.totalStock, icon: Package, gradient: 'from-primary to-primary/80' },
-    { title: t('totalItemsCount'), value: stats.totalItemsCount, icon: Package, gradient: 'from-ring to-ring/80' },
-    { title: t('activeEmployees'), value: stats.totalEmployees, icon: Users, gradient: 'from-success to-success/80' },
+    { key: 'totalStock', title: t('totalStock'), value: stats.totalStock, icon: Package, gradient: 'from-primary to-primary/80' },
+    { key: 'totalItemsCount', title: t('totalItemsCount'), value: stats.totalItemsCount, icon: Package, gradient: 'from-ring to-ring/80' },
+    { key: 'activeEmployees', title: t('activeEmployees'), value: stats.totalEmployees, icon: Users, gradient: 'from-success to-success/80' },
   ];
 
   const itemGradients = [
@@ -616,10 +644,22 @@ export function DashboardContent() {
         {cards.map((card) => (
           <Card key={card.title} className="overflow-hidden">
             <div className={`bg-gradient-to-br ${card.gradient} p-4`}>
-              <div className="flex items-center justify-between">
+              <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium text-primary-foreground/80">{card.title}</p>
                   <p className="text-3xl font-bold text-primary-foreground">{card.value}</p>
+                  {card.key === 'totalStock' && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="mt-3 bg-background/95 text-foreground hover:bg-background"
+                      onClick={() => setStockDetailsOpen(true)}
+                      disabled={stockDetailRows.length === 0}
+                    >
+                      <Eye className="h-4 w-4" />
+                      {t('viewDetails')}
+                    </Button>
+                  )}
                 </div>
                 <card.icon className="h-8 w-8 text-primary-foreground/60" />
               </div>
@@ -870,6 +910,69 @@ export function DashboardContent() {
               </Table>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={stockDetailsOpen} onOpenChange={setStockDetailsOpen}>
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{t('stockDetailsTitle')}</DialogTitle>
+            <DialogDescription>{t('stockDetailsDesc')}</DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto space-y-4">
+            {stockDetailRows.length === 0 ? (
+              <p className="py-8 text-center text-muted-foreground">{t('noStockDetails')}</p>
+            ) : (
+              Object.entries(stockDetailsByCategory).map(([category, rows]) => (
+                <div key={category} className="rounded-lg border overflow-hidden">
+                  <div className="flex items-center justify-between gap-3 bg-muted/40 px-4 py-3">
+                    <h3 className="font-bold">{categoryNames[category] || category}</h3>
+                    <span className="text-sm text-muted-foreground">
+                      {rows.reduce((sum, item) => sum + item.remaining, 0).toLocaleString()} {t('piece')}
+                    </span>
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t('item')}</TableHead>
+                        <TableHead>{t('size')}</TableHead>
+                        <TableHead>{t('location')}</TableHead>
+                        <TableHead className="text-center">{t('totalAdded')}</TableHead>
+                        <TableHead className="text-center">{t('totalConsumed')}</TableHead>
+                        <TableHead className="text-center">{t('remaining')}</TableHead>
+                        <TableHead className="text-end">{t('totalPrice')}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {rows.map(item => (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-medium">{item.name}</TableCell>
+                          <TableCell>{item.size || '—'}</TableCell>
+                          <TableCell>{item.location || '—'}</TableCell>
+                          <TableCell className="text-center">{item.added.toLocaleString()}</TableCell>
+                          <TableCell className="text-center">{item.consumed.toLocaleString()}</TableCell>
+                          <TableCell className="text-center font-bold text-primary">{item.remaining.toLocaleString()}</TableCell>
+                          <TableCell className="text-end font-semibold">{item.totalValue.toLocaleString()} {t('currency')}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ))
+            )}
+          </div>
+          {stockDetailRows.length > 0 && (
+            <div className="border-t pt-3 mt-2 flex flex-wrap items-center justify-between gap-3 text-sm">
+              <div>
+                <span className="text-muted-foreground">{t('totalStock')}: </span>
+                <span className="font-bold">{stats.totalStock.toLocaleString()} {t('piece')}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">{t('grandTotal')}: </span>
+                <span className="font-bold text-lg text-primary">{stockDetailsTotalValue.toLocaleString()} {t('currency')}</span>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

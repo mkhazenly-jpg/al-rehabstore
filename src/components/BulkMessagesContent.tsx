@@ -51,6 +51,12 @@ function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
+function createId() {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 type AttachmentStatus = 'uploading' | 'uploaded' | 'error';
 type Attachment = {
   id: string;
@@ -96,6 +102,7 @@ export function BulkMessagesContent() {
   const [uploading, setUploading] = useState(false);
   const [sendSession, setSendSession] = useState<SendSession | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const attachmentsRef = useRef<Attachment[]>([]);
   const fileInputId = 'bulk-attachment-input';
 
   const loadEmployees = async () => {
@@ -163,13 +170,13 @@ export function BulkMessagesContent() {
     }
   }, []);
 
-  useEffect(() => {
-    return () => {
-      attachments.forEach(a => {
-        if (a.localUrl) URL.revokeObjectURL(a.localUrl);
-      });
-    };
-  }, [attachments]);
+  useEffect(() => { attachmentsRef.current = attachments; }, [attachments]);
+
+  useEffect(() => () => {
+    attachmentsRef.current.forEach(a => {
+      if (a.localUrl) URL.revokeObjectURL(a.localUrl);
+    });
+  }, []);
 
   const saveSendSession = (session: SendSession | null) => {
     setSendSession(session);
@@ -182,27 +189,29 @@ export function BulkMessagesContent() {
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
+    const fileItems = Array.from(files).map(file => ({
+      file,
+      item: {
+        id: createId(),
+        name: file.name,
+        localUrl: URL.createObjectURL(file),
+        size: file.size,
+        type: file.type || 'application/octet-stream',
+        status: 'uploading' as AttachmentStatus,
+      },
+    }));
+    setAttachments(prev => [...prev, ...fileItems.map(({ item }) => item)]);
+
     const { data: userData } = await supabase.auth.getUser();
     if (!userData?.user) {
+      const errorText = lang === 'ar' ? 'يجب تسجيل الدخول لرفع الملفات' : 'Login required to upload';
+      setAttachments(prev => prev.map(a => fileItems.some(({ item }) => item.id === a.id) ? { ...a, status: 'error', error: errorText } : a));
       toast.error(lang === 'ar' ? 'يجب تسجيل الدخول لرفع الملفات' : 'Login required to upload');
       return;
     }
     setUploading(true);
     const toastId = toast.loading(lang === 'ar' ? 'جارٍ رفع الملفات...' : 'Uploading...');
     try {
-      const fileItems = Array.from(files).map(file => ({
-        file,
-        item: {
-          id: crypto.randomUUID(),
-          name: file.name,
-          localUrl: URL.createObjectURL(file),
-          size: file.size,
-          type: file.type || 'application/octet-stream',
-          status: 'uploading' as AttachmentStatus,
-        },
-      }));
-      setAttachments(prev => [...prev, ...fileItems.map(({ item }) => item)]);
-
       let uploaded = 0;
       let failed = 0;
       for (const { file, item } of fileItems) {
@@ -213,7 +222,7 @@ export function BulkMessagesContent() {
           continue;
         }
         const ext = (file.name.split('.').pop() || 'bin').toLowerCase();
-        const path = `${Date.now()}-${crypto.randomUUID()}.${ext}`;
+        const path = `${userData.user.id}/${Date.now()}-${createId()}.${ext}`;
         const { error } = await supabase.storage.from(ATTACHMENT_BUCKET).upload(path, file, {
           contentType: file.type || 'application/octet-stream', upsert: false,
         });
@@ -404,23 +413,26 @@ export function BulkMessagesContent() {
 
           <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={uploading || sending}
+                onClick={() => fileInputRef.current?.click()}
+                className="gap-2"
+              >
+                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+                {lang === 'ar' ? 'إرفاق ملفات (صور/فيديو/PDF/PPT/Excel)' : 'Attach files (image/video/PDF/PPT/Excel)'}
+              </Button>
               <input
                 id={fileInputId}
                 ref={fileInputRef}
                 type="file"
                 multiple
                 accept={ACCEPTED}
-                className="sr-only"
+                className="hidden"
+                disabled={uploading || sending}
                 onChange={e => handleFiles(e.target.files)}
               />
-              <Label
-                htmlFor={uploading || sending ? undefined : fileInputId}
-                className="inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground aria-disabled:pointer-events-none aria-disabled:opacity-50"
-                aria-disabled={uploading || sending}
-              >
-                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
-                {lang === 'ar' ? 'إرفاق ملفات (صور/فيديو/PDF/PPT/Excel)' : 'Attach files (image/video/PDF/PPT/Excel)'}
-              </Label>
               <span className="text-xs text-muted-foreground">
                 {lang === 'ar' ? `حد أقصى ${MAX_FILE_MB} ميجا للملف` : `Max ${MAX_FILE_MB}MB per file`}
               </span>
