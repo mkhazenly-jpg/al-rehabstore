@@ -508,11 +508,18 @@ export function AssignmentsContent() {
                       <Select value={line.stock_item_id} onValueChange={v => { updateLine(index, 'stock_item_id', v); updateLine(index, 'reassign_reason', ''); }}>
                         <SelectTrigger><SelectValue placeholder={t('selectItem')} /></SelectTrigger>
                         <SelectContent>
-                          {stockItems.map(s => (
-                            <SelectItem key={s.id} value={s.id}>
-                              {s.name} ({s.category}{s.size !== 'N/A' ? ` - ${s.size}` : ''})
-                            </SelectItem>
-                          ))}
+                          {(() => {
+                            const emp = employees.find(e => e.id === employeeId) as any;
+                            const empLoc = emp?.location;
+                            const filtered = empLoc
+                              ? stockItems.filter(s => (s as any).location === empLoc)
+                              : stockItems;
+                            return filtered.map(s => (
+                              <SelectItem key={s.id} value={s.id}>
+                                {s.name} ({s.category}{s.size !== 'N/A' ? ` - ${s.size}` : ''}){(s as any).location ? ` - ${(s as any).location}` : ''}
+                              </SelectItem>
+                            ));
+                          })()}
                         </SelectContent>
                       </Select>
 
