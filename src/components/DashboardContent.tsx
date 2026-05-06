@@ -283,6 +283,7 @@ export function DashboardContent() {
   const [violationDeductionsOpen, setViolationDeductionsOpen] = useState(false);
   const [mostConsumedOpen, setMostConsumedOpen] = useState(false);
   const [topViolatorsOpen, setTopViolatorsOpen] = useState(false);
+  const [stockDetailsOpen, setStockDetailsOpen] = useState(false);
 
   // Per-violation rows (filtered by year/month/location)
   const violationDeductionRows = useMemo(() => {
@@ -499,6 +500,33 @@ export function DashboardContent() {
       return { ...item, added, consumed, remaining, pct };
     }).filter(item => item.added > 0 || item.consumed > 0 || selectedYear === 'all');
 
+  const stockDetailRows = stockItems
+    .filter(item => selectedLocation === 'all' || item.location === selectedLocation)
+    .map(item => {
+      const added = totalAddedByItem[item.id] || 0;
+      const consumed = totalConsumedByItem[item.id] || 0;
+      const remaining = Number(item.quantity_in_stock) || 0;
+      const unitPrice = Number(item.unit_price) || 0;
+      return { ...item, added, consumed, remaining, unitPrice, totalValue: remaining * unitPrice };
+    })
+    .filter(item => selectedYear === 'all' || item.added > 0 || item.consumed > 0)
+    .sort((a, b) => {
+      const cat = String(a.category || '').localeCompare(String(b.category || ''), lang === 'ar' ? 'ar' : 'en');
+      if (cat !== 0) return cat;
+      const name = String(a.name || '').localeCompare(String(b.name || ''), lang === 'ar' ? 'ar' : 'en');
+      if (name !== 0) return name;
+      return b.remaining - a.remaining;
+    });
+
+  const stockDetailsByCategory = stockDetailRows.reduce<Record<string, typeof stockDetailRows>>((acc, item) => {
+    const key = item.category || '-';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(item);
+    return acc;
+  }, {});
+
+  const stockDetailsTotalValue = stockDetailRows.reduce((sum, item) => sum + item.totalValue, 0);
+
   const categoryNames: Record<string, string> = {
     safety_shoes: t('safetyShoes'),
     'safety shoes': t('safetyShoes'),
@@ -508,9 +536,9 @@ export function DashboardContent() {
   };
 
   const cards = [
-    { title: t('totalStock'), value: stats.totalStock, icon: Package, gradient: 'from-primary to-primary/80' },
-    { title: t('totalItemsCount'), value: stats.totalItemsCount, icon: Package, gradient: 'from-ring to-ring/80' },
-    { title: t('activeEmployees'), value: stats.totalEmployees, icon: Users, gradient: 'from-success to-success/80' },
+    { key: 'totalStock', title: t('totalStock'), value: stats.totalStock, icon: Package, gradient: 'from-primary to-primary/80' },
+    { key: 'totalItemsCount', title: t('totalItemsCount'), value: stats.totalItemsCount, icon: Package, gradient: 'from-ring to-ring/80' },
+    { key: 'activeEmployees', title: t('activeEmployees'), value: stats.totalEmployees, icon: Users, gradient: 'from-success to-success/80' },
   ];
 
   const itemGradients = [
