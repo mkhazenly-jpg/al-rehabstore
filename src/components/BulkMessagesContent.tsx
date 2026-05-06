@@ -189,27 +189,29 @@ export function BulkMessagesContent() {
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
+    const fileItems = Array.from(files).map(file => ({
+      file,
+      item: {
+        id: createId(),
+        name: file.name,
+        localUrl: URL.createObjectURL(file),
+        size: file.size,
+        type: file.type || 'application/octet-stream',
+        status: 'uploading' as AttachmentStatus,
+      },
+    }));
+    setAttachments(prev => [...prev, ...fileItems.map(({ item }) => item)]);
+
     const { data: userData } = await supabase.auth.getUser();
     if (!userData?.user) {
+      const errorText = lang === 'ar' ? 'يجب تسجيل الدخول لرفع الملفات' : 'Login required to upload';
+      setAttachments(prev => prev.map(a => fileItems.some(({ item }) => item.id === a.id) ? { ...a, status: 'error', error: errorText } : a));
       toast.error(lang === 'ar' ? 'يجب تسجيل الدخول لرفع الملفات' : 'Login required to upload');
       return;
     }
     setUploading(true);
     const toastId = toast.loading(lang === 'ar' ? 'جارٍ رفع الملفات...' : 'Uploading...');
     try {
-      const fileItems = Array.from(files).map(file => ({
-        file,
-        item: {
-          id: createId(),
-          name: file.name,
-          localUrl: URL.createObjectURL(file),
-          size: file.size,
-          type: file.type || 'application/octet-stream',
-          status: 'uploading' as AttachmentStatus,
-        },
-      }));
-      setAttachments(prev => [...prev, ...fileItems.map(({ item }) => item)]);
-
       let uploaded = 0;
       let failed = 0;
       for (const { file, item } of fileItems) {
