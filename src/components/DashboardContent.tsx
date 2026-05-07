@@ -737,6 +737,7 @@ export function DashboardContent() {
                 <div>
                   <span className="opacity-80">{t('attritionAvgHeadcount')}:</span>{' '}
                   <span className={`font-bold ${attritionTone.fg}`}>{attrition.avgHeadcount.toFixed(1)}</span>
+                </div>
                 <div>
                   <span className="opacity-80">{t('totalEverEmployees')}:</span>{' '}
                   <span className={`font-bold ${attritionTone.fg}`}>{attrition.totalEverEmployees}</span>
