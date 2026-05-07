@@ -72,16 +72,10 @@ export function DashboardContent() {
       }
     }
 
-    // Active employees: filter by location AND active during the selected period
+    // Active employees: only those with status === 'active', filtered by location
     const filteredEmployees = allEmployees.filter((e: any) => {
       if (selectedLocation !== 'all' && e.location !== selectedLocation) return false;
-      if (periodStart && periodEnd) {
-        const hireMs = e.hire_date ? new Date(e.hire_date).getTime() : null;
-        const termMs = e.termination_date ? new Date(e.termination_date).getTime() : null;
-        if (hireMs === null || hireMs > periodEnd.getTime()) return false;
-        if (termMs !== null && termMs < periodStart.getTime()) return false;
-      }
-      return true;
+      return e.status === 'active';
     });
 
     // Pending assignments filtered by period (created_at) + location
