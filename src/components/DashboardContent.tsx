@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/hooks/use-language';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Package, Users, ClipboardList, BarChart3, Eye } from 'lucide-react';
+import { Package, Users, ClipboardList, BarChart3, Eye, PieChart as PieChartIcon } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 
-const PIE_COLORS = ['#10b981', '#f59e0b', '#3b82f6', '#ef4444', '#8b5cf6', '#ec4899'];
+const PIE_COLORS = ['#16a34a', '#f97316', '#2563eb', '#ef4444', '#8b5cf6', '#ec4899'];
 
 export function DashboardContent() {
   const { t, lang } = useLanguage();
@@ -323,7 +323,7 @@ export function DashboardContent() {
   // Period is determined by selectedYear + selectedMonth filters.
   // When "all time" is selected we fall back to the trailing 12 months ending today.
   const attrition = useMemo(() => {
-    const effectiveLocation = attritionUseLocation ? selectedLocation : 'all';
+    const effectiveLocation = selectedLocation;
     const filteredEmployees = allEmployees.filter((e: any) =>
       effectiveLocation === 'all' || e.location === effectiveLocation
     );
@@ -713,21 +713,11 @@ export function DashboardContent() {
               <p className={`text-[10px] mt-2 ${attritionTone.sub}`}>
                 {t('attritionFormulaHint')}
               </p>
-              <div className={`flex items-center gap-2 mt-3 pt-3 border-t border-background/20`}>
-                <Switch
-                  id="attrition-location-toggle"
-                  checked={attritionUseLocation}
-                  onCheckedChange={setAttritionUseLocation}
-                />
-                <Label
-                  htmlFor="attrition-location-toggle"
-                  className={`text-xs cursor-pointer ${attritionTone.fg}`}
-                >
-                  {attritionUseLocation
-                    ? `${t('attritionApplyLocation')}${selectedLocation !== 'all' ? ` (${selectedLocation})` : ''}`
-                    : t('attritionAllLocations')}
-                </Label>
-              </div>
+              {selectedLocation !== 'all' && (
+                <p className={`text-[10px] mt-3 pt-3 border-t border-background/20 ${attritionTone.sub}`}>
+                  {t('attritionApplyLocation')} ({selectedLocation})
+                </p>
+              )}
             </div>
             <Users className={`h-8 w-8 shrink-0 ${attritionTone.sub}`} />
           </div>
@@ -1221,10 +1211,15 @@ export function DashboardContent() {
       )}
 
       {/* Pie Chart */}
-      {pieData.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('costDistribution')}</CardTitle>
+      {pieData.length > 0 && (() => {
+        const totalPie = pieData.reduce((s, d) => s + d.value, 0);
+        return (
+        <Card className="border-border/60 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between gap-2">
+            <CardTitle className="text-base font-bold">{t('costDistribution')}</CardTitle>
+            <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+              <PieChartIcon className="h-5 w-5 text-primary" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="h-[300px] w-full">
@@ -1234,11 +1229,17 @@ export function DashboardContent() {
                     data={pieData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={4}
+                    innerRadius={75}
+                    outerRadius={120}
+                    paddingAngle={2}
                     dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    stroke="#fff"
+                    strokeWidth={3}
+                    label={({ percent }) => `${((percent ?? 0) * 100).toFixed(0)}%`}
+                    labelLine={false}
+                    fontSize={14}
+                    fontWeight={700}
+                    fill="#fff"
                   >
                     {pieData.map((_, idx) => (
                       <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
@@ -1248,9 +1249,25 @@ export function DashboardContent() {
                 </PieChart>
               </ResponsiveContainer>
             </div>
+            <div className="mt-4 grid grid-cols-3 gap-2 pt-4 border-t border-border/60">
+              {pieData.map((d, idx) => {
+                const color = PIE_COLORS[idx % PIE_COLORS.length];
+                const pct = totalPie > 0 ? (d.value / totalPie) * 100 : 0;
+                return (
+                  <div key={d.name} className="flex flex-col items-center text-center gap-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: color }} />
+                      <span className="text-xs font-semibold text-foreground">{d.name}</span>
+                    </div>
+                    <span className="text-xs font-bold" style={{ color }}>{pct.toFixed(0)}%</span>
+                  </div>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
-      )}
+        );
+      })()}
 
       {/* Bar Chart - Monthly comparison */}
       {selectedYear !== 'all' && barChartData.length > 0 && (
