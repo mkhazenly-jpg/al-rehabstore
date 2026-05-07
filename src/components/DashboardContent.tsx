@@ -371,12 +371,22 @@ export function DashboardContent() {
 
     const rate = avgHeadcount > 0 ? (terminations / avgHeadcount) * 100 : 0;
 
+    // Total employees ever recorded (all-time, by location)
+    const totalEverEmployees = filteredEmployees.length;
+    // Total who left (resigned/terminated/archived) all-time
+    const inactiveSet = new Set(['resigned', 'terminated', 'archived']);
+    const totalLeftEmployees = filteredEmployees.filter((e: any) =>
+      inactiveSet.has(e.status) || !!e.termination_date
+    ).length;
+
     return {
       rate,
       terminations,
       avgHeadcount,
       startHeadcount,
       endHeadcount,
+      totalEverEmployees,
+      totalLeftEmployees,
       label,
     };
   }, [allEmployees, selectedYear, selectedMonth, selectedLocation, attritionUseLocation, monthNames, t]);
