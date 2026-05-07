@@ -323,7 +323,7 @@ export function DashboardContent() {
   // Period is determined by selectedYear + selectedMonth filters.
   // When "all time" is selected we fall back to the trailing 12 months ending today.
   const attrition = useMemo(() => {
-    const effectiveLocation = attritionUseLocation ? selectedLocation : 'all';
+    const effectiveLocation = selectedLocation;
     const filteredEmployees = allEmployees.filter((e: any) =>
       effectiveLocation === 'all' || e.location === effectiveLocation
     );
