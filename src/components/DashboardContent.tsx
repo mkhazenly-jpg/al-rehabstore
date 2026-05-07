@@ -494,6 +494,31 @@ export function DashboardContent() {
     }
   });
 
+  // Total quantity by category (respects location + period filters)
+  // When period is selected: net = added - consumed in period
+  // When all-time: use current quantity_in_stock per item (filtered by location)
+  const quantityByCategory: Record<string, number> = {};
+  if (selectedYear === 'all') {
+    stockItems.forEach(item => {
+      if (selectedLocation !== 'all' && item.location !== selectedLocation) return;
+      const cat = item.category || '-';
+      quantityByCategory[cat] = (quantityByCategory[cat] || 0) + (Number(item.quantity_in_stock) || 0);
+    });
+  } else {
+    filteredAdditions.forEach(a => {
+      const item = stockItems.find(i => i.id === a.stock_item_id);
+      if (!item) return;
+      const cat = item.category || '-';
+      quantityByCategory[cat] = (quantityByCategory[cat] || 0) + (a.quantity_added || 0);
+    });
+    filteredAssignments.forEach(a => {
+      const item = stockItems.find(i => i.id === a.stock_item_id);
+      if (!item) return;
+      const cat = item.category || '-';
+      quantityByCategory[cat] = (quantityByCategory[cat] || 0) - (a.quantity_assigned || 0);
+    });
+  }
+
   const itemConsumption = stockItems
     .filter(item => selectedLocation === 'all' || item.location === selectedLocation)
     .map(item => {
