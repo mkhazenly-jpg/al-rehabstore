@@ -72,16 +72,10 @@ export function DashboardContent() {
       }
     }
 
-    // Active employees: filter by location AND active during the selected period
+    // Active employees: only those with status === 'active', filtered by location
     const filteredEmployees = allEmployees.filter((e: any) => {
       if (selectedLocation !== 'all' && e.location !== selectedLocation) return false;
-      if (periodStart && periodEnd) {
-        const hireMs = e.hire_date ? new Date(e.hire_date).getTime() : null;
-        const termMs = e.termination_date ? new Date(e.termination_date).getTime() : null;
-        if (hireMs === null || hireMs > periodEnd.getTime()) return false;
-        if (termMs !== null && termMs < periodStart.getTime()) return false;
-      }
-      return true;
+      return e.status === 'active';
     });
 
     // Pending assignments filtered by period (created_at) + location
@@ -377,12 +371,22 @@ export function DashboardContent() {
 
     const rate = avgHeadcount > 0 ? (terminations / avgHeadcount) * 100 : 0;
 
+    // Total employees ever recorded (all-time, by location)
+    const totalEverEmployees = filteredEmployees.length;
+    // Total who left (resigned/terminated/archived) all-time
+    const inactiveSet = new Set(['resigned', 'terminated', 'archived']);
+    const totalLeftEmployees = filteredEmployees.filter((e: any) =>
+      inactiveSet.has(e.status) || !!e.termination_date
+    ).length;
+
     return {
       rate,
       terminations,
       avgHeadcount,
       startHeadcount,
       endHeadcount,
+      totalEverEmployees,
+      totalLeftEmployees,
       label,
     };
   }, [allEmployees, selectedYear, selectedMonth, selectedLocation, attritionUseLocation, monthNames, t]);
@@ -489,6 +493,31 @@ export function DashboardContent() {
       costByCategory[cat] = (costByCategory[cat] || 0) + cost;
     }
   });
+
+  // Total quantity by category (respects location + period filters)
+  // When period is selected: net = added - consumed in period
+  // When all-time: use current quantity_in_stock per item (filtered by location)
+  const quantityByCategory: Record<string, number> = {};
+  if (selectedYear === 'all') {
+    stockItems.forEach(item => {
+      if (selectedLocation !== 'all' && item.location !== selectedLocation) return;
+      const cat = item.category || '-';
+      quantityByCategory[cat] = (quantityByCategory[cat] || 0) + (Number(item.quantity_in_stock) || 0);
+    });
+  } else {
+    filteredAdditions.forEach(a => {
+      const item = stockItems.find(i => i.id === a.stock_item_id);
+      if (!item) return;
+      const cat = item.category || '-';
+      quantityByCategory[cat] = (quantityByCategory[cat] || 0) + (a.quantity_added || 0);
+    });
+    filteredAssignments.forEach(a => {
+      const item = stockItems.find(i => i.id === a.stock_item_id);
+      if (!item) return;
+      const cat = item.category || '-';
+      quantityByCategory[cat] = (quantityByCategory[cat] || 0) - (a.quantity_assigned || 0);
+    });
+  }
 
   const itemConsumption = stockItems
     .filter(item => selectedLocation === 'all' || item.location === selectedLocation)
@@ -708,6 +737,14 @@ export function DashboardContent() {
                 <div>
                   <span className="opacity-80">{t('attritionAvgHeadcount')}:</span>{' '}
                   <span className={`font-bold ${attritionTone.fg}`}>{attrition.avgHeadcount.toFixed(1)}</span>
+                </div>
+                <div>
+                  <span className="opacity-80">{t('totalEverEmployees')}:</span>{' '}
+                  <span className={`font-bold ${attritionTone.fg}`}>{attrition.totalEverEmployees}</span>
+                </div>
+                <div>
+                  <span className="opacity-80">{t('totalLeftEmployees')}:</span>{' '}
+                  <span className={`font-bold ${attritionTone.fg}`}>{attrition.totalLeftEmployees}</span>
                 </div>
               </div>
               <p className={`text-[10px] mt-2 ${attritionTone.sub}`}>
@@ -1134,6 +1171,29 @@ export function DashboardContent() {
           </Card>
         ))}
       </div>
+
+      {/* Quantity by Category */}
+      {Object.keys(quantityByCategory).length > 0 && (
+        <>
+          <h2 className="text-lg font-bold">{t('quantityByCategory')}</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {Object.entries(quantityByCategory)
+              .filter(([, qty]) => qty !== 0)
+              .map(([cat, qty], idx) => (
+                <Card key={cat} className="overflow-hidden">
+                  <div className={`bg-gradient-to-br ${itemGradients[idx % itemGradients.length]} p-4`}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-primary-foreground/80">{categoryNames[cat] || cat}</p>
+                        <p className="text-3xl font-bold text-primary-foreground">{qty.toLocaleString()} {t('piece')}</p>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+          </div>
+        </>
+      )}
 
       {/* Damaged Items */}
       {Object.keys(damagedByItem).length > 0 && (
