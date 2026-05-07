@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 
-const PIE_COLORS = ['#10b981', '#f59e0b', '#3b82f6', '#ef4444', '#8b5cf6', '#ec4899'];
+const PIE_COLORS = ['#16a34a', '#f97316', '#2563eb', '#ef4444', '#8b5cf6', '#ec4899'];
 
 export function DashboardContent() {
   const { t, lang } = useLanguage();
