@@ -1211,10 +1211,15 @@ export function DashboardContent() {
       )}
 
       {/* Pie Chart */}
-      {pieData.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('costDistribution')}</CardTitle>
+      {pieData.length > 0 && (() => {
+        const totalPie = pieData.reduce((s, d) => s + d.value, 0);
+        return (
+        <Card className="border-border/60 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between gap-2">
+            <CardTitle className="text-base font-bold">{t('costDistribution')}</CardTitle>
+            <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+              <PieChartIcon className="h-5 w-5 text-primary" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="h-[300px] w-full">
@@ -1224,11 +1229,17 @@ export function DashboardContent() {
                     data={pieData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={4}
+                    innerRadius={75}
+                    outerRadius={120}
+                    paddingAngle={2}
                     dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    stroke="#fff"
+                    strokeWidth={3}
+                    label={({ percent }) => `${((percent ?? 0) * 100).toFixed(0)}%`}
+                    labelLine={false}
+                    fontSize={14}
+                    fontWeight={700}
+                    fill="#fff"
                   >
                     {pieData.map((_, idx) => (
                       <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
@@ -1238,9 +1249,25 @@ export function DashboardContent() {
                 </PieChart>
               </ResponsiveContainer>
             </div>
+            <div className="mt-4 grid grid-cols-3 gap-2 pt-4 border-t border-border/60">
+              {pieData.map((d, idx) => {
+                const color = PIE_COLORS[idx % PIE_COLORS.length];
+                const pct = totalPie > 0 ? (d.value / totalPie) * 100 : 0;
+                return (
+                  <div key={d.name} className="flex flex-col items-center text-center gap-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: color }} />
+                      <span className="text-xs font-semibold text-foreground">{d.name}</span>
+                    </div>
+                    <span className="text-xs font-bold" style={{ color }}>{pct.toFixed(0)}%</span>
+                  </div>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
-      )}
+        );
+      })()}
 
       {/* Bar Chart - Monthly comparison */}
       {selectedYear !== 'all' && barChartData.length > 0 && (
