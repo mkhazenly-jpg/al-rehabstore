@@ -1164,6 +1164,29 @@ export function DashboardContent() {
         ))}
       </div>
 
+      {/* Quantity by Category */}
+      {Object.keys(quantityByCategory).length > 0 && (
+        <>
+          <h2 className="text-lg font-bold">{t('quantityByCategory')}</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {Object.entries(quantityByCategory)
+              .filter(([, qty]) => qty !== 0)
+              .map(([cat, qty], idx) => (
+                <Card key={cat} className="overflow-hidden">
+                  <div className={`bg-gradient-to-br ${itemGradients[idx % itemGradients.length]} p-4`}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-primary-foreground/80">{categoryNames[cat] || cat}</p>
+                        <p className="text-3xl font-bold text-primary-foreground">{qty.toLocaleString()} {t('piece')}</p>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+          </div>
+        </>
+      )}
+
       {/* Damaged Items */}
       {Object.keys(damagedByItem).length > 0 && (
         <>
