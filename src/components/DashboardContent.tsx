@@ -737,6 +737,13 @@ export function DashboardContent() {
                 <div>
                   <span className="opacity-80">{t('attritionAvgHeadcount')}:</span>{' '}
                   <span className={`font-bold ${attritionTone.fg}`}>{attrition.avgHeadcount.toFixed(1)}</span>
+                <div>
+                  <span className="opacity-80">{t('totalEverEmployees')}:</span>{' '}
+                  <span className={`font-bold ${attritionTone.fg}`}>{attrition.totalEverEmployees}</span>
+                </div>
+                <div>
+                  <span className="opacity-80">{t('totalLeftEmployees')}:</span>{' '}
+                  <span className={`font-bold ${attritionTone.fg}`}>{attrition.totalLeftEmployees}</span>
                 </div>
               </div>
               <p className={`text-[10px] mt-2 ${attritionTone.sub}`}>
