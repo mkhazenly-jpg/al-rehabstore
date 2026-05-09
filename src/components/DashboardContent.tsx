@@ -392,6 +392,42 @@ export function DashboardContent() {
     };
   }, [allEmployees, selectedYear, selectedMonth, selectedLocation, attritionUseLocation, monthNames, t]);
 
+  // Employees registered (hired) within the selected period & location — for the attrition details dialog
+  const attritionDetailRows = useMemo(() => {
+    const filteredByLoc = allEmployees.filter((e: any) =>
+      selectedLocation === 'all' || e.location === selectedLocation
+    );
+
+    let periodStart: Date | null = null;
+    let periodEnd: Date | null = null;
+    if (selectedYear === 'all') {
+      periodStart = null;
+      periodEnd = null;
+    } else if (selectedMonth === 'all') {
+      const y = Number(selectedYear);
+      periodStart = new Date(y, 0, 1);
+      periodEnd = new Date(y, 11, 31, 23, 59, 59);
+    } else {
+      const y = Number(selectedYear);
+      const m = Number(selectedMonth);
+      periodStart = new Date(y, m, 1);
+      periodEnd = new Date(y, m + 1, 0, 23, 59, 59);
+    }
+
+    return filteredByLoc
+      .filter((e: any) => {
+        if (!periodStart || !periodEnd) return true;
+        if (!e.hire_date) return false;
+        const ms = new Date(e.hire_date).getTime();
+        return ms >= periodStart.getTime() && ms <= periodEnd.getTime();
+      })
+      .sort((a: any, b: any) => {
+        const am = a.hire_date ? new Date(a.hire_date).getTime() : 0;
+        const bm = b.hire_date ? new Date(b.hire_date).getTime() : 0;
+        return bm - am;
+      });
+  }, [allEmployees, selectedYear, selectedMonth, selectedLocation]);
+
   const attritionTone = attrition.rate < 10
     ? { bg: 'from-success to-success/70', fg: 'text-primary-foreground', sub: 'text-primary-foreground/80', badge: t('attritionExcellent') }
     : attrition.rate < 15
