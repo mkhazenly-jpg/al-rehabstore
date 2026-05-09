@@ -278,6 +278,7 @@ export function DashboardContent() {
   const [mostConsumedOpen, setMostConsumedOpen] = useState(false);
   const [topViolatorsOpen, setTopViolatorsOpen] = useState(false);
   const [stockDetailsOpen, setStockDetailsOpen] = useState(false);
+  const [attritionDetailsOpen, setAttritionDetailsOpen] = useState(false);
 
   // Per-violation rows (filtered by year/month/location)
   const violationDeductionRows = useMemo(() => {
