@@ -725,7 +725,16 @@ export function DashboardContent() {
                       <Eye className="h-4 w-4" />
                       {t('viewDetails')}
                     </Button>
-                  )}
+              )}
+              <Button
+                size="sm"
+                variant="secondary"
+                className="mt-3"
+                onClick={() => setAttritionDetailsOpen(true)}
+              >
+                <Eye className="h-4 w-4 me-1" />
+                {t('viewDetails')}
+              </Button>
                 </div>
                 <card.icon className="h-8 w-8 text-primary-foreground/60" />
               </div>
