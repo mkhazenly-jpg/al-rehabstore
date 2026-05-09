@@ -792,6 +792,15 @@ export function DashboardContent() {
                   {t('attritionApplyLocation')} ({selectedLocation})
                 </p>
               )}
+              <Button
+                size="sm"
+                variant="secondary"
+                className="mt-3 bg-background/95 text-foreground hover:bg-background"
+                onClick={() => setAttritionDetailsOpen(true)}
+              >
+                <Eye className="h-4 w-4 me-1" />
+                {t('viewDetails')}
+              </Button>
             </div>
             <Users className={`h-8 w-8 shrink-0 ${attritionTone.sub}`} />
           </div>
