@@ -278,6 +278,7 @@ export function DashboardContent() {
   const [mostConsumedOpen, setMostConsumedOpen] = useState(false);
   const [topViolatorsOpen, setTopViolatorsOpen] = useState(false);
   const [stockDetailsOpen, setStockDetailsOpen] = useState(false);
+  const [attritionDetailsOpen, setAttritionDetailsOpen] = useState(false);
 
   // Per-violation rows (filtered by year/month/location)
   const violationDeductionRows = useMemo(() => {
@@ -390,6 +391,42 @@ export function DashboardContent() {
       label,
     };
   }, [allEmployees, selectedYear, selectedMonth, selectedLocation, attritionUseLocation, monthNames, t]);
+
+  // Employees registered (hired) within the selected period & location — for the attrition details dialog
+  const attritionDetailRows = useMemo(() => {
+    const filteredByLoc = allEmployees.filter((e: any) =>
+      selectedLocation === 'all' || e.location === selectedLocation
+    );
+
+    let periodStart: Date | null = null;
+    let periodEnd: Date | null = null;
+    if (selectedYear === 'all') {
+      periodStart = null;
+      periodEnd = null;
+    } else if (selectedMonth === 'all') {
+      const y = Number(selectedYear);
+      periodStart = new Date(y, 0, 1);
+      periodEnd = new Date(y, 11, 31, 23, 59, 59);
+    } else {
+      const y = Number(selectedYear);
+      const m = Number(selectedMonth);
+      periodStart = new Date(y, m, 1);
+      periodEnd = new Date(y, m + 1, 0, 23, 59, 59);
+    }
+
+    return filteredByLoc
+      .filter((e: any) => {
+        if (!periodStart || !periodEnd) return true;
+        if (!e.hire_date) return false;
+        const ms = new Date(e.hire_date).getTime();
+        return ms >= periodStart.getTime() && ms <= periodEnd.getTime();
+      })
+      .sort((a: any, b: any) => {
+        const am = a.hire_date ? new Date(a.hire_date).getTime() : 0;
+        const bm = b.hire_date ? new Date(b.hire_date).getTime() : 0;
+        return bm - am;
+      });
+  }, [allEmployees, selectedYear, selectedMonth, selectedLocation]);
 
   const attritionTone = attrition.rate < 10
     ? { bg: 'from-success to-success/70', fg: 'text-primary-foreground', sub: 'text-primary-foreground/80', badge: t('attritionExcellent') }
@@ -688,7 +725,7 @@ export function DashboardContent() {
                       <Eye className="h-4 w-4" />
                       {t('viewDetails')}
                     </Button>
-                  )}
+              )}
                 </div>
                 <card.icon className="h-8 w-8 text-primary-foreground/60" />
               </div>
@@ -755,6 +792,15 @@ export function DashboardContent() {
                   {t('attritionApplyLocation')} ({selectedLocation})
                 </p>
               )}
+              <Button
+                size="sm"
+                variant="secondary"
+                className="mt-3 bg-background/95 text-foreground hover:bg-background"
+                onClick={() => setAttritionDetailsOpen(true)}
+              >
+                <Eye className="h-4 w-4 me-1" />
+                {t('viewDetails')}
+              </Button>
             </div>
             <Users className={`h-8 w-8 shrink-0 ${attritionTone.sub}`} />
           </div>
@@ -1003,6 +1049,66 @@ export function DashboardContent() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={attritionDetailsOpen} onOpenChange={setAttritionDetailsOpen}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{t('attritionDetailsTitle')}</DialogTitle>
+            <DialogDescription>
+              {t('attritionDetailsDesc')} — {attrition.label}
+              {selectedLocation !== 'all' ? ` · ${selectedLocation}` : ''}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto">
+            {attritionDetailRows.length === 0 ? (
+              <p className="py-8 text-center text-muted-foreground">{t('noEmployeesInPeriod')}</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('fullName')}</TableHead>
+                    <TableHead>{t('location')}</TableHead>
+                    <TableHead>{t('registrationDate')}</TableHead>
+                    <TableHead>{t('exitStatus')}</TableHead>
+                    <TableHead>{t('exitDate')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {attritionDetailRows.map((e: any) => {
+                    const isInactive = ['resigned', 'terminated', 'archived'].includes(e.status) || !!e.termination_date;
+                    return (
+                      <TableRow key={e.id}>
+                        <TableCell className="font-medium">{e.name}</TableCell>
+                        <TableCell>{e.location || '—'}</TableCell>
+                        <TableCell>{e.hire_date ? new Date(e.hire_date).toLocaleDateString() : '—'}</TableCell>
+                        <TableCell>
+                          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                            isInactive ? 'bg-destructive/15 text-destructive' : 'bg-success/15 text-success'
+                          }`}>
+                            {isInactive ? t(e.status || 'terminated') : t('stillActive')}
+                          </span>
+                        </TableCell>
+                        <TableCell>{e.termination_date ? new Date(e.termination_date).toLocaleDateString() : '—'}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+          <div className="border-t pt-3 mt-2 flex flex-wrap items-center justify-between gap-3 text-sm">
+            <div>
+              <span className="text-muted-foreground">{t('totalEverEmployees')}: </span>
+              <span className="font-bold">{attritionDetailRows.length}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">{t('totalLeftEmployees')}: </span>
+              <span className="font-bold text-destructive">
+                {attritionDetailRows.filter((e: any) => ['resigned', 'terminated', 'archived'].includes(e.status) || !!e.termination_date).length}
+              </span>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       <Dialog open={mostConsumedOpen} onOpenChange={setMostConsumedOpen}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
