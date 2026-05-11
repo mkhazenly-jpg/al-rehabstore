@@ -602,10 +602,24 @@ export function DashboardContent() {
     gloves: t('gloves'),
   };
 
+  // Emoji map per category (falls back to a generic box)
+  const categoryEmojis: Record<string, string> = {
+    safety_shoes: '🥾',
+    'safety shoes': '🥾',
+    shoes: '🥾',
+    vests: '🦺',
+    vest: '🦺',
+    helmets: '⛑️',
+    helmet: '⛑️',
+    gloves: '🧤',
+    glove: '🧤',
+  };
+  const emojiFor = (cat: string) => categoryEmojis[cat] || categoryEmojis[String(cat).toLowerCase()] || '📦';
+
   const cards = [
-    { key: 'totalStock', title: t('totalStock'), value: stats.totalStock, icon: Package, gradient: 'from-primary to-primary/80' },
-    { key: 'totalItemsCount', title: t('totalItemsCount'), value: stats.totalItemsCount, icon: Package, gradient: 'from-ring to-ring/80' },
-    { key: 'activeEmployees', title: t('activeEmployees'), value: stats.totalEmployees, icon: Users, gradient: 'from-success to-success/80' },
+    { key: 'totalStock', title: t('totalStock'), value: stats.totalStock, icon: Package, gradient: 'from-primary to-primary/80', emoji: '📦' },
+    { key: 'totalItemsCount', title: t('totalItemsCount'), value: stats.totalItemsCount, icon: Package, gradient: 'from-sky-500 to-sky-600', emoji: '🗂️' },
+    { key: 'activeEmployees', title: t('activeEmployees'), value: stats.totalEmployees, icon: Users, gradient: 'from-emerald-500 to-emerald-600', emoji: '👷' },
   ];
 
   const itemGradients = [
