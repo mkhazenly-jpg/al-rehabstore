@@ -831,7 +831,7 @@ export function DashboardContent() {
         <div className="bg-gradient-to-br from-amber-400 to-amber-500 p-5">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-sm font-bold text-amber-950">{t('totalAssignmentDeductions')}</p>
+              <p className="text-sm font-bold text-amber-950"><span className="mr-1" aria-hidden>💸</span>{t('totalAssignmentDeductions')}</p>
               <p className="mt-1 text-3xl font-bold text-amber-950">
                 {totalAssignmentDeductions.toLocaleString()} {t('currency')}
               </p>
