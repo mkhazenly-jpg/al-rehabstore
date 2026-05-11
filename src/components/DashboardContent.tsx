@@ -889,7 +889,7 @@ export function DashboardContent() {
             <div className="flex items-center gap-4 flex-row-reverse">
               {/* Right column: title + ranked list + description */}
               <div className="min-w-0 flex-1 text-right">
-                <h3 className="text-xl font-bold text-amber-950 mb-3">{t('mostConsumedItems')}</h3>
+                <h3 className="text-xl font-bold text-amber-950 mb-3"><span className="mr-1" aria-hidden>🔥</span>{t('mostConsumedItems')}</h3>
                 <ul className="space-y-2">
                   {mostConsumedData.slice(0, 3).map((row, idx) => (
                     <li key={row.category} className="text-amber-950 font-bold text-lg leading-tight">
