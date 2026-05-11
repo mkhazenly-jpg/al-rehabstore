@@ -1077,55 +1077,82 @@ export function DashboardContent() {
               {selectedLocation !== 'all' ? ` · ${selectedLocation}` : ''}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex-1 overflow-auto">
-            {attritionDetailRows.length === 0 ? (
-              <p className="py-8 text-center text-muted-foreground">{t('noEmployeesInPeriod')}</p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('fullName')}</TableHead>
-                    <TableHead>{t('location')}</TableHead>
-                    <TableHead>{t('registrationDate')}</TableHead>
-                    <TableHead>{t('exitStatus')}</TableHead>
-                    <TableHead>{t('exitDate')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {attritionDetailRows.map((e: any) => {
-                    const isInactive = ['resigned', 'terminated', 'archived'].includes(e.status) || !!e.termination_date;
-                    return (
-                      <TableRow key={e.id}>
-                        <TableCell className="font-medium">{e.name}</TableCell>
-                        <TableCell>{e.location || '—'}</TableCell>
-                        <TableCell>{e.hire_date ? new Date(e.hire_date).toLocaleDateString() : '—'}</TableCell>
-                        <TableCell>
-                          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                            isInactive ? 'bg-destructive/15 text-destructive' : 'bg-success/15 text-success'
-                          }`}>
-                            {isInactive ? t(e.status || 'terminated') : t('stillActive')}
-                          </span>
-                        </TableCell>
-                        <TableCell>{e.termination_date ? new Date(e.termination_date).toLocaleDateString() : '—'}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            )}
-          </div>
-          <div className="border-t pt-3 mt-2 flex flex-wrap items-center justify-between gap-3 text-sm">
-            <div>
-              <span className="text-muted-foreground">{t('totalEverEmployees')}: </span>
-              <span className="font-bold">{attritionDetailRows.length}</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">{t('totalLeftEmployees')}: </span>
-              <span className="font-bold text-destructive">
-                {attritionDetailRows.filter((e: any) => ['resigned', 'terminated', 'archived'].includes(e.status) || !!e.termination_date).length}
-              </span>
-            </div>
-          </div>
+          {(() => {
+            const isInactiveEmp = (e: any) => ['resigned', 'terminated', 'archived'].includes(e.status) || !!e.termination_date;
+            const filteredRows = attritionDetailRows.filter((e: any) => {
+              if (attritionStatusFilter === 'all') return true;
+              const inactive = isInactiveEmp(e);
+              return attritionStatusFilter === 'inactive' ? inactive : !inactive;
+            });
+            return (
+              <>
+                <div className="flex items-center gap-2 pb-2">
+                  <span className="text-sm text-muted-foreground">{t('filter')}:</span>
+                  <Select value={attritionStatusFilter} onValueChange={(v) => setAttritionStatusFilter(v as 'all' | 'active' | 'inactive')}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('attritionFilterAll')}</SelectItem>
+                      <SelectItem value="active">{t('attritionFilterActive')}</SelectItem>
+                      <SelectItem value="inactive">{t('attritionFilterInactive')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex-1 overflow-auto">
+                  {filteredRows.length === 0 ? (
+                    <p className="py-8 text-center text-muted-foreground">{t('noEmployeesInPeriod')}</p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>{t('fullName')}</TableHead>
+                          <TableHead>{t('location')}</TableHead>
+                          <TableHead>{t('registrationDate')}</TableHead>
+                          <TableHead>{t('exitStatus')}</TableHead>
+                          <TableHead>{t('exitDate')}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredRows.map((e: any) => {
+                          const inactive = isInactiveEmp(e);
+                          // Display 'archived' as 'terminated' (منتهي الخدمة)
+                          const displayStatusKey = e.status === 'archived' ? 'terminated' : (e.status || 'terminated');
+                          return (
+                            <TableRow key={e.id}>
+                              <TableCell className="font-medium">{e.name}</TableCell>
+                              <TableCell>{e.location || '—'}</TableCell>
+                              <TableCell>{e.hire_date ? new Date(e.hire_date).toLocaleDateString() : '—'}</TableCell>
+                              <TableCell>
+                                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                                  inactive ? 'bg-destructive/15 text-destructive' : 'bg-success/15 text-success'
+                                }`}>
+                                  {inactive ? t(displayStatusKey) : t('stillActive')}
+                                </span>
+                              </TableCell>
+                              <TableCell>{e.termination_date ? new Date(e.termination_date).toLocaleDateString() : '—'}</TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  )}
+                </div>
+                <div className="border-t pt-3 mt-2 flex flex-wrap items-center justify-between gap-3 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">{t('totalEverEmployees')}: </span>
+                    <span className="font-bold">{filteredRows.length}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">{t('totalLeftEmployees')}: </span>
+                    <span className="font-bold text-destructive">
+                      {filteredRows.filter(isInactiveEmp).length}
+                    </span>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
       <Dialog open={mostConsumedOpen} onOpenChange={setMostConsumedOpen}>
