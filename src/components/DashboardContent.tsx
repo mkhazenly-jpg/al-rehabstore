@@ -279,6 +279,7 @@ export function DashboardContent() {
   const [topViolatorsOpen, setTopViolatorsOpen] = useState(false);
   const [stockDetailsOpen, setStockDetailsOpen] = useState(false);
   const [attritionDetailsOpen, setAttritionDetailsOpen] = useState(false);
+  const [attritionStatusFilter, setAttritionStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
   // Per-violation rows (filtered by year/month/location)
   const violationDeductionRows = useMemo(() => {
@@ -601,19 +602,35 @@ export function DashboardContent() {
     gloves: t('gloves'),
   };
 
+  // Emoji map per category (falls back to a generic box)
+  const categoryEmojis: Record<string, string> = {
+    safety_shoes: '🥾',
+    'safety shoes': '🥾',
+    shoes: '🥾',
+    vests: '🦺',
+    vest: '🦺',
+    helmets: '⛑️',
+    helmet: '⛑️',
+    gloves: '🧤',
+    glove: '🧤',
+  };
+  const emojiFor = (cat: string) => categoryEmojis[cat] || categoryEmojis[String(cat).toLowerCase()] || '📦';
+
   const cards = [
-    { key: 'totalStock', title: t('totalStock'), value: stats.totalStock, icon: Package, gradient: 'from-primary to-primary/80' },
-    { key: 'totalItemsCount', title: t('totalItemsCount'), value: stats.totalItemsCount, icon: Package, gradient: 'from-ring to-ring/80' },
-    { key: 'activeEmployees', title: t('activeEmployees'), value: stats.totalEmployees, icon: Users, gradient: 'from-success to-success/80' },
+    { key: 'totalStock', title: t('totalStock'), value: stats.totalStock, icon: Package, gradient: 'from-primary to-primary/80', emoji: '📦' },
+    { key: 'totalItemsCount', title: t('totalItemsCount'), value: stats.totalItemsCount, icon: Package, gradient: 'from-sky-500 to-sky-600', emoji: '🗂️' },
+    { key: 'activeEmployees', title: t('activeEmployees'), value: stats.totalEmployees, icon: Users, gradient: 'from-emerald-500 to-emerald-600', emoji: '👷' },
   ];
 
   const itemGradients = [
-    'from-primary to-primary/70',
-    'from-success to-success/70',
-    'from-ring to-ring/70',
-    'from-primary/80 to-ring/60',
-    'from-success/80 to-primary/60',
-    'from-ring/80 to-success/60',
+    'from-emerald-500 to-emerald-600',
+    'from-sky-500 to-sky-600',
+    'from-violet-500 to-violet-600',
+    'from-orange-500 to-orange-600',
+    'from-rose-500 to-rose-600',
+    'from-teal-500 to-teal-600',
+    'from-fuchsia-500 to-fuchsia-600',
+    'from-cyan-500 to-cyan-600',
   ];
 
   // Pie chart data
@@ -713,7 +730,9 @@ export function DashboardContent() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium text-primary-foreground/80">{card.title}</p>
-                  <p className="text-3xl font-bold text-primary-foreground">{card.value}</p>
+                  <p className="text-3xl font-bold text-primary-foreground">
+                    <span className="mr-1" aria-hidden>{card.emoji}</span>{card.value}
+                  </p>
                   {card.key === 'totalStock' && (
                     <Button
                       size="sm"
@@ -736,11 +755,11 @@ export function DashboardContent() {
 
       {/* Total purchase cost */}
       <Card className="overflow-hidden">
-        <div className="bg-gradient-to-br from-primary to-primary/70 p-5">
+        <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 p-5">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-primary-foreground/80">
-                {isFiltered ? t('monthlyPurchases') : t('totalPurchaseCost')}
+                <span className="mr-1" aria-hidden>💰</span>{isFiltered ? t('monthlyPurchases') : t('totalPurchaseCost')}
               </p>
               <p className="text-3xl font-bold text-primary-foreground">{totalPurchaseCost.toLocaleString()} {t('currency')}</p>
             </div>
@@ -755,7 +774,7 @@ export function DashboardContent() {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <p className={`text-sm font-medium ${attritionTone.sub}`}>{t('attritionRate')}</p>
+                <p className={`text-sm font-medium ${attritionTone.sub}`}><span className="mr-1" aria-hidden>🔄</span>{t('attritionRate')}</p>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full bg-background/25 ${attritionTone.fg}`}>
                   {attritionTone.badge}
                 </span>
@@ -812,7 +831,7 @@ export function DashboardContent() {
         <div className="bg-gradient-to-br from-amber-400 to-amber-500 p-5">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-sm font-bold text-amber-950">{t('totalAssignmentDeductions')}</p>
+              <p className="text-sm font-bold text-amber-950"><span className="mr-1" aria-hidden>💸</span>{t('totalAssignmentDeductions')}</p>
               <p className="mt-1 text-3xl font-bold text-amber-950">
                 {totalAssignmentDeductions.toLocaleString()} {t('currency')}
               </p>
@@ -836,21 +855,21 @@ export function DashboardContent() {
       </Card>
 
       {/* Total monetary deductions from violations */}
-      <Card className="overflow-hidden border-amber-500/40">
-        <div className="bg-gradient-to-br from-amber-400 to-amber-500 p-5">
+      <Card className="overflow-hidden border-rose-500/40">
+        <div className="bg-gradient-to-br from-rose-500 to-rose-600 p-5">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-sm font-bold text-amber-950">{t('totalViolationDeductions')}</p>
-              <p className="mt-1 text-3xl font-bold text-amber-950">
+              <p className="text-sm font-bold text-rose-50"><span className="mr-1" aria-hidden>⚠️</span>{t('totalViolationDeductions')}</p>
+              <p className="mt-1 text-3xl font-bold text-rose-50">
                 {totalViolationDeductions.toLocaleString()} {t('currency')}
               </p>
-              <p className="mt-2 text-xs text-amber-950/80 leading-relaxed">
+              <p className="mt-2 text-xs text-rose-50/90 leading-relaxed">
                 {t('totalViolationDeductionsDesc')}
               </p>
               <Button
                 size="sm"
                 variant="secondary"
-                className="mt-3 bg-amber-950 text-amber-50 hover:bg-amber-950/90"
+                className="mt-3 bg-rose-950 text-rose-50 hover:bg-rose-950/90"
                 onClick={() => setViolationDeductionsOpen(true)}
                 disabled={violationDeductionRows.length === 0}
               >
@@ -858,7 +877,7 @@ export function DashboardContent() {
                 {t('viewDetails')}
               </Button>
             </div>
-            <BarChart3 className="h-8 w-8 text-amber-950/60 shrink-0" />
+            <BarChart3 className="h-8 w-8 text-rose-50/70 shrink-0" />
           </div>
         </div>
       </Card>
@@ -870,7 +889,7 @@ export function DashboardContent() {
             <div className="flex items-center gap-4 flex-row-reverse">
               {/* Right column: title + ranked list + description */}
               <div className="min-w-0 flex-1 text-right">
-                <h3 className="text-xl font-bold text-amber-950 mb-3">{t('mostConsumedItems')}</h3>
+                <h3 className="text-xl font-bold text-amber-950 mb-3"><span className="mr-1" aria-hidden>🔥</span>{t('mostConsumedItems')}</h3>
                 <ul className="space-y-2">
                   {mostConsumedData.slice(0, 3).map((row, idx) => (
                     <li key={row.category} className="text-amber-950 font-bold text-lg leading-tight">
@@ -1058,55 +1077,82 @@ export function DashboardContent() {
               {selectedLocation !== 'all' ? ` · ${selectedLocation}` : ''}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex-1 overflow-auto">
-            {attritionDetailRows.length === 0 ? (
-              <p className="py-8 text-center text-muted-foreground">{t('noEmployeesInPeriod')}</p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('fullName')}</TableHead>
-                    <TableHead>{t('location')}</TableHead>
-                    <TableHead>{t('registrationDate')}</TableHead>
-                    <TableHead>{t('exitStatus')}</TableHead>
-                    <TableHead>{t('exitDate')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {attritionDetailRows.map((e: any) => {
-                    const isInactive = ['resigned', 'terminated', 'archived'].includes(e.status) || !!e.termination_date;
-                    return (
-                      <TableRow key={e.id}>
-                        <TableCell className="font-medium">{e.name}</TableCell>
-                        <TableCell>{e.location || '—'}</TableCell>
-                        <TableCell>{e.hire_date ? new Date(e.hire_date).toLocaleDateString() : '—'}</TableCell>
-                        <TableCell>
-                          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                            isInactive ? 'bg-destructive/15 text-destructive' : 'bg-success/15 text-success'
-                          }`}>
-                            {isInactive ? t(e.status || 'terminated') : t('stillActive')}
-                          </span>
-                        </TableCell>
-                        <TableCell>{e.termination_date ? new Date(e.termination_date).toLocaleDateString() : '—'}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            )}
-          </div>
-          <div className="border-t pt-3 mt-2 flex flex-wrap items-center justify-between gap-3 text-sm">
-            <div>
-              <span className="text-muted-foreground">{t('totalEverEmployees')}: </span>
-              <span className="font-bold">{attritionDetailRows.length}</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">{t('totalLeftEmployees')}: </span>
-              <span className="font-bold text-destructive">
-                {attritionDetailRows.filter((e: any) => ['resigned', 'terminated', 'archived'].includes(e.status) || !!e.termination_date).length}
-              </span>
-            </div>
-          </div>
+          {(() => {
+            const isInactiveEmp = (e: any) => ['resigned', 'terminated', 'archived'].includes(e.status) || !!e.termination_date;
+            const filteredRows = attritionDetailRows.filter((e: any) => {
+              if (attritionStatusFilter === 'all') return true;
+              const inactive = isInactiveEmp(e);
+              return attritionStatusFilter === 'inactive' ? inactive : !inactive;
+            });
+            return (
+              <>
+                <div className="flex items-center gap-2 pb-2">
+                  <span className="text-sm text-muted-foreground">{t('filter')}:</span>
+                  <Select value={attritionStatusFilter} onValueChange={(v) => setAttritionStatusFilter(v as 'all' | 'active' | 'inactive')}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('attritionFilterAll')}</SelectItem>
+                      <SelectItem value="active">{t('attritionFilterActive')}</SelectItem>
+                      <SelectItem value="inactive">{t('attritionFilterInactive')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex-1 overflow-auto">
+                  {filteredRows.length === 0 ? (
+                    <p className="py-8 text-center text-muted-foreground">{t('noEmployeesInPeriod')}</p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>{t('fullName')}</TableHead>
+                          <TableHead>{t('location')}</TableHead>
+                          <TableHead>{t('registrationDate')}</TableHead>
+                          <TableHead>{t('exitStatus')}</TableHead>
+                          <TableHead>{t('exitDate')}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredRows.map((e: any) => {
+                          const inactive = isInactiveEmp(e);
+                          // Display 'archived' as 'terminated' (منتهي الخدمة)
+                          const displayStatusKey = e.status === 'archived' ? 'terminated' : (e.status || 'terminated');
+                          return (
+                            <TableRow key={e.id}>
+                              <TableCell className="font-medium">{e.name}</TableCell>
+                              <TableCell>{e.location || '—'}</TableCell>
+                              <TableCell>{e.hire_date ? new Date(e.hire_date).toLocaleDateString() : '—'}</TableCell>
+                              <TableCell>
+                                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                                  inactive ? 'bg-destructive/15 text-destructive' : 'bg-success/15 text-success'
+                                }`}>
+                                  {inactive ? t(displayStatusKey) : t('stillActive')}
+                                </span>
+                              </TableCell>
+                              <TableCell>{e.termination_date ? new Date(e.termination_date).toLocaleDateString() : '—'}</TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  )}
+                </div>
+                <div className="border-t pt-3 mt-2 flex flex-wrap items-center justify-between gap-3 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">{t('totalEverEmployees')}: </span>
+                    <span className="font-bold">{filteredRows.length}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">{t('totalLeftEmployees')}: </span>
+                    <span className="font-bold text-destructive">
+                      {filteredRows.filter(isInactiveEmp).length}
+                    </span>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
       <Dialog open={mostConsumedOpen} onOpenChange={setMostConsumedOpen}>
@@ -1261,14 +1307,16 @@ export function DashboardContent() {
         </DialogContent>
       </Dialog>
 
-      <h2 className="text-lg font-bold">{t('categoryCost')}</h2>
+      <h2 className="text-lg font-bold"><span className="mr-1" aria-hidden>💵</span>{t('categoryCost')}</h2>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Object.entries(costByCategory).map(([cat, cost], idx) => (
           <Card key={cat} className="overflow-hidden">
             <div className={`bg-gradient-to-br ${itemGradients[idx % itemGradients.length]} p-4`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-primary-foreground/80">{categoryNames[cat] || cat}</p>
+                  <p className="text-sm font-medium text-primary-foreground/80">
+                    <span className="mr-1" aria-hidden>{emojiFor(cat)}</span>{categoryNames[cat] || cat}
+                  </p>
                   <p className="text-3xl font-bold text-primary-foreground">{cost.toLocaleString()} {t('currency')}</p>
                 </div>
                 
@@ -1281,7 +1329,7 @@ export function DashboardContent() {
       {/* Quantity by Category */}
       {Object.keys(quantityByCategory).length > 0 && (
         <>
-          <h2 className="text-lg font-bold">{t('quantityByCategory')}</h2>
+          <h2 className="text-lg font-bold"><span className="mr-1" aria-hidden>📊</span>{t('quantityByCategory')}</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {Object.entries(quantityByCategory)
               .filter(([, qty]) => qty !== 0)
@@ -1290,7 +1338,9 @@ export function DashboardContent() {
                   <div className={`bg-gradient-to-br ${itemGradients[idx % itemGradients.length]} p-4`}>
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-primary-foreground/80">{categoryNames[cat] || cat}</p>
+                        <p className="text-sm font-medium text-primary-foreground/80">
+                          <span className="mr-1" aria-hidden>{emojiFor(cat)}</span>{categoryNames[cat] || cat}
+                        </p>
                         <p className="text-3xl font-bold text-primary-foreground">{qty.toLocaleString()} {t('piece')}</p>
                       </div>
                     </div>
