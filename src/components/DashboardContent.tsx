@@ -730,7 +730,9 @@ export function DashboardContent() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium text-primary-foreground/80">{card.title}</p>
-                  <p className="text-3xl font-bold text-primary-foreground">{card.value}</p>
+                  <p className="text-3xl font-bold text-primary-foreground">
+                    <span className="mr-1" aria-hidden>{card.emoji}</span>{card.value}
+                  </p>
                   {card.key === 'totalStock' && (
                     <Button
                       size="sm"
