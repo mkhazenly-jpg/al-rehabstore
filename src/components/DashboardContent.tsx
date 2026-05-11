@@ -855,21 +855,21 @@ export function DashboardContent() {
       </Card>
 
       {/* Total monetary deductions from violations */}
-      <Card className="overflow-hidden border-amber-500/40">
-        <div className="bg-gradient-to-br from-amber-400 to-amber-500 p-5">
+      <Card className="overflow-hidden border-rose-500/40">
+        <div className="bg-gradient-to-br from-rose-500 to-rose-600 p-5">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-sm font-bold text-amber-950">{t('totalViolationDeductions')}</p>
-              <p className="mt-1 text-3xl font-bold text-amber-950">
+              <p className="text-sm font-bold text-rose-50"><span className="mr-1" aria-hidden>⚠️</span>{t('totalViolationDeductions')}</p>
+              <p className="mt-1 text-3xl font-bold text-rose-50">
                 {totalViolationDeductions.toLocaleString()} {t('currency')}
               </p>
-              <p className="mt-2 text-xs text-amber-950/80 leading-relaxed">
+              <p className="mt-2 text-xs text-rose-50/90 leading-relaxed">
                 {t('totalViolationDeductionsDesc')}
               </p>
               <Button
                 size="sm"
                 variant="secondary"
-                className="mt-3 bg-amber-950 text-amber-50 hover:bg-amber-950/90"
+                className="mt-3 bg-rose-950 text-rose-50 hover:bg-rose-950/90"
                 onClick={() => setViolationDeductionsOpen(true)}
                 disabled={violationDeductionRows.length === 0}
               >
@@ -877,7 +877,7 @@ export function DashboardContent() {
                 {t('viewDetails')}
               </Button>
             </div>
-            <BarChart3 className="h-8 w-8 text-amber-950/60 shrink-0" />
+            <BarChart3 className="h-8 w-8 text-rose-50/70 shrink-0" />
           </div>
         </div>
       </Card>
