@@ -35,7 +35,7 @@ export function DashboardContent() {
   const loadStats = async () => {
     const [stockRes, empRes, assignRes, additionsRes, allAssignRes, damagedLostRes, approvedAssignRes, violationsRes] = await Promise.all([
       supabase.from('stock_items').select('*'),
-      supabase.from('employees').select('status, location, hire_date, termination_date'),
+      supabase.from('employees').select('id, name, status, location, hire_date, termination_date, shift'),
       supabase.from('assignments').select('status, stock_item_id, quantity_assigned, created_at, employee_id, employees(location)'),
       supabase.from('stock_additions').select('*'),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, status, created_at, employee_id, employees(location)').in('status', ['approved', 'pending']),
