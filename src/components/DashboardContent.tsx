@@ -623,12 +623,14 @@ export function DashboardContent() {
   ];
 
   const itemGradients = [
-    'from-primary to-primary/70',
-    'from-success to-success/70',
-    'from-ring to-ring/70',
-    'from-primary/80 to-ring/60',
-    'from-success/80 to-primary/60',
-    'from-ring/80 to-success/60',
+    'from-emerald-500 to-emerald-600',
+    'from-sky-500 to-sky-600',
+    'from-violet-500 to-violet-600',
+    'from-orange-500 to-orange-600',
+    'from-rose-500 to-rose-600',
+    'from-teal-500 to-teal-600',
+    'from-fuchsia-500 to-fuchsia-600',
+    'from-cyan-500 to-cyan-600',
   ];
 
   // Pie chart data
