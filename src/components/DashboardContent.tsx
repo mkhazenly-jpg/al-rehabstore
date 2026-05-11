@@ -755,11 +755,11 @@ export function DashboardContent() {
 
       {/* Total purchase cost */}
       <Card className="overflow-hidden">
-        <div className="bg-gradient-to-br from-primary to-primary/70 p-5">
+        <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 p-5">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-primary-foreground/80">
-                {isFiltered ? t('monthlyPurchases') : t('totalPurchaseCost')}
+                <span className="mr-1" aria-hidden>💰</span>{isFiltered ? t('monthlyPurchases') : t('totalPurchaseCost')}
               </p>
               <p className="text-3xl font-bold text-primary-foreground">{totalPurchaseCost.toLocaleString()} {t('currency')}</p>
             </div>
