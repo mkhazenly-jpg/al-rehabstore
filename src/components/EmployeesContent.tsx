@@ -43,7 +43,7 @@ export function EmployeesContent() {
   const [assignments, setAssignments] = useState<any[]>([]);
   const [empViolations, setEmpViolations] = useState<any[]>([]);
   const [editItem, setEditItem] = useState<Employee | null>(null);
-  const [form, setForm] = useState({ name: '', hire_date: '', status: 'active' as EmployeeStatus, termination_date: '', department: '', notes: '', shift: '' as '' | 'morning' | 'night', mobile: '', emergency_contact: '', job_title: '', location: '' as '' | 'RDC' | 'SDC' });
+  const [form, setForm] = useState({ name: '', hire_date: '', status: 'active' as EmployeeStatus, termination_date: '', department: '', notes: '', shift: '' as '' | 'morning' | 'middle' | 'night', mobile: '', emergency_contact: '', job_title: '', location: '' as '' | 'RDC' | 'SDC' });
   const [isAddingDept, setIsAddingDept] = useState(false);
   const [showJobSuggestions, setShowJobSuggestions] = useState(false);
   const jobInputWrapRef = useRef<HTMLDivElement>(null);
@@ -313,6 +313,7 @@ export function EmployeesContent() {
 
         const shiftVal = (row[t('shift')] || row['Shift'] || row['الشفت'] || '').toString().trim().toLowerCase();
         if (shiftVal.includes('morning') || shiftVal.includes('صباح')) payload.shift = 'morning';
+        else if (shiftVal.includes('middle') || shiftVal.includes('وسط')) payload.shift = 'middle';
         else if (shiftVal.includes('night') || shiftVal.includes('مسائ')) payload.shift = 'night';
 
         const statusVal = (row[t('status')] || row['Status'] || row['الحالة'] || '').toString().trim().toLowerCase();
@@ -361,6 +362,7 @@ export function EmployeesContent() {
           <SelectContent>
             <SelectItem value="all">{t('shift')}: {t('allCategories')}</SelectItem>
             <SelectItem value="morning">{t('morning')}</SelectItem>
+            <SelectItem value="middle">{t('middle')}</SelectItem>
             <SelectItem value="night">{t('night')}</SelectItem>
           </SelectContent>
         </Select>
@@ -560,6 +562,7 @@ export function EmployeesContent() {
                 <SelectTrigger><SelectValue placeholder="-" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="morning">{t('morning')}</SelectItem>
+                  <SelectItem value="middle">{t('middle')}</SelectItem>
                   <SelectItem value="night">{t('night')}</SelectItem>
                 </SelectContent>
               </Select>
