@@ -1280,14 +1280,16 @@ export function DashboardContent() {
         </DialogContent>
       </Dialog>
 
-      <h2 className="text-lg font-bold">{t('categoryCost')}</h2>
+      <h2 className="text-lg font-bold"><span className="mr-1" aria-hidden>💵</span>{t('categoryCost')}</h2>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Object.entries(costByCategory).map(([cat, cost], idx) => (
           <Card key={cat} className="overflow-hidden">
             <div className={`bg-gradient-to-br ${itemGradients[idx % itemGradients.length]} p-4`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-primary-foreground/80">{categoryNames[cat] || cat}</p>
+                  <p className="text-sm font-medium text-primary-foreground/80">
+                    <span className="mr-1" aria-hidden>{emojiFor(cat)}</span>{categoryNames[cat] || cat}
+                  </p>
                   <p className="text-3xl font-bold text-primary-foreground">{cost.toLocaleString()} {t('currency')}</p>
                 </div>
                 
@@ -1300,7 +1302,7 @@ export function DashboardContent() {
       {/* Quantity by Category */}
       {Object.keys(quantityByCategory).length > 0 && (
         <>
-          <h2 className="text-lg font-bold">{t('quantityByCategory')}</h2>
+          <h2 className="text-lg font-bold"><span className="mr-1" aria-hidden>📊</span>{t('quantityByCategory')}</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {Object.entries(quantityByCategory)
               .filter(([, qty]) => qty !== 0)
@@ -1309,7 +1311,9 @@ export function DashboardContent() {
                   <div className={`bg-gradient-to-br ${itemGradients[idx % itemGradients.length]} p-4`}>
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-primary-foreground/80">{categoryNames[cat] || cat}</p>
+                        <p className="text-sm font-medium text-primary-foreground/80">
+                          <span className="mr-1" aria-hidden>{emojiFor(cat)}</span>{categoryNames[cat] || cat}
+                        </p>
                         <p className="text-3xl font-bold text-primary-foreground">{qty.toLocaleString()} {t('piece')}</p>
                       </div>
                     </div>
