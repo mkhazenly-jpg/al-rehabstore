@@ -369,7 +369,12 @@ export const translations = {
     bulkNoRecipients: 'لا يوجد موظفون يطابقون الفلاتر مع رقم موبايل',
     bulkMessageRequired: 'اكتب نص الرسالة أولاً',
     bulkAll: 'الكل',
-  },
+    bulkFilterHireFrom: 'تاريخ التعيين من',
+    bulkFilterHireTo: 'إلى',
+    bulkFilterViolations: 'المخالفات',
+    bulkHasViolations: 'لديهم مخالفات',
+    bulkNoViolations: 'بدون مخالفات',
+    violationsList: 'وصف المخالفات',
   en: {
     appName: 'Al-Rahaba Warehouse',
     dashboard: 'Dashboard',
