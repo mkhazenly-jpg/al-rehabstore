@@ -494,7 +494,7 @@ export function DashboardContent() {
 
   // Top employees by number of violations (filtered by year/month/location)
   const topViolatorsData = (() => {
-    const byEmp: Record<string, { name: string; location: string; jobTitle: string; count: number; actions: Record<string, number> }> = {};
+    const byEmp: Record<string, { name: string; location: string; jobTitle: string; count: number; actions: Record<string, number>; descriptions: string[] }> = {};
     allViolations.forEach((v: any) => {
       const d = new Date(v.violation_date);
       if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return;
@@ -507,10 +507,12 @@ export function DashboardContent() {
         jobTitle: v.employees?.job_title || '-',
         count: 0,
         actions: {},
+        descriptions: [],
       };
       byEmp[key].count += 1;
       const act = v.action_taken || '-';
       byEmp[key].actions[act] = (byEmp[key].actions[act] || 0) + 1;
+      if (v.violation_description) byEmp[key].descriptions.push(String(v.violation_description));
     });
     return Object.values(byEmp).sort((a, b) => b.count - a.count);
   })();
@@ -917,7 +919,7 @@ export function DashboardContent() {
           ) : (
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1 text-right">
-                <h3 className="text-xl font-bold text-amber-950 mb-2">{t('mostConsumedItems')}</h3>
+                <h3 className="text-xl font-bold text-amber-950 mb-2"><span className="mr-1" aria-hidden>🔥</span>{t('mostConsumedItems')}</h3>
                 <p className="text-sm text-amber-950/80">{t('noConsumption')}</p>
               </div>
               <BarChart3 className="h-8 w-8 text-amber-950/60 shrink-0" />
@@ -932,7 +934,7 @@ export function DashboardContent() {
           {topViolator ? (
             <div className="flex items-center gap-4 flex-row-reverse">
               <div className="min-w-0 flex-1 text-right">
-                <h3 className="text-xl font-bold text-amber-950 mb-3">{t('topViolatorsTitle')}</h3>
+                <h3 className="text-xl font-bold text-amber-950 mb-3"><span className="mr-1" aria-hidden>🚨</span>{t('topViolatorsTitle')}</h3>
                 <ul className="space-y-2">
                   {topViolatorsData.slice(0, 3).map((row, idx) => (
                     <li key={row.name + idx} className="text-amber-950 font-bold text-lg leading-tight">
@@ -959,7 +961,7 @@ export function DashboardContent() {
           ) : (
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1 text-right">
-                <h3 className="text-xl font-bold text-amber-950 mb-2">{t('topViolatorsTitle')}</h3>
+                <h3 className="text-xl font-bold text-amber-950 mb-2"><span className="mr-1" aria-hidden>🚨</span>{t('topViolatorsTitle')}</h3>
                 <p className="text-sm text-amber-950/80">{t('noViolations')}</p>
               </div>
               <Users className="h-8 w-8 text-amber-950/60 shrink-0" />
@@ -985,6 +987,7 @@ export function DashboardContent() {
                     <TableHead>{t('employee')}</TableHead>
                     <TableHead>{t('jobTitle')}</TableHead>
                     <TableHead>{t('location')}</TableHead>
+                    <TableHead>{t('violationsList')}</TableHead>
                     <TableHead className="text-end">{t('violationsCount')}</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -995,6 +998,11 @@ export function DashboardContent() {
                       <TableCell className="font-medium">{row.name}</TableCell>
                       <TableCell>{row.jobTitle}</TableCell>
                       <TableCell>{row.location}</TableCell>
+                      <TableCell className="whitespace-pre-wrap text-xs text-muted-foreground max-w-[320px]">
+                        {row.descriptions.length > 0
+                          ? row.descriptions.map((d, i) => `${i + 1}. ${d}`).join('\n')
+                          : '-'}
+                      </TableCell>
                       <TableCell className="text-end font-bold text-amber-600">{row.count}</TableCell>
                     </TableRow>
                   ))}

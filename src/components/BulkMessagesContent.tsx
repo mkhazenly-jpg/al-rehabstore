@@ -88,10 +88,14 @@ type SendSession = {
 export function BulkMessagesContent() {
   const { t, lang } = useLanguage();
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [violatorIds, setViolatorIds] = useState<Set<string>>(new Set());
   const [message, setMessage] = useState('');
   const [filterLocation, setFilterLocation] = useState<string>(ALL);
   const [filterDepartment, setFilterDepartment] = useState<string>(ALL);
   const [filterShift, setFilterShift] = useState<string>(ALL);
+  const [filterViolations, setFilterViolations] = useState<string>(ALL);
+  const [filterHireFrom, setFilterHireFrom] = useState<string>('');
+  const [filterHireTo, setFilterHireTo] = useState<string>('');
   const [activeOnly, setActiveOnly] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [sending, setSending] = useState(false);
@@ -111,6 +115,11 @@ export function BulkMessagesContent() {
     setEmployees(data || []);
   };
 
+  const loadViolations = async () => {
+    const { data } = await supabase.from('employee_violations').select('employee_id');
+    setViolatorIds(new Set((data || []).map((v: any) => v.employee_id).filter(Boolean)));
+  };
+
   const loadLogs = async () => {
     const { data } = await supabase.from('whatsapp_send_attempts')
       .select('id, employee_id, to_number, status, sent_at, error_message')
@@ -118,7 +127,7 @@ export function BulkMessagesContent() {
     setLogs(data || []);
   };
 
-  useEffect(() => { loadEmployees(); loadLogs(); }, []);
+  useEffect(() => { loadEmployees(); loadLogs(); loadViolations(); }, []);
 
   const locations = useMemo(() => Array.from(new Set(employees.map(e => e.location).filter(Boolean))) as string[], [employees]);
   const departments = useMemo(() => Array.from(new Set(employees.map(e => e.department).filter(Boolean))) as string[], [employees]);
@@ -130,9 +139,13 @@ export function BulkMessagesContent() {
       if (filterLocation !== ALL && e.location !== filterLocation) return false;
       if (filterDepartment !== ALL && e.department !== filterDepartment) return false;
       if (filterShift !== ALL && e.shift !== filterShift) return false;
+      if (filterHireFrom && (!e.hire_date || e.hire_date < filterHireFrom)) return false;
+      if (filterHireTo && (!e.hire_date || e.hire_date > filterHireTo)) return false;
+      if (filterViolations === 'has' && !violatorIds.has(e.id)) return false;
+      if (filterViolations === 'none' && violatorIds.has(e.id)) return false;
       return true;
     });
-  }, [employees, activeOnly, filterLocation, filterDepartment, filterShift]);
+  }, [employees, activeOnly, filterLocation, filterDepartment, filterShift, filterHireFrom, filterHireTo, filterViolations, violatorIds]);
 
   useEffect(() => {
     setSelectedIds(prev => {
@@ -517,6 +530,35 @@ export function BulkMessagesContent() {
                 {shifts.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">{t('bulkFilterViolations')}</Label>
+            <Select value={filterViolations} onValueChange={setFilterViolations}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>{t('bulkAll')}</SelectItem>
+                <SelectItem value="has">{t('bulkHasViolations')}</SelectItem>
+                <SelectItem value="none">{t('bulkNoViolations')}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">{t('bulkFilterHireFrom')}</Label>
+            <input
+              type="date"
+              value={filterHireFrom}
+              onChange={e => setFilterHireFrom(e.target.value)}
+              className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">{t('bulkFilterHireTo')}</Label>
+            <input
+              type="date"
+              value={filterHireTo}
+              onChange={e => setFilterHireTo(e.target.value)}
+              className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+            />
           </div>
           <div className="flex items-end gap-2">
             <Checkbox id="active-only" checked={activeOnly} onCheckedChange={v => setActiveOnly(!!v)} />
