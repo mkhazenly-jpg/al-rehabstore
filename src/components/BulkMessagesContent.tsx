@@ -139,9 +139,13 @@ export function BulkMessagesContent() {
       if (filterLocation !== ALL && e.location !== filterLocation) return false;
       if (filterDepartment !== ALL && e.department !== filterDepartment) return false;
       if (filterShift !== ALL && e.shift !== filterShift) return false;
+      if (filterHireFrom && (!e.hire_date || e.hire_date < filterHireFrom)) return false;
+      if (filterHireTo && (!e.hire_date || e.hire_date > filterHireTo)) return false;
+      if (filterViolations === 'has' && !violatorIds.has(e.id)) return false;
+      if (filterViolations === 'none' && violatorIds.has(e.id)) return false;
       return true;
     });
-  }, [employees, activeOnly, filterLocation, filterDepartment, filterShift]);
+  }, [employees, activeOnly, filterLocation, filterDepartment, filterShift, filterHireFrom, filterHireTo, filterViolations, violatorIds]);
 
   useEffect(() => {
     setSelectedIds(prev => {
