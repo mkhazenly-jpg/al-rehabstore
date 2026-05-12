@@ -494,7 +494,7 @@ export function DashboardContent() {
 
   // Top employees by number of violations (filtered by year/month/location)
   const topViolatorsData = (() => {
-    const byEmp: Record<string, { name: string; location: string; jobTitle: string; count: number; actions: Record<string, number> }> = {};
+    const byEmp: Record<string, { name: string; location: string; jobTitle: string; count: number; actions: Record<string, number>; descriptions: string[] }> = {};
     allViolations.forEach((v: any) => {
       const d = new Date(v.violation_date);
       if (selectedYear !== 'all' && d.getFullYear() !== Number(selectedYear)) return;
@@ -507,10 +507,12 @@ export function DashboardContent() {
         jobTitle: v.employees?.job_title || '-',
         count: 0,
         actions: {},
+        descriptions: [],
       };
       byEmp[key].count += 1;
       const act = v.action_taken || '-';
       byEmp[key].actions[act] = (byEmp[key].actions[act] || 0) + 1;
+      if (v.violation_description) byEmp[key].descriptions.push(String(v.violation_description));
     });
     return Object.values(byEmp).sort((a, b) => b.count - a.count);
   })();
