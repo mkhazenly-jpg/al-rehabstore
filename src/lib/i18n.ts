@@ -744,6 +744,12 @@ export const translations = {
     bulkNoRecipients: 'No employees match the filters with a mobile number',
     bulkMessageRequired: 'Please type a message first',
     bulkAll: 'All',
+    bulkFilterHireFrom: 'Hire date from',
+    bulkFilterHireTo: 'to',
+    bulkFilterViolations: 'Violations',
+    bulkHasViolations: 'With violations',
+    bulkNoViolations: 'Without violations',
+    violationsList: 'Violation descriptions',
   },
 } as const;
 
