@@ -375,6 +375,7 @@ export const translations = {
     bulkHasViolations: 'لديهم مخالفات',
     bulkNoViolations: 'بدون مخالفات',
     violationsList: 'وصف المخالفات',
+  },
   en: {
     appName: 'Al-Rahaba Warehouse',
     dashboard: 'Dashboard',
