@@ -919,7 +919,7 @@ export function DashboardContent() {
           ) : (
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1 text-right">
-                <h3 className="text-xl font-bold text-amber-950 mb-2">{t('mostConsumedItems')}</h3>
+                <h3 className="text-xl font-bold text-amber-950 mb-2"><span className="mr-1" aria-hidden>🔥</span>{t('mostConsumedItems')}</h3>
                 <p className="text-sm text-amber-950/80">{t('noConsumption')}</p>
               </div>
               <BarChart3 className="h-8 w-8 text-amber-950/60 shrink-0" />
