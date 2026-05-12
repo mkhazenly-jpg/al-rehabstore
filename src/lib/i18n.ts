@@ -88,7 +88,7 @@ export const translations = {
     protectedAccount: 'حساب محمي',
     safetyShoes: 'أحذية سلامة',
     vests: 'سترات',
-    helmets: 'خوذات',
+    helmets: 'خوذة',
     gloves: 'قفازات',
     pair: 'زوج',
     piece: 'قطعة',
