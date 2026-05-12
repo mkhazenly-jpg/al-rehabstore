@@ -987,6 +987,7 @@ export function DashboardContent() {
                     <TableHead>{t('employee')}</TableHead>
                     <TableHead>{t('jobTitle')}</TableHead>
                     <TableHead>{t('location')}</TableHead>
+                    <TableHead>{t('violationsList')}</TableHead>
                     <TableHead className="text-end">{t('violationsCount')}</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -997,6 +998,11 @@ export function DashboardContent() {
                       <TableCell className="font-medium">{row.name}</TableCell>
                       <TableCell>{row.jobTitle}</TableCell>
                       <TableCell>{row.location}</TableCell>
+                      <TableCell className="whitespace-pre-wrap text-xs text-muted-foreground max-w-[320px]">
+                        {row.descriptions.length > 0
+                          ? row.descriptions.map((d, i) => `${i + 1}. ${d}`).join('\n')
+                          : '-'}
+                      </TableCell>
                       <TableCell className="text-end font-bold text-amber-600">{row.count}</TableCell>
                     </TableRow>
                   ))}
