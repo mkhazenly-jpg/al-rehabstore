@@ -934,7 +934,7 @@ export function DashboardContent() {
           {topViolator ? (
             <div className="flex items-center gap-4 flex-row-reverse">
               <div className="min-w-0 flex-1 text-right">
-                <h3 className="text-xl font-bold text-amber-950 mb-3">{t('topViolatorsTitle')}</h3>
+                <h3 className="text-xl font-bold text-amber-950 mb-3"><span className="mr-1" aria-hidden>🚨</span>{t('topViolatorsTitle')}</h3>
                 <ul className="space-y-2">
                   {topViolatorsData.slice(0, 3).map((row, idx) => (
                     <li key={row.name + idx} className="text-amber-950 font-bold text-lg leading-tight">
