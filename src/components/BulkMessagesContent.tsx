@@ -531,6 +531,35 @@ export function BulkMessagesContent() {
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-1">
+            <Label className="text-xs">{t('bulkFilterViolations')}</Label>
+            <Select value={filterViolations} onValueChange={setFilterViolations}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>{t('bulkAll')}</SelectItem>
+                <SelectItem value="has">{t('bulkHasViolations')}</SelectItem>
+                <SelectItem value="none">{t('bulkNoViolations')}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">{t('bulkFilterHireFrom')}</Label>
+            <input
+              type="date"
+              value={filterHireFrom}
+              onChange={e => setFilterHireFrom(e.target.value)}
+              className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">{t('bulkFilterHireTo')}</Label>
+            <input
+              type="date"
+              value={filterHireTo}
+              onChange={e => setFilterHireTo(e.target.value)}
+              className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+            />
+          </div>
           <div className="flex items-end gap-2">
             <Checkbox id="active-only" checked={activeOnly} onCheckedChange={v => setActiveOnly(!!v)} />
             <Label htmlFor="active-only" className="text-sm cursor-pointer">{t('bulkActiveOnly')}</Label>
