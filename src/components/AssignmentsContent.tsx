@@ -47,8 +47,15 @@ export function AssignmentsContent() {
   const [batchesDialogOpen, setBatchesDialogOpen] = useState(false);
   const [batchesAssignment, setBatchesAssignment] = useState<any>(null);
   const [batchesData, setBatchesData] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => { loadAll(); }, []);
+
+  const filteredAssignments = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return assignments;
+    return assignments.filter((a: any) => (a.employees?.name || '').toLowerCase().includes(q));
+  }, [assignments, searchQuery]);
 
   const loadAll = async () => {
     const [aRes, eRes, sRes] = await Promise.all([
@@ -311,7 +318,14 @@ export function AssignmentsContent() {
           <Button size="sm" onClick={() => openDialog()}>
             <Plus className="h-4 w-4 me-1" />{t('newAssignment')}
           </Button>
-        </div>
+      </div>
+
+      <Input
+        placeholder={t('searchEmployee')}
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        className="max-w-sm"
+      />
       </div>
 
       <Card>
@@ -334,7 +348,7 @@ export function AssignmentsContent() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {assignments.map((a: any) => (
+                {filteredAssignments.map((a: any) => (
                   <TableRow key={a.id}>
                     <TableCell className="font-medium">{a.employees?.name}</TableCell>
                     <TableCell>
@@ -391,7 +405,7 @@ export function AssignmentsContent() {
                     )}
                   </TableRow>
                 ))}
-                {assignments.length === 0 && (
+                {filteredAssignments.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={11} className="text-center text-muted-foreground py-8">-</TableCell>
                   </TableRow>
