@@ -647,6 +647,26 @@ export function ViolationsContent() {
                   </div>
                 )}
               </div>
+              {(() => {
+                if (!form.employee_id || !form.violation_description.trim()) return null;
+                const key = normalizeDescription(form.violation_description);
+                const priorCount = violations.filter(v =>
+                  v.employee_id === form.employee_id &&
+                  normalizeDescription(v.violation_description) === key &&
+                  (!editItem || v.id !== editItem.id)
+                ).length;
+                const nextRepeat = priorCount + 1;
+                return (
+                  <div className={cn('inline-flex items-center gap-2 rounded-md px-2.5 py-1 text-xs font-semibold', getRepeatBadgeClass(nextRepeat))}>
+                    <span>{lang === 'ar' ? 'رقم تكرار المخالفة' : 'Repeat number'}: {nextRepeat}</span>
+                    {priorCount > 0 && (
+                      <span className="opacity-80 font-normal">
+                        ({lang === 'ar' ? `سبق تسجيلها ${priorCount} مرة` : `previously recorded ${priorCount} time(s)`})
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             <div className="space-y-2">
