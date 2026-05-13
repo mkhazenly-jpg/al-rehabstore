@@ -405,7 +405,7 @@ export function AssignmentsContent() {
                     )}
                   </TableRow>
                 ))}
-                {assignments.length === 0 && (
+                {filteredAssignments.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={11} className="text-center text-muted-foreground py-8">-</TableCell>
                   </TableRow>
