@@ -318,7 +318,14 @@ export function AssignmentsContent() {
           <Button size="sm" onClick={() => openDialog()}>
             <Plus className="h-4 w-4 me-1" />{t('newAssignment')}
           </Button>
-        </div>
+      </div>
+
+      <Input
+        placeholder={t('searchEmployee')}
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        className="max-w-sm"
+      />
       </div>
 
       <Card>
