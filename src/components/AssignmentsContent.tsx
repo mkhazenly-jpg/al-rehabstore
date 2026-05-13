@@ -47,8 +47,15 @@ export function AssignmentsContent() {
   const [batchesDialogOpen, setBatchesDialogOpen] = useState(false);
   const [batchesAssignment, setBatchesAssignment] = useState<any>(null);
   const [batchesData, setBatchesData] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => { loadAll(); }, []);
+
+  const filteredAssignments = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return assignments;
+    return assignments.filter((a: any) => (a.employees?.name || '').toLowerCase().includes(q));
+  }, [assignments, searchQuery]);
 
   const loadAll = async () => {
     const [aRes, eRes, sRes] = await Promise.all([
