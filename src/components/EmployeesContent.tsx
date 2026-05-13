@@ -147,12 +147,34 @@ export function EmployeesContent() {
     const dept = form.department === '__new__' ? '' : form.department.trim();
     // Auto-archive any non-active status (resigned / terminated / archived all become archived)
     const finalStatus: EmployeeStatus = form.status === 'active' ? 'active' : 'archived';
+
+    // If adding (not editing) and name already exists (including archived), ask for reason
+    let extraNotes = '';
+    if (!editItem) {
+      const trimmedName = form.name.trim().toLowerCase();
+      const duplicate = employees.find(e => e.name.trim().toLowerCase() === trimmedName);
+      if (duplicate) {
+        const dupStatus = t(duplicate.status as any);
+        const promptMsg = lang === 'ar'
+          ? `يوجد موظف بنفس الاسم "${duplicate.name}" (${dupStatus}). الرجاء كتابة سبب الإضافة:`
+          : `An employee named "${duplicate.name}" already exists (${dupStatus}). Please enter the reason for adding:`;
+        const reason = window.prompt(promptMsg, '');
+        if (reason === null) return; // cancelled
+        if (!reason.trim()) {
+          toast.error(lang === 'ar' ? 'يجب كتابة سبب الإضافة' : 'Reason is required');
+          return;
+        }
+        extraNotes = (lang === 'ar' ? `[سبب إضافة موظف بنفس الاسم]: ${reason.trim()}` : `[Reason for duplicate add]: ${reason.trim()}`);
+      }
+    }
+
+    const combinedNotes = [form.notes, extraNotes].filter(Boolean).join('\n') || null;
     const payload: any = {
       name: form.name,
       hire_date: form.hire_date,
       status: finalStatus,
       department: dept || null,
-      notes: form.notes || null,
+      notes: combinedNotes,
       termination_date: finalStatus !== 'active' ? (form.termination_date || new Date().toISOString().split('T')[0]) : null,
       shift: form.shift || null,
       mobile: form.mobile || null,
