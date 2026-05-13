@@ -348,7 +348,7 @@ export function AssignmentsContent() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {assignments.map((a: any) => (
+                {filteredAssignments.map((a: any) => (
                   <TableRow key={a.id}>
                     <TableCell className="font-medium">{a.employees?.name}</TableCell>
                     <TableCell>
