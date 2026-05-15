@@ -241,7 +241,8 @@ export function ViolationsContent() {
       if (error) { toast.error(error.message); return; }
       toast.success(lang === 'ar' ? 'تم التحديث' : 'Updated');
     } else {
-      const { error } = await supabase.from('employee_violations').insert(payload);
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const { error } = await supabase.from('employee_violations').insert({ ...payload, created_by: currentUser?.id ?? null });
       if (error) { toast.error(error.message); return; }
       toast.success(lang === 'ar' ? 'تم الإضافة' : 'Added');
     }
