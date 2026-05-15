@@ -13,6 +13,7 @@ import { Plus, Pencil, Trash2, Download, Search, AlertTriangle, History, Info, S
 import { toast } from 'sonner';
 import { exportToExcel } from '@/lib/export';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useProfilesMap } from '@/hooks/use-profiles';
 import type { Tables } from '@/integrations/supabase/types';
 
 type StockItem = Tables<'stock_items'>;
@@ -24,6 +25,8 @@ interface StockAddition {
   added_at: string;
   notes: string | null;
   unit_price_at_addition: number;
+  added_by?: string | null;
+  created_by?: string | null;
 }
 
 const DEFAULT_CATEGORIES = ['safety shoes', 'vests', 'helmets', 'gloves'];
@@ -319,6 +322,7 @@ export function StockContent() {
                   <TableHead>{t('totalPrice')}</TableHead>
                   <TableHead>{t('unit')}</TableHead>
                   <TableHead>{t('addedDate')}</TableHead>
+                  <TableHead>{t('createdBy')}</TableHead>
                   {isAdmin && <TableHead>{t('actions')}</TableHead>}
                 </TableRow>
               </TableHeader>
@@ -339,6 +343,7 @@ export function StockContent() {
                     <TableCell>{totalValue[item.id] > 0 ? `${totalValue[item.id]} ${t('currency')}` : '-'}</TableCell>
                     <TableCell>{item.unit}</TableCell>
                     <TableCell>{new Date(item.added_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}</TableCell>
+                    <TableCell className="text-xs">{(item as any).created_by ? (profiles[(item as any).created_by] || '-') : '-'}</TableCell>
                     {isAdmin && (
                       <TableCell>
                         <div className="flex gap-1">
@@ -358,7 +363,7 @@ export function StockContent() {
                 ))}
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">-</TableCell>
+                    <TableCell colSpan={10} className="text-center text-muted-foreground py-8">-</TableCell>
                   </TableRow>
                 )}
               </TableBody>
@@ -449,6 +454,7 @@ export function StockContent() {
                   <TableHead>{t('unitPrice')}</TableHead>
                   <TableHead>{t('totalPrice')}</TableHead>
                   <TableHead>{t('additionDate')}</TableHead>
+                  <TableHead>{t('createdBy')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -460,12 +466,13 @@ export function StockContent() {
                       <TableCell>{price > 0 ? `${price} ${t('currency')}` : '-'}</TableCell>
                       <TableCell>{price > 0 ? `${price * a.quantity_added} ${t('currency')}` : '-'}</TableCell>
                       <TableCell>{new Date(a.added_at).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</TableCell>
+                      <TableCell className="text-xs">{(a.added_by || a.created_by) ? (profiles[(a.added_by || a.created_by) as string] || '-') : '-'}</TableCell>
                     </TableRow>
                   );
                 })}
                 {additions.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground py-4">-</TableCell>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-4">-</TableCell>
                   </TableRow>
                 )}
               </TableBody>
