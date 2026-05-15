@@ -81,6 +81,7 @@ export type Database = {
         Row: {
           assignment_date: string
           created_at: string
+          created_by: string | null
           employee_id: string
           id: string
           notes: string | null
@@ -94,6 +95,7 @@ export type Database = {
         Insert: {
           assignment_date?: string
           created_at?: string
+          created_by?: string | null
           employee_id: string
           id?: string
           notes?: string | null
@@ -107,6 +109,7 @@ export type Database = {
         Update: {
           assignment_date?: string
           created_at?: string
+          created_by?: string | null
           employee_id?: string
           id?: string
           notes?: string | null

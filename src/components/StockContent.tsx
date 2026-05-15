@@ -193,7 +193,8 @@ export function StockContent() {
         .eq('id', existingMatch.id);
       stockError = error;
     } else {
-      const { data, error } = await supabase.from('stock_items').insert({ ...rest, name: nameVal, size: sizeVal, location: locationVal } as any).select('id').single();
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const { data, error } = await supabase.from('stock_items').insert({ ...rest, name: nameVal, size: sizeVal, location: locationVal, created_by: currentUser?.id ?? null } as any).select('id').single();
       stockError = error;
       stockItemId = data?.id ?? null;
     }
@@ -204,10 +205,12 @@ export function StockContent() {
     }
 
     if (!editItem) {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
       const { error: additionError } = await supabase.from('stock_additions').insert({
         stock_item_id: stockItemId,
         quantity_added: form.quantity_in_stock,
         unit_price_at_addition: form.unit_price,
+        added_by: currentUser?.id ?? null,
       });
 
       if (additionError) {
