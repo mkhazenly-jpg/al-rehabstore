@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
+import { useProfilesMap } from '@/hooks/use-profiles';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -55,6 +56,7 @@ function normalizeDescription(desc: string): string {
 export function ViolationsContent() {
   const { t, lang } = useLanguage();
   const { isAdmin } = useAuth();
+  const profiles = useProfilesMap();
   const [violations, setViolations] = useState<Violation[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [notifications, setNotifications] = useState<ViolationNotification[]>([]);
@@ -476,6 +478,7 @@ export function ViolationsContent() {
                   <TableHead>{t('deductionDays')}</TableHead>
                   <TableHead>{t('violationDate')}</TableHead>
                   <TableHead>{t('whatsappStatus')}</TableHead>
+                  <TableHead>{t('createdBy')}</TableHead>
                   <TableHead>{t('actions')}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -508,6 +511,7 @@ export function ViolationsContent() {
                           return <span className="rounded-full px-2 py-1 text-xs font-medium bg-yellow-500/20 text-yellow-700 dark:text-yellow-400">⏳ {t('waPending')}</span>;
                         })()}
                       </TableCell>
+                      <TableCell className="text-xs">{(v as any).created_by ? (profiles[(v as any).created_by] || '-') : '-'}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
                           <Button
@@ -536,7 +540,7 @@ export function ViolationsContent() {
                 })}
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                       {t('noViolations')}
                     </TableCell>
                   </TableRow>
