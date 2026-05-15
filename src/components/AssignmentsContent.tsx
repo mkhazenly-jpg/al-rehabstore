@@ -206,13 +206,15 @@ export function AssignmentsContent() {
           ? `[${line.reassign_reason === 'lost' ? t('lost') : t('damaged')}] ${notes || ''}`
           : (notes || null);
 
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
         const { data: assignment, error: insertErr } = await supabase.from('assignments').insert({
           employee_id: employeeId,
           stock_item_id: line.stock_item_id,
           quantity_assigned: line.quantity_assigned,
           notes: reasonNote,
           assignment_date: assignmentDate.toISOString(),
-        }).select('id').single();
+          created_by: currentUser?.id ?? null,
+        } as any).select('id').single();
 
         if (insertErr) {
           setError(insertErr.message);
