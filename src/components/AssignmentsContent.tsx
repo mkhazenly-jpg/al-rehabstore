@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
+import { useProfilesMap } from '@/hooks/use-profiles';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,6 +32,7 @@ interface AssignmentLine {
 export function AssignmentsContent() {
   const { t, lang } = useLanguage();
   const { isAdmin } = useAuth();
+  const profiles = useProfilesMap();
   const [assignments, setAssignments] = useState<any[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
@@ -346,6 +348,7 @@ export function AssignmentsContent() {
                   <TableHead>{t('assignmentDate')}</TableHead>
                   <TableHead>{t('reassignReason')}</TableHead>
                   <TableHead>{t('returnDate')}</TableHead>
+                  <TableHead>{t('createdBy')}</TableHead>
                   {isAdmin && <TableHead>{t('actions')}</TableHead>}
                 </TableRow>
               </TableHeader>
@@ -383,6 +386,7 @@ export function AssignmentsContent() {
                       ) : '-'}
                     </TableCell>
                     <TableCell>{a.return_date && !isNaN(new Date(a.return_date).getTime()) ? new Date(a.return_date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US') : '-'}</TableCell>
+                    <TableCell className="text-xs">{a.created_by ? (profiles[a.created_by] || '-') : '-'}</TableCell>
                     {isAdmin && (
                       <TableCell>
                         <div className="flex gap-1">
@@ -409,7 +413,7 @@ export function AssignmentsContent() {
                 ))}
                 {filteredAssignments.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center text-muted-foreground py-8">-</TableCell>
+                    <TableCell colSpan={12} className="text-center text-muted-foreground py-8">-</TableCell>
                   </TableRow>
                 )}
               </TableBody>
