@@ -35,6 +35,7 @@ const UNITS = ['pair', 'piece', 'box'];
 export function StockContent() {
   const { t, lang } = useLanguage();
   const { isAdmin } = useAuth();
+  const profiles = useProfilesMap();
   const [items, setItems] = useState<StockItem[]>([]);
   const [totalValue, setTotalValue] = useState<Record<string, number>>({});
   const [search, setSearch] = useState('');
