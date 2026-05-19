@@ -268,6 +268,7 @@ export function DashboardContent() {
   // "lost" as the reason, the old assignment becomes status='replaced' with a
   // [فقدان] marker in its notes. The employee owes the full price of that item.
   const lostDeductionRows = useMemo(() => {
+    type AssignmentRow = (typeof damagedLostAssignments)[number];
     const rows: Array<{
       key: string;
       employeeName: string;
@@ -280,12 +281,12 @@ export function DashboardContent() {
     }> = [];
     const lostReplacementKeys = new Set(
       damagedLostAssignments
-        .filter((replacement: any) => {
+        .filter((replacement: AssignmentRow) => {
           if (replacement.status !== 'approved') return false;
           const replacementNote = (replacement.notes || '').toLowerCase();
           return replacementNote.includes('فقدان') || replacementNote.includes('مفقود') || replacementNote.includes('lost');
         })
-        .map((replacement: any) => `${replacement.employee_id}-${replacement.stock_item_id}`)
+        .map((replacement: AssignmentRow) => `${replacement.employee_id}-${replacement.stock_item_id}`)
     );
 
     damagedLostAssignments.forEach((a: any, idx: number) => {
