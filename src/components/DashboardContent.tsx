@@ -39,7 +39,7 @@ export function DashboardContent() {
       supabase.from('assignments').select('status, stock_item_id, quantity_assigned, created_at, employee_id, employees(location)'),
       supabase.from('stock_additions').select('*'),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, status, created_at, employee_id, employees(location)').in('status', ['approved', 'pending']),
-      supabase.from('assignments').select('stock_item_id, quantity_assigned, notes, created_at, status, employee_id, employees(location)').not('notes', 'is', null),
+      supabase.from('assignments').select('stock_item_id, quantity_assigned, notes, created_at, status, employee_id, assignment_date, return_date, unit_price_at_assignment, employees(name, location), stock_items(name, unit_price, category)').not('notes', 'is', null),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, status, assignment_date, employee_id, unit_price_at_assignment, employees(name, location, status, termination_date), stock_items(name, unit_price, category)').eq('status', 'approved'),
       supabase.from('employee_violations').select('id, action_taken, deduction_amount, daily_wage, violation_date, violation_description, employee_id, employees(name, location, job_title)'),
     ]);
@@ -264,9 +264,55 @@ export function DashboardContent() {
     return rows;
   }, [allApprovedAssignments, stockItems, selectedYear, selectedMonth, selectedLocation]);
 
+  // Lost-on-replacement deductions: when an admin replaces an item and selects
+  // "lost" as the reason, the old assignment becomes status='replaced' with a
+  // [فقدان] marker in its notes. The employee owes the full price of that item.
+  const lostDeductionRows = useMemo(() => {
+    const rows: Array<{
+      key: string;
+      employeeName: string;
+      itemName: string;
+      category: string;
+      quantity: number;
+      unitPrice: number;
+      deduction: number;
+      lostDate: string;
+    }> = [];
+    damagedLostAssignments.forEach((a: any, idx: number) => {
+      if (a.status !== 'replaced') return;
+      const n = (a.notes || '').toLowerCase();
+      const isLost = n.includes('فقدان') || n.includes('مفقود') || n.includes('lost');
+      if (!isLost) return;
+      if (selectedLocation !== 'all' && a.employees?.location !== selectedLocation) return;
+      const refDate = new Date(a.return_date || a.assignment_date || a.created_at);
+      if (selectedYear !== 'all' && refDate.getFullYear() !== Number(selectedYear)) return;
+      if (selectedMonth !== 'all' && refDate.getMonth() !== Number(selectedMonth)) return;
+      const item = stockItems.find((i: any) => i.id === a.stock_item_id);
+      const unitPrice = Number(a.unit_price_at_assignment) || Number(a.stock_items?.unit_price) || Number(item?.unit_price) || 0;
+      const qty = a.quantity_assigned || 0;
+      rows.push({
+        key: `lost-${a.employee_id}-${a.stock_item_id}-${idx}`,
+        employeeName: a.employees?.name || '—',
+        itemName: a.stock_items?.name || item?.name || '—',
+        category: a.stock_items?.category || item?.category || '',
+        quantity: qty,
+        unitPrice,
+        deduction: unitPrice * qty,
+        lostDate: a.return_date || a.assignment_date || a.created_at,
+      });
+    });
+    rows.sort((a, b) => a.employeeName.localeCompare(b.employeeName));
+    return rows;
+  }, [damagedLostAssignments, stockItems, selectedYear, selectedMonth, selectedLocation]);
+
+  const totalLostDeductions = useMemo(
+    () => lostDeductionRows.reduce((sum, r) => sum + r.deduction, 0),
+    [lostDeductionRows]
+  );
+
   const totalAssignmentDeductions = useMemo(
-    () => deductionRows.reduce((sum, r) => sum + r.deduction, 0),
-    [deductionRows]
+    () => deductionRows.reduce((sum, r) => sum + r.deduction, 0) + totalLostDeductions,
+    [deductionRows, totalLostDeductions]
   );
   const totalDeductionDays = useMemo(
     () => deductionRows.reduce((sum, r) => sum + r.daysRemaining, 0),
@@ -845,7 +891,7 @@ export function DashboardContent() {
                 variant="secondary"
                 className="mt-3 bg-amber-950 text-amber-50 hover:bg-amber-950/90"
                 onClick={() => setDeductionsOpen(true)}
-                disabled={deductionRows.length === 0}
+                disabled={deductionRows.length === 0 && lostDeductionRows.length === 0}
               >
                 <Eye className="h-4 w-4" />
                 {t('viewDetails')}
@@ -1267,7 +1313,7 @@ export function DashboardContent() {
             <DialogDescription>{t('totalAssignmentDeductionsDesc')}</DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-auto">
-            {deductionRows.length === 0 ? (
+            {deductionRows.length === 0 && lostDeductionRows.length === 0 ? (
               <p className="py-8 text-center text-muted-foreground">{t('noDeductions')}</p>
             ) : (
               <Table>
@@ -1294,11 +1340,28 @@ export function DashboardContent() {
                       </TableCell>
                     </TableRow>
                   ))}
+                  {lostDeductionRows.map((r) => (
+                    <TableRow key={r.key} className="bg-rose-50/60">
+                      <TableCell className="font-medium">{r.employeeName}</TableCell>
+                      <TableCell>
+                        {r.itemName}
+                        <span className="ms-2 inline-block rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-700 align-middle">
+                          {lang === 'ar' ? 'فقدان' : 'Lost'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-center">{r.quantity}</TableCell>
+                      <TableCell className="text-center">-</TableCell>
+                      <TableCell className="text-center">-</TableCell>
+                      <TableCell className="text-end font-semibold text-rose-700">
+                        {r.deduction.toLocaleString()} {t('currency')}
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             )}
           </div>
-          {deductionRows.length > 0 && (
+          {(deductionRows.length > 0 || lostDeductionRows.length > 0) && (
             <div className="border-t pt-3 mt-2 flex flex-wrap items-center justify-between gap-3 text-sm">
               <div>
                 <span className="text-muted-foreground">{t('totalDays')}: </span>
