@@ -1313,7 +1313,7 @@ export function DashboardContent() {
             <DialogDescription>{t('totalAssignmentDeductionsDesc')}</DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-auto">
-            {deductionRows.length === 0 ? (
+            {deductionRows.length === 0 && lostDeductionRows.length === 0 ? (
               <p className="py-8 text-center text-muted-foreground">{t('noDeductions')}</p>
             ) : (
               <Table>
@@ -1340,11 +1340,28 @@ export function DashboardContent() {
                       </TableCell>
                     </TableRow>
                   ))}
+                  {lostDeductionRows.map((r) => (
+                    <TableRow key={r.key} className="bg-rose-50/60">
+                      <TableCell className="font-medium">{r.employeeName}</TableCell>
+                      <TableCell>
+                        {r.itemName}
+                        <span className="ms-2 inline-block rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-700 align-middle">
+                          {lang === 'ar' ? 'فقدان' : 'Lost'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-center">{r.quantity}</TableCell>
+                      <TableCell className="text-center">-</TableCell>
+                      <TableCell className="text-center">-</TableCell>
+                      <TableCell className="text-end font-semibold text-rose-700">
+                        {r.deduction.toLocaleString()} {t('currency')}
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             )}
           </div>
-          {deductionRows.length > 0 && (
+          {(deductionRows.length > 0 || lostDeductionRows.length > 0) && (
             <div className="border-t pt-3 mt-2 flex flex-wrap items-center justify-between gap-3 text-sm">
               <div>
                 <span className="text-muted-foreground">{t('totalDays')}: </span>
