@@ -264,9 +264,55 @@ export function DashboardContent() {
     return rows;
   }, [allApprovedAssignments, stockItems, selectedYear, selectedMonth, selectedLocation]);
 
+  // Lost-on-replacement deductions: when an admin replaces an item and selects
+  // "lost" as the reason, the old assignment becomes status='replaced' with a
+  // [فقدان] marker in its notes. The employee owes the full price of that item.
+  const lostDeductionRows = useMemo(() => {
+    const rows: Array<{
+      key: string;
+      employeeName: string;
+      itemName: string;
+      category: string;
+      quantity: number;
+      unitPrice: number;
+      deduction: number;
+      lostDate: string;
+    }> = [];
+    damagedLostAssignments.forEach((a: any, idx: number) => {
+      if (a.status !== 'replaced') return;
+      const n = (a.notes || '').toLowerCase();
+      const isLost = n.includes('فقدان') || n.includes('مفقود') || n.includes('lost');
+      if (!isLost) return;
+      if (selectedLocation !== 'all' && a.employees?.location !== selectedLocation) return;
+      const refDate = new Date(a.return_date || a.assignment_date || a.created_at);
+      if (selectedYear !== 'all' && refDate.getFullYear() !== Number(selectedYear)) return;
+      if (selectedMonth !== 'all' && refDate.getMonth() !== Number(selectedMonth)) return;
+      const item = stockItems.find((i: any) => i.id === a.stock_item_id);
+      const unitPrice = Number(a.unit_price_at_assignment) || Number(a.stock_items?.unit_price) || Number(item?.unit_price) || 0;
+      const qty = a.quantity_assigned || 0;
+      rows.push({
+        key: `lost-${a.employee_id}-${a.stock_item_id}-${idx}`,
+        employeeName: a.employees?.name || '—',
+        itemName: a.stock_items?.name || item?.name || '—',
+        category: a.stock_items?.category || item?.category || '',
+        quantity: qty,
+        unitPrice,
+        deduction: unitPrice * qty,
+        lostDate: a.return_date || a.assignment_date || a.created_at,
+      });
+    });
+    rows.sort((a, b) => a.employeeName.localeCompare(b.employeeName));
+    return rows;
+  }, [damagedLostAssignments, stockItems, selectedYear, selectedMonth, selectedLocation]);
+
+  const totalLostDeductions = useMemo(
+    () => lostDeductionRows.reduce((sum, r) => sum + r.deduction, 0),
+    [lostDeductionRows]
+  );
+
   const totalAssignmentDeductions = useMemo(
-    () => deductionRows.reduce((sum, r) => sum + r.deduction, 0),
-    [deductionRows]
+    () => deductionRows.reduce((sum, r) => sum + r.deduction, 0) + totalLostDeductions,
+    [deductionRows, totalLostDeductions]
   );
   const totalDeductionDays = useMemo(
     () => deductionRows.reduce((sum, r) => sum + r.daysRemaining, 0),
