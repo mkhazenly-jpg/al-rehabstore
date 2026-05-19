@@ -891,7 +891,7 @@ export function DashboardContent() {
                 variant="secondary"
                 className="mt-3 bg-amber-950 text-amber-50 hover:bg-amber-950/90"
                 onClick={() => setDeductionsOpen(true)}
-                disabled={deductionRows.length === 0}
+                disabled={deductionRows.length === 0 && lostDeductionRows.length === 0}
               >
                 <Eye className="h-4 w-4" />
                 {t('viewDetails')}
