@@ -39,7 +39,7 @@ export function DashboardContent() {
       supabase.from('assignments').select('status, stock_item_id, quantity_assigned, created_at, employee_id, employees(location)'),
       supabase.from('stock_additions').select('*'),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, status, created_at, employee_id, employees(location)').in('status', ['approved', 'pending']),
-      supabase.from('assignments').select('stock_item_id, quantity_assigned, notes, created_at, status, employee_id, employees(location)').not('notes', 'is', null),
+      supabase.from('assignments').select('stock_item_id, quantity_assigned, notes, created_at, status, employee_id, assignment_date, return_date, unit_price_at_assignment, employees(name, location), stock_items(name, unit_price, category)').not('notes', 'is', null),
       supabase.from('assignments').select('stock_item_id, quantity_assigned, status, assignment_date, employee_id, unit_price_at_assignment, employees(name, location, status, termination_date), stock_items(name, unit_price, category)').eq('status', 'approved'),
       supabase.from('employee_violations').select('id, action_taken, deduction_amount, daily_wage, violation_date, violation_description, employee_id, employees(name, location, job_title)'),
     ]);
