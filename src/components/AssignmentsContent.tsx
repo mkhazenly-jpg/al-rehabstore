@@ -197,11 +197,22 @@ export function AssignmentsContent() {
           (line.reassign_reason === 'damaged' || line.reassign_reason === 'lost' || isDamagedOrLostNote(a.notes))
         );
 
+        const replacementMarker = line.reassign_reason
+          ? (line.reassign_reason === 'lost' ? t('lost') : t('damaged'))
+          : '';
+
         for (const oldA of oldDamagedLost) {
           // Mark as replaced WITHOUT returning the quantity to stock,
           // because the item was actually damaged/lost (not physically returned).
           const { error: replErr } = await supabase.rpc('mark_as_replaced' as any, { _assignment_id: oldA.id });
           if (replErr) { setError(replErr.message); setSaving(false); return; }
+          if (replacementMarker) {
+            const oldNoteText = oldA.notes?.startsWith('[') ? oldA.notes.replace(/^\[.*?\]\s*/, '') : (oldA.notes || '');
+            const { error: noteErr } = await supabase.from('assignments').update({
+              notes: `[${replacementMarker}] ${oldNoteText || notes || ''}`,
+            }).eq('id', oldA.id);
+            if (noteErr) { setError(noteErr.message); setSaving(false); return; }
+          }
         }
 
         const reasonNote = line.reassign_reason
