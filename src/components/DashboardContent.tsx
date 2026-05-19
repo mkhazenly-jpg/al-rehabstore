@@ -278,10 +278,20 @@ export function DashboardContent() {
       deduction: number;
       lostDate: string;
     }> = [];
+    const lostReplacementKeys = new Set(
+      damagedLostAssignments
+        .filter((replacement: any) => {
+          if (replacement.status !== 'approved') return false;
+          const replacementNote = (replacement.notes || '').toLowerCase();
+          return replacementNote.includes('فقدان') || replacementNote.includes('مفقود') || replacementNote.includes('lost');
+        })
+        .map((replacement: any) => `${replacement.employee_id}-${replacement.stock_item_id}`)
+    );
+
     damagedLostAssignments.forEach((a: any, idx: number) => {
       if (a.status !== 'replaced') return;
       const n = (a.notes || '').toLowerCase();
-      const isLost = n.includes('فقدان') || n.includes('مفقود') || n.includes('lost');
+      const isLost = n.includes('فقدان') || n.includes('مفقود') || n.includes('lost') || lostReplacementKeys.has(`${a.employee_id}-${a.stock_item_id}`);
       if (!isLost) return;
       if (selectedLocation !== 'all' && a.employees?.location !== selectedLocation) return;
       const refDate = new Date(a.return_date || a.assignment_date || a.created_at);
