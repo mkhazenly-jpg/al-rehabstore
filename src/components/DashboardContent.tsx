@@ -335,6 +335,47 @@ export function DashboardContent() {
   const [deductionsOpen, setDeductionsOpen] = useState(false);
   const [violationDeductionsOpen, setViolationDeductionsOpen] = useState(false);
   const [mostConsumedOpen, setMostConsumedOpen] = useState(false);
+
+  const exportAssignmentDeductions = () => {
+    const rows = [
+      ...deductionRows.map((r) => ({
+        [t('employee')]: r.employeeName,
+        [t('item')]: r.itemName,
+        [t('category')]: r.category,
+        [t('deductionType')]: t('regularDeduction'),
+        [t('quantity')]: r.quantity,
+        [t('unitPrice')]: r.unitPrice,
+        [t('deductionValue')]: r.deduction,
+        [t('daysRemaining')]: r.daysRemaining,
+      })),
+      ...lostDeductionRows.map((r) => ({
+        [t('employee')]: r.employeeName,
+        [t('item')]: r.itemName,
+        [t('category')]: r.category,
+        [t('deductionType')]: t('lostDeduction'),
+        [t('quantity')]: r.quantity,
+        [t('unitPrice')]: r.unitPrice,
+        [t('deductionValue')]: r.deduction,
+        [t('daysRemaining')]: 0,
+      })),
+    ];
+    if (rows.length === 0) { toast.error(t('noDeductions')); return; }
+    exportToExcel(rows, `assignment-deductions-${new Date().toISOString().split('T')[0]}`);
+  };
+
+  const exportViolationDeductions = () => {
+    if (violationDeductionRows.length === 0) { toast.error(t('noDeductions')); return; }
+    const locale = lang === 'ar' ? 'ar-EG' : 'en-GB';
+    const rows = violationDeductionRows.map((r) => ({
+      [t('employee')]: r.employeeName,
+      [t('violationDescription')]: r.description || r.violationType,
+      [t('violationDate')]: new Date(r.violationDate).toLocaleDateString(locale),
+      [t('dailyWage')]: r.dailyWage,
+      [t('deductionDays')]: r.days,
+      [t('deductionValue')]: r.deduction,
+    }));
+    exportToExcel(rows, `violation-deductions-${new Date().toISOString().split('T')[0]}`);
+  };
   const [topViolatorsOpen, setTopViolatorsOpen] = useState(false);
   const [stockDetailsOpen, setStockDetailsOpen] = useState(false);
   const [attritionDetailsOpen, setAttritionDetailsOpen] = useState(false);
