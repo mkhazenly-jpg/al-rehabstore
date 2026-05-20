@@ -980,16 +980,28 @@ export function DashboardContent() {
               <p className="mt-2 text-xs text-rose-50/90 leading-relaxed">
                 {t('totalViolationDeductionsDesc')}
               </p>
-              <Button
-                size="sm"
-                variant="secondary"
-                className="mt-3 bg-rose-950 text-rose-50 hover:bg-rose-950/90"
-                onClick={() => setViolationDeductionsOpen(true)}
-                disabled={violationDeductionRows.length === 0}
-              >
-                <Eye className="h-4 w-4" />
-                {t('viewDetails')}
-              </Button>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="bg-rose-950 text-rose-50 hover:bg-rose-950/90"
+                  onClick={() => setViolationDeductionsOpen(true)}
+                  disabled={violationDeductionRows.length === 0}
+                >
+                  <Eye className="h-4 w-4" />
+                  {t('viewDetails')}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-rose-50/40 bg-rose-50 text-rose-950 hover:bg-rose-100"
+                  onClick={exportViolationDeductions}
+                  disabled={violationDeductionRows.length === 0}
+                >
+                  <FileDown className="h-4 w-4" />
+                  {t('exportSheet')}
+                </Button>
+              </div>
             </div>
             <BarChart3 className="h-8 w-8 text-rose-50/70 shrink-0" />
           </div>
