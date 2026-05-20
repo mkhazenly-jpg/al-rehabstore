@@ -91,7 +91,13 @@ export function EmployeesContent() {
   const filtered = employees.filter(e => {
     const isArchived = (e.status as string) === 'archived';
     if (showArchived ? !isArchived : isArchived) return false;
-    if (!e.name.toLowerCase().includes(search.toLowerCase())) return false;
+    const q = search.trim().toLowerCase();
+    if (q) {
+      const name = e.name.toLowerCase();
+      const mobile = ((e as any).mobile || '').toString().toLowerCase();
+      const emergency = ((e as any).emergency_contact || '').toString().toLowerCase();
+      if (!name.includes(q) && !mobile.includes(q) && !emergency.includes(q)) return false;
+    }
     if (filterShift !== 'all' && (e as any).shift !== filterShift) return false;
     if (filterDept !== 'all' && e.department !== filterDept) return false;
     if (filterLocation !== 'all' && (e as any).location !== filterLocation) return false;
