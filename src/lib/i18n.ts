@@ -763,6 +763,17 @@ export const translations = {
     bulkNoViolations: 'Without violations',
     violationsList: 'Violation descriptions',
     createdBy: 'By',
+    assignmentDeductionsTab: 'Assignment Deductions',
+    assignmentDeductionsPageTitle: 'Assignment Deductions on Employees',
+    assignmentDeductionsPageDesc: 'List of all employees with assignment-based deductions (including lost-on-replacement). Filter and export to Excel, and also included in the Drive backup.',
+    deductionType: 'Deduction Type',
+    regularDeduction: 'Unexpired Assignment',
+    lostDeduction: 'Lost',
+    exportSheet: 'Export Excel sheet',
+    exportAssignmentDeductionsXlsx: 'Export Assignment Deductions',
+    exportViolationDeductionsXlsx: 'Export Violation Deductions',
+    lostDate: 'Lost Date',
+    assignmentDeductionsSheetTitle: 'Assignment Deductions',
   },
 } as const;
 
