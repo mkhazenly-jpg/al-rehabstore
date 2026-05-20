@@ -501,7 +501,75 @@ export async function exportFullBackup({ lang, t }: BackupOptions): Promise<void
     };
   });
 
-  // Build workbook
+  // ---------- ASSIGNMENT DEDUCTIONS ----------
+  const inactiveSet = new Set(['resigned', 'terminated', 'archived']);
+  const getRenMonths = (it: any): number | null => {
+    if (!it) return null;
+    const c = (it.name + ' ' + it.category).toLowerCase();
+    if (/shoe|حذاء|بوت|boot|safety|سيفتي/.test(c)) return 12;
+    if (/glove|جوانتي|قفاز|vest|فيست|سترة|helmet|خوذة/.test(c)) return 4;
+    return null;
+  };
+  const assignmentDeductionRows: Row[] = [];
+  // Regular: inactive employees, unexpired renewal window
+  asns.filter((a) => a.status === 'approved').forEach((a) => {
+    const emp = empMap.get(a.employee_id);
+    if (!emp || !inactiveSet.has(emp.status)) return;
+    const it = itemMap.get(a.stock_item_id);
+    const months = getRenMonths(it);
+    if (months === null) return;
+    const msInDay = 1000 * 60 * 60 * 24;
+    const daysElapsed = Math.floor((Date.now() - new Date(a.assignment_date).getTime()) / msInDay);
+    const totalDays = Math.round(months * 30.4375);
+    if (daysElapsed >= totalDays) return;
+    const unitPrice = num(a.unit_price_at_assignment) || num(it?.unit_price);
+    const qty = num(a.quantity_assigned);
+    assignmentDeductionRows.push({
+      [t('employee')]: emp.name,
+      [t('location')]: emp.location || '-',
+      [t('stockItem')]: it?.name || '-',
+      [t('category')]: it?.category || '-',
+      [t('deductionType')]: t('regularDeduction'),
+      [t('quantity')]: qty,
+      [t('unitPrice')]: unitPrice,
+      [t('deductionValue')]: unitPrice * qty,
+      [t('daysRemaining')]: Math.max(0, totalDays - daysElapsed),
+      [t('assignmentDate')]: fmtDate(a.assignment_date, locale),
+    });
+  });
+  // Lost: replaced+lost notes
+  const lostKeys = new Set(
+    asns
+      .filter((a) => {
+        if (a.status !== 'approved') return false;
+        const n = (a.notes || '').toLowerCase();
+        return n.includes('فقدان') || n.includes('مفقود') || n.includes('lost');
+      })
+      .map((a) => `${a.employee_id}-${a.stock_item_id}`)
+  );
+  asns.forEach((a) => {
+    if (a.status !== 'replaced') return;
+    const n = (a.notes || '').toLowerCase();
+    const isLost = n.includes('فقدان') || n.includes('مفقود') || n.includes('lost') || lostKeys.has(`${a.employee_id}-${a.stock_item_id}`);
+    if (!isLost) return;
+    const emp = empMap.get(a.employee_id);
+    const it = itemMap.get(a.stock_item_id);
+    const unitPrice = num(a.unit_price_at_assignment) || num(it?.unit_price);
+    const qty = num(a.quantity_assigned);
+    assignmentDeductionRows.push({
+      [t('employee')]: emp?.name || '-',
+      [t('location')]: emp?.location || '-',
+      [t('stockItem')]: it?.name || '-',
+      [t('category')]: it?.category || '-',
+      [t('deductionType')]: t('lostDeduction'),
+      [t('quantity')]: qty,
+      [t('unitPrice')]: unitPrice,
+      [t('deductionValue')]: unitPrice * qty,
+      [t('daysRemaining')]: 0,
+      [t('assignmentDate')]: fmtDate(a.return_date || a.assignment_date, locale),
+    });
+  });
+  assignmentDeductionRows.sort((a, b) => String(a[t('employee')]).localeCompare(String(b[t('employee')])));
   const wb = XLSX.utils.book_new();
 
   const sheets: SheetSpec[] = [

@@ -3,7 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/hooks/use-language';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Package, Users, ClipboardList, BarChart3, Eye, PieChart as PieChartIcon } from 'lucide-react';
+import { Package, Users, ClipboardList, BarChart3, Eye, PieChart as PieChartIcon, FileDown } from 'lucide-react';
+import { exportToExcel } from '@/lib/export';
+import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import { Button } from '@/components/ui/button';
@@ -333,6 +335,47 @@ export function DashboardContent() {
   const [deductionsOpen, setDeductionsOpen] = useState(false);
   const [violationDeductionsOpen, setViolationDeductionsOpen] = useState(false);
   const [mostConsumedOpen, setMostConsumedOpen] = useState(false);
+
+  const exportAssignmentDeductions = () => {
+    const rows = [
+      ...deductionRows.map((r) => ({
+        [t('employee')]: r.employeeName,
+        [t('item')]: r.itemName,
+        [t('category')]: r.category,
+        [t('deductionType')]: t('regularDeduction'),
+        [t('quantity')]: r.quantity,
+        [t('unitPrice')]: r.unitPrice,
+        [t('deductionValue')]: r.deduction,
+        [t('daysRemaining')]: r.daysRemaining,
+      })),
+      ...lostDeductionRows.map((r) => ({
+        [t('employee')]: r.employeeName,
+        [t('item')]: r.itemName,
+        [t('category')]: r.category,
+        [t('deductionType')]: t('lostDeduction'),
+        [t('quantity')]: r.quantity,
+        [t('unitPrice')]: r.unitPrice,
+        [t('deductionValue')]: r.deduction,
+        [t('daysRemaining')]: 0,
+      })),
+    ];
+    if (rows.length === 0) { toast.error(t('noDeductions')); return; }
+    exportToExcel(rows, `assignment-deductions-${new Date().toISOString().split('T')[0]}`);
+  };
+
+  const exportViolationDeductions = () => {
+    if (violationDeductionRows.length === 0) { toast.error(t('noDeductions')); return; }
+    const locale = lang === 'ar' ? 'ar-EG' : 'en-GB';
+    const rows = violationDeductionRows.map((r) => ({
+      [t('employee')]: r.employeeName,
+      [t('violationDescription')]: r.description || r.violationType,
+      [t('violationDate')]: new Date(r.violationDate).toLocaleDateString(locale),
+      [t('dailyWage')]: r.dailyWage,
+      [t('deductionDays')]: r.days,
+      [t('deductionValue')]: r.deduction,
+    }));
+    exportToExcel(rows, `violation-deductions-${new Date().toISOString().split('T')[0]}`);
+  };
   const [topViolatorsOpen, setTopViolatorsOpen] = useState(false);
   const [stockDetailsOpen, setStockDetailsOpen] = useState(false);
   const [attritionDetailsOpen, setAttritionDetailsOpen] = useState(false);
@@ -897,16 +940,28 @@ export function DashboardContent() {
               <p className="mt-2 text-xs text-amber-950/80 leading-relaxed">
                 {t('totalAssignmentDeductionsDesc')}
               </p>
-              <Button
-                size="sm"
-                variant="secondary"
-                className="mt-3 bg-amber-950 text-amber-50 hover:bg-amber-950/90"
-                onClick={() => setDeductionsOpen(true)}
-                disabled={deductionRows.length === 0 && lostDeductionRows.length === 0}
-              >
-                <Eye className="h-4 w-4" />
-                {t('viewDetails')}
-              </Button>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="bg-amber-950 text-amber-50 hover:bg-amber-950/90"
+                  onClick={() => setDeductionsOpen(true)}
+                  disabled={deductionRows.length === 0 && lostDeductionRows.length === 0}
+                >
+                  <Eye className="h-4 w-4" />
+                  {t('viewDetails')}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-amber-950/30 bg-amber-50 text-amber-950 hover:bg-amber-100"
+                  onClick={exportAssignmentDeductions}
+                  disabled={deductionRows.length === 0 && lostDeductionRows.length === 0}
+                >
+                  <FileDown className="h-4 w-4" />
+                  {t('exportSheet')}
+                </Button>
+              </div>
             </div>
             <BarChart3 className="h-8 w-8 text-amber-950/60 shrink-0" />
           </div>
@@ -925,16 +980,28 @@ export function DashboardContent() {
               <p className="mt-2 text-xs text-rose-50/90 leading-relaxed">
                 {t('totalViolationDeductionsDesc')}
               </p>
-              <Button
-                size="sm"
-                variant="secondary"
-                className="mt-3 bg-rose-950 text-rose-50 hover:bg-rose-950/90"
-                onClick={() => setViolationDeductionsOpen(true)}
-                disabled={violationDeductionRows.length === 0}
-              >
-                <Eye className="h-4 w-4" />
-                {t('viewDetails')}
-              </Button>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="bg-rose-950 text-rose-50 hover:bg-rose-950/90"
+                  onClick={() => setViolationDeductionsOpen(true)}
+                  disabled={violationDeductionRows.length === 0}
+                >
+                  <Eye className="h-4 w-4" />
+                  {t('viewDetails')}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-rose-50/40 bg-rose-50 text-rose-950 hover:bg-rose-100"
+                  onClick={exportViolationDeductions}
+                  disabled={violationDeductionRows.length === 0}
+                >
+                  <FileDown className="h-4 w-4" />
+                  {t('exportSheet')}
+                </Button>
+              </div>
             </div>
             <BarChart3 className="h-8 w-8 text-rose-50/70 shrink-0" />
           </div>

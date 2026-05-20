@@ -16,6 +16,7 @@ import { Route as EmployeesRouteImport } from './routes/employees'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as BulkMessagesRouteImport } from './routes/bulk-messages'
 import { Route as AssignmentsRouteImport } from './routes/assignments'
+import { Route as AssignmentDeductionsRouteImport } from './routes/assignment-deductions'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as AdminBackupsRouteImport } from './routes/admin/backups'
@@ -56,6 +57,11 @@ const AssignmentsRoute = AssignmentsRouteImport.update({
   path: '/assignments',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AssignmentDeductionsRoute = AssignmentDeductionsRouteImport.update({
+  id: '/assignment-deductions',
+  path: '/assignment-deductions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -80,6 +86,7 @@ const ApiPublicHooksAutoBackupRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/assignment-deductions': typeof AssignmentDeductionsRoute
   '/assignments': typeof AssignmentsRoute
   '/bulk-messages': typeof BulkMessagesRoute
   '/dashboard': typeof DashboardRoute
@@ -93,6 +100,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/assignment-deductions': typeof AssignmentDeductionsRoute
   '/assignments': typeof AssignmentsRoute
   '/bulk-messages': typeof BulkMessagesRoute
   '/dashboard': typeof DashboardRoute
@@ -107,6 +115,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/assignment-deductions': typeof AssignmentDeductionsRoute
   '/assignments': typeof AssignmentsRoute
   '/bulk-messages': typeof BulkMessagesRoute
   '/dashboard': typeof DashboardRoute
@@ -122,6 +131,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/assignment-deductions'
     | '/assignments'
     | '/bulk-messages'
     | '/dashboard'
@@ -135,6 +145,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/assignment-deductions'
     | '/assignments'
     | '/bulk-messages'
     | '/dashboard'
@@ -148,6 +159,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/assignment-deductions'
     | '/assignments'
     | '/bulk-messages'
     | '/dashboard'
@@ -162,6 +174,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AssignmentDeductionsRoute: typeof AssignmentDeductionsRoute
   AssignmentsRoute: typeof AssignmentsRoute
   BulkMessagesRoute: typeof BulkMessagesRoute
   DashboardRoute: typeof DashboardRoute
@@ -225,6 +238,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AssignmentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/assignment-deductions': {
+      id: '/assignment-deductions'
+      path: '/assignment-deductions'
+      fullPath: '/assignment-deductions'
+      preLoaderRoute: typeof AssignmentDeductionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -258,6 +278,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AssignmentDeductionsRoute: AssignmentDeductionsRoute,
   AssignmentsRoute: AssignmentsRoute,
   BulkMessagesRoute: BulkMessagesRoute,
   DashboardRoute: DashboardRoute,
