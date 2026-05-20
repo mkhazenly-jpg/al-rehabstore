@@ -18,6 +18,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         { to: '/employees' as const, icon: Users, label: t('employees') },
         { to: '/assignments' as const, icon: ClipboardList, label: t('assignments') },
         { to: '/violations' as const, icon: AlertTriangle, label: t('violations') },
+        { to: '/assignment-deductions' as const, icon: Wallet, label: t('assignmentDeductionsTab') },
         { to: '/bulk-messages' as const, icon: MessageCircle, label: t('bulkMessages') },
       ]
     : [
