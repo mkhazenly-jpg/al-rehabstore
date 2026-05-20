@@ -940,16 +940,28 @@ export function DashboardContent() {
               <p className="mt-2 text-xs text-amber-950/80 leading-relaxed">
                 {t('totalAssignmentDeductionsDesc')}
               </p>
-              <Button
-                size="sm"
-                variant="secondary"
-                className="mt-3 bg-amber-950 text-amber-50 hover:bg-amber-950/90"
-                onClick={() => setDeductionsOpen(true)}
-                disabled={deductionRows.length === 0 && lostDeductionRows.length === 0}
-              >
-                <Eye className="h-4 w-4" />
-                {t('viewDetails')}
-              </Button>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="bg-amber-950 text-amber-50 hover:bg-amber-950/90"
+                  onClick={() => setDeductionsOpen(true)}
+                  disabled={deductionRows.length === 0 && lostDeductionRows.length === 0}
+                >
+                  <Eye className="h-4 w-4" />
+                  {t('viewDetails')}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-amber-950/30 bg-amber-50 text-amber-950 hover:bg-amber-100"
+                  onClick={exportAssignmentDeductions}
+                  disabled={deductionRows.length === 0 && lostDeductionRows.length === 0}
+                >
+                  <FileDown className="h-4 w-4" />
+                  {t('exportSheet')}
+                </Button>
+              </div>
             </div>
             <BarChart3 className="h-8 w-8 text-amber-950/60 shrink-0" />
           </div>
