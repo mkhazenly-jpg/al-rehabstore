@@ -91,7 +91,13 @@ export function EmployeesContent() {
   const filtered = employees.filter(e => {
     const isArchived = (e.status as string) === 'archived';
     if (showArchived ? !isArchived : isArchived) return false;
-    if (!e.name.toLowerCase().includes(search.toLowerCase())) return false;
+    const q = search.trim().toLowerCase();
+    if (q) {
+      const name = e.name.toLowerCase();
+      const mobile = ((e as any).mobile || '').toString().toLowerCase();
+      const emergency = ((e as any).emergency_contact || '').toString().toLowerCase();
+      if (!name.includes(q) && !mobile.includes(q) && !emergency.includes(q)) return false;
+    }
     if (filterShift !== 'all' && (e as any).shift !== filterShift) return false;
     if (filterDept !== 'all' && e.department !== filterDept) return false;
     if (filterLocation !== 'all' && (e as any).location !== filterLocation) return false;
@@ -377,7 +383,7 @@ export function EmployeesContent() {
       <div className="flex flex-col gap-2 sm:flex-row">
         <div className="relative flex-1">
           <Search className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input className="ps-9" placeholder={t('search')} value={search} onChange={e => setSearch(e.target.value)} />
+          <Input className="ps-9" placeholder={lang === 'ar' ? 'بحث بالاسم أو رقم الموبايل' : 'Search by name or mobile'} value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <Select value={filterShift} onValueChange={setFilterShift}>
           <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder={t('shift')} /></SelectTrigger>
