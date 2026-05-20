@@ -383,7 +383,7 @@ export function EmployeesContent() {
       <div className="flex flex-col gap-2 sm:flex-row">
         <div className="relative flex-1">
           <Search className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input className="ps-9" placeholder={t('search')} value={search} onChange={e => setSearch(e.target.value)} />
+          <Input className="ps-9" placeholder={lang === 'ar' ? 'بحث بالاسم أو رقم الموبايل' : 'Search by name or mobile'} value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <Select value={filterShift} onValueChange={setFilterShift}>
           <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder={t('shift')} /></SelectTrigger>
