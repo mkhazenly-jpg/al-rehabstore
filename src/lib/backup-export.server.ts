@@ -658,6 +658,16 @@ export async function buildBackupBuffer(): Promise<Uint8Array> {
       rows: violRows,
       currencyCols: [tr('dailyWage'), tr('deductionValue')],
     },
+    {
+      name: tr('assignmentDeductionsSheet'),
+      title: tr('assignmentDeductions'),
+      headers: [
+        tr('employee'), tr('location'), tr('stockItem'), tr('category'), tr('deductionType'),
+        tr('quantity'), tr('unitPrice'), tr('deductionValue'), tr('daysElapsed'), tr('daysRemaining'), tr('assignmentDate'),
+      ],
+      rows: dedRows,
+      currencyCols: [tr('unitPrice'), tr('deductionValue')],
+    },
   ];
 
   sheets.forEach((spec) => {
