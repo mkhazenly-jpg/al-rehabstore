@@ -247,6 +247,13 @@ function num(v: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+function getRenewalMonths(combined: string): number | null {
+  const c = combined.toLowerCase();
+  if (/shoe|حذاء|بوت|boot|سيفتي|safety/.test(c)) return 12;
+  if (/glove|جوانتي|قفاز|vest|فيست|سترة|helmet|خوذة/.test(c)) return 4;
+  return null;
+}
+
 export async function buildBackupBuffer(): Promise<Uint8Array> {
   const [
     { data: stockItems },
