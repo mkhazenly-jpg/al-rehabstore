@@ -24,7 +24,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     : [
         { to: '/employees' as const, icon: Users, label: t('employees') },
         { to: '/violations' as const, icon: AlertTriangle, label: t('violations') },
-        { to: '/bulk-messages' as const, icon: MessageCircle, label: t('bulkMessages') },
       ];
 
   const adminItems = isAdmin
