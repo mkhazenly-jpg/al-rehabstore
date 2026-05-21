@@ -102,6 +102,14 @@ const L = {
   suspension: 'إيقاف',
   termination: 'إنهاء',
   verbal_warning: 'تحذير شفهي',
+  regularDeduction: 'خصم تجديد',
+  lostDeduction: 'خصم فقدان',
+  assignmentDeductions: 'خصومات المهمات',
+  deductionType: 'نوع الخصم',
+  assignmentDeductionsSheet: 'خصومات المهمات',
+  quantity: 'الكمية',
+  daysElapsed: 'الأيام المنقضية',
+  daysRemaining: 'الأيام المتبقية',
 };
 
 const tr = (k: string): string => (L as Record<string, string>)[k] || k;
