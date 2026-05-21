@@ -102,6 +102,13 @@ const L = {
   suspension: 'إيقاف',
   termination: 'إنهاء',
   verbal_warning: 'تحذير شفهي',
+  regularDeduction: 'خصم تجديد',
+  lostDeduction: 'خصم فقدان',
+  assignmentDeductions: 'خصومات المهمات',
+  deductionType: 'نوع الخصم',
+  assignmentDeductionsSheet: 'خصومات المهمات',
+  daysElapsed: 'الأيام المنقضية',
+  daysRemaining: 'الأيام المتبقية',
 };
 
 const tr = (k: string): string => (L as Record<string, string>)[k] || k;
@@ -238,6 +245,13 @@ function fmtDateTime(value: string | null | undefined): string {
 function num(v: unknown): number {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
+}
+
+function getRenewalMonths(combined: string): number | null {
+  const c = combined.toLowerCase();
+  if (/shoe|حذاء|بوت|boot|سيفتي|safety/.test(c)) return 12;
+  if (/glove|جوانتي|قفاز|vest|فيست|سترة|helmet|خوذة/.test(c)) return 4;
+  return null;
 }
 
 export async function buildBackupBuffer(): Promise<Uint8Array> {
@@ -524,6 +538,76 @@ export async function buildBackupBuffer(): Promise<Uint8Array> {
     };
   });
 
+  // Assignment deductions — regular (inactive employees with unexpired approved items)
+  const inactiveStatuses = new Set(['resigned', 'terminated', 'archived']);
+  const regularDeductionRows: Row[] = [];
+  asns.filter((a) => a.status === 'approved').forEach((a) => {
+    const emp = empMap.get(a.employee_id);
+    if (!emp || !inactiveStatuses.has(emp.status)) return;
+    const it = itemMap.get(a.stock_item_id);
+    const months = getRenewalMonths(`${it?.name || ''} ${it?.category || ''}`);
+    if (months === null) return;
+    const msInDay = 1000 * 60 * 60 * 24;
+    const daysElapsed = Math.floor((Date.now() - new Date(a.assignment_date).getTime()) / msInDay);
+    const totalDays = Math.round(months * 30.4375);
+    if (daysElapsed >= totalDays) return;
+    const daysRemaining = Math.max(0, totalDays - daysElapsed);
+    const unitPrice = num(a.unit_price_at_assignment) || num(it?.unit_price) || 0;
+    const qty = num(a.quantity_assigned);
+    regularDeductionRows.push({
+      [tr('employee')]: emp.name || '—',
+      [tr('location')]: emp.location || '—',
+      [tr('stockItem')]: it?.name || '—',
+      [tr('category')]: it?.category || '',
+      [tr('deductionType')]: tr('regularDeduction'),
+      [tr('quantity')]: qty,
+      [tr('unitPrice')]: unitPrice,
+      [tr('deductionValue')]: unitPrice * qty,
+      [tr('daysElapsed')]: daysElapsed,
+      [tr('daysRemaining')]: daysRemaining,
+      [tr('assignmentDate')]: fmtDate(a.assignment_date),
+    });
+  });
+
+  // Lost deductions (replaced because of loss)
+  const lostKeys = new Set(
+    asns
+      .filter((a) => {
+        if (a.status !== 'approved') return false;
+        const n = (a.notes || '').toLowerCase();
+        return n.includes('فقدان') || n.includes('مفقود') || n.includes('lost');
+      })
+      .map((a) => `${a.employee_id}-${a.stock_item_id}`)
+  );
+  const lostDeductionRows: Row[] = [];
+  asns.forEach((a) => {
+    if (a.status !== 'replaced') return;
+    const n = (a.notes || '').toLowerCase();
+    const isLost = n.includes('فقدان') || n.includes('مفقود') || n.includes('lost') || lostKeys.has(`${a.employee_id}-${a.stock_item_id}`);
+    if (!isLost) return;
+    const emp = empMap.get(a.employee_id);
+    const it = itemMap.get(a.stock_item_id);
+    const unitPrice = num(a.unit_price_at_assignment) || num(it?.unit_price) || 0;
+    const qty = num(a.quantity_assigned);
+    lostDeductionRows.push({
+      [tr('employee')]: emp?.name || '—',
+      [tr('location')]: emp?.location || '—',
+      [tr('stockItem')]: it?.name || '—',
+      [tr('category')]: it?.category || '',
+      [tr('deductionType')]: tr('lostDeduction'),
+      [tr('quantity')]: qty,
+      [tr('unitPrice')]: unitPrice,
+      [tr('deductionValue')]: unitPrice * qty,
+      [tr('daysElapsed')]: '',
+      [tr('daysRemaining')]: '',
+      [tr('assignmentDate')]: fmtDate(a.return_date || a.assignment_date),
+    });
+  });
+
+  const dedRows = [...regularDeductionRows, ...lostDeductionRows].sort((a, b) =>
+    String(a[tr('employee')]).localeCompare(String(b[tr('employee')]))
+  );
+
   const wb = xlsx.utils.book_new();
   const sheets: SheetSpec[] = [
     {
@@ -573,6 +657,16 @@ export async function buildBackupBuffer(): Promise<Uint8Array> {
       ],
       rows: violRows,
       currencyCols: [tr('dailyWage'), tr('deductionValue')],
+    },
+    {
+      name: tr('assignmentDeductionsSheet'),
+      title: tr('assignmentDeductions'),
+      headers: [
+        tr('employee'), tr('location'), tr('stockItem'), tr('category'), tr('deductionType'),
+        tr('quantity'), tr('unitPrice'), tr('deductionValue'), tr('daysElapsed'), tr('daysRemaining'), tr('assignmentDate'),
+      ],
+      rows: dedRows,
+      currencyCols: [tr('unitPrice'), tr('deductionValue')],
     },
   ];
 
