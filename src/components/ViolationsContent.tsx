@@ -514,15 +514,17 @@ export function ViolationsContent() {
                       <TableCell className="text-xs">{(v as any).created_by ? (profiles[(v as any).created_by] || '-') : '-'}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            title={t('sendWhatsapp')}
-                            onClick={() => handleSendWhatsapp(v)}
-                            className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950"
-                          >
-                            <MessageCircle className="h-4 w-4" />
-                          </Button>
+                          {isAdmin && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title={t('sendWhatsapp')}
+                              onClick={() => handleSendWhatsapp(v)}
+                              className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950"
+                            >
+                              <MessageCircle className="h-4 w-4" />
+                            </Button>
+                          )}
                           {isAdmin && (
                             <>
                               <Button variant="ghost" size="icon" onClick={() => openEdit(v)}>
