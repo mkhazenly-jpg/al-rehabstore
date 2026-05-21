@@ -107,7 +107,6 @@ const L = {
   assignmentDeductions: 'خصومات المهمات',
   deductionType: 'نوع الخصم',
   assignmentDeductionsSheet: 'خصومات المهمات',
-  quantity: 'الكمية',
   daysElapsed: 'الأيام المنقضية',
   daysRemaining: 'الأيام المتبقية',
 };
