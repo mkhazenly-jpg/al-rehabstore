@@ -515,7 +515,7 @@ export function ViolationsContent() {
                       <TableCell className="text-xs">{(v as any).created_by ? (profiles[(v as any).created_by] || '-') : '-'}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          {isAdmin && (
+                          {canSendMessages && (
                             <Button
                               variant="ghost"
                               size="icon"
