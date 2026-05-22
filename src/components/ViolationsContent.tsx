@@ -55,7 +55,8 @@ function normalizeDescription(desc: string): string {
 
 export function ViolationsContent() {
   const { t, lang } = useLanguage();
-  const { isAdmin } = useAuth();
+  const { isAdmin, profile } = useAuth();
+  const canSendMessages = profile?.email?.toLowerCase() === 'm.khazenly@gmail.com';
   const profiles = useProfilesMap();
   const [violations, setViolations] = useState<Violation[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -514,7 +515,7 @@ export function ViolationsContent() {
                       <TableCell className="text-xs">{(v as any).created_by ? (profiles[(v as any).created_by] || '-') : '-'}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          {isAdmin && (
+                          {canSendMessages && (
                             <Button
                               variant="ghost"
                               size="icon"
