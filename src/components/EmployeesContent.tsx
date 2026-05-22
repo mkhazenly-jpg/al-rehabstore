@@ -36,6 +36,7 @@ export function EmployeesContent() {
   const [filterShift, setFilterShift] = useState('all');
   const [filterDept, setFilterDept] = useState('all');
   const [filterLocation, setFilterLocation] = useState('all');
+  const [filterJob, setFilterJob] = useState('all');
   const [showArchived, setShowArchived] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -88,6 +89,7 @@ export function EmployeesContent() {
   };
 
   const departments = [...new Set(employees.map(e => e.department).filter(Boolean))];
+  const jobTitles = [...new Set(employees.map(e => e.job_title).filter(Boolean))];
   const filtered = employees.filter(e => {
     const isArchived = (e.status as string) === 'archived';
     if (showArchived ? !isArchived : isArchived) return false;
@@ -101,6 +103,7 @@ export function EmployeesContent() {
     if (filterShift !== 'all' && (e as any).shift !== filterShift) return false;
     if (filterDept !== 'all' && e.department !== filterDept) return false;
     if (filterLocation !== 'all' && (e as any).location !== filterLocation) return false;
+    if (filterJob !== 'all' && (e as any).job_title !== filterJob) return false;
     return true;
   });
 
@@ -407,6 +410,13 @@ export function EmployeesContent() {
             <SelectItem value="all">{t('location')}: {t('allLocations')}</SelectItem>
             <SelectItem value="RDC">RDC</SelectItem>
             <SelectItem value="SDC">SDC</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterJob} onValueChange={setFilterJob}>
+          <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder={t('jobTitle')} /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('jobTitle')}: {t('allCategories')}</SelectItem>
+            {jobTitles.map(j => <SelectItem key={j} value={j!}>{j}</SelectItem>)}
           </SelectContent>
         </Select>
         <Button variant={showArchived ? 'default' : 'outline'} size="sm" onClick={() => setShowArchived(s => !s)}>
