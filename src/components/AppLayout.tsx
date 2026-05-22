@@ -10,6 +10,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { isAdmin, signOut, profile } = useAuth();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const canSendMessages = profile?.email?.toLowerCase() === 'm.khazenly@gmail.com';
 
   const navItems = isAdmin
     ? [
@@ -19,7 +20,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         { to: '/assignments' as const, icon: ClipboardList, label: t('assignments') },
         { to: '/violations' as const, icon: AlertTriangle, label: t('violations') },
         { to: '/assignment-deductions' as const, icon: Wallet, label: t('assignmentDeductionsTab') },
-        { to: '/bulk-messages' as const, icon: MessageCircle, label: t('bulkMessages') },
+        ...(canSendMessages ? [{ to: '/bulk-messages' as const, icon: MessageCircle, label: t('bulkMessages') }] : []),
       ]
     : [
         { to: '/employees' as const, icon: Users, label: t('employees') },
