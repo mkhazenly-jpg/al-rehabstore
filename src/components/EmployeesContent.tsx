@@ -412,6 +412,13 @@ export function EmployeesContent() {
             <SelectItem value="SDC">SDC</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={filterJob} onValueChange={setFilterJob}>
+          <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder={t('jobTitle')} /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('jobTitle')}: {t('allCategories')}</SelectItem>
+            {jobTitles.map(j => <SelectItem key={j} value={j!}>{j}</SelectItem>)}
+          </SelectContent>
+        </Select>
         <Button variant={showArchived ? 'default' : 'outline'} size="sm" onClick={() => setShowArchived(s => !s)}>
           {showArchived ? t('hideArchived') : t('showArchived')}
         </Button>
