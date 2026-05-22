@@ -89,6 +89,7 @@ export function EmployeesContent() {
   };
 
   const departments = [...new Set(employees.map(e => e.department).filter(Boolean))];
+  const jobTitles = [...new Set(employees.map(e => e.job_title).filter(Boolean))];
   const filtered = employees.filter(e => {
     const isArchived = (e.status as string) === 'archived';
     if (showArchived ? !isArchived : isArchived) return false;
@@ -102,6 +103,7 @@ export function EmployeesContent() {
     if (filterShift !== 'all' && (e as any).shift !== filterShift) return false;
     if (filterDept !== 'all' && e.department !== filterDept) return false;
     if (filterLocation !== 'all' && (e as any).location !== filterLocation) return false;
+    if (filterJob !== 'all' && (e as any).job_title !== filterJob) return false;
     return true;
   });
 
