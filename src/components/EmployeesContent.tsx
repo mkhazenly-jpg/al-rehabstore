@@ -36,6 +36,7 @@ export function EmployeesContent() {
   const [filterShift, setFilterShift] = useState('all');
   const [filterDept, setFilterDept] = useState('all');
   const [filterLocation, setFilterLocation] = useState('all');
+  const [filterJob, setFilterJob] = useState('all');
   const [showArchived, setShowArchived] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
