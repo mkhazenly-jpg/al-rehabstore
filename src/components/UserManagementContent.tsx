@@ -48,7 +48,16 @@ export function UserManagementContent() {
     setDriveRunning(true);
     setDriveResult(null);
     try {
-      const res = await fetch('/api/public/hooks/auto-backup', { method: 'POST' });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error(t('driveBackupError'));
+        setDriveRunning(false);
+        return;
+      }
+      const res = await fetch('/api/public/hooks/auto-backup', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
       const data = (await res.json()) as DriveBackupResult;
       const result: DriveBackupResult = { ...data, at: new Date().toISOString() };
       setDriveResult(result);

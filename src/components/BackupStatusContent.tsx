@@ -60,12 +60,17 @@ export function BackupStatusContent() {
   const runBackupNow = async () => {
     setRunning(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error(t('driveBackupError'));
+        setRunning(false);
+        return;
+      }
       const res = await fetch('/api/public/hooks/auto-backup', {
         method: 'POST',
         headers: {
           'x-trigger-source': 'manual',
-          ...(user?.id ? { 'x-triggered-by-user': user.id } : {}),
+          Authorization: `Bearer ${session.access_token}`,
         },
       });
       const data = await res.json();
