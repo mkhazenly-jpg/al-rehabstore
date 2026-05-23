@@ -1431,55 +1431,85 @@ export function DashboardContent() {
             <DialogTitle>{t('deductionsBreakdown')}</DialogTitle>
             <DialogDescription>{t('totalAssignmentDeductionsDesc')}</DialogDescription>
           </DialogHeader>
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto space-y-4 pe-1">
             {deductionRows.length === 0 && lostDeductionRows.length === 0 ? (
               <p className="py-8 text-center text-muted-foreground">{t('noDeductions')}</p>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('employee')}</TableHead>
-                    <TableHead>{t('item')}</TableHead>
-                    <TableHead className="text-center">{t('quantity')}</TableHead>
-                    <TableHead className="text-center">{t('daysElapsed')}</TableHead>
-                    <TableHead className="text-center">{t('daysRemaining')}</TableHead>
-                    <TableHead className="text-end">{t('deductionValue')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {deductionRows.map((r) => (
-                    <TableRow key={r.key}>
-                      <TableCell className="font-medium">{r.employeeName}</TableCell>
-                      <TableCell>{r.itemName}</TableCell>
-                      <TableCell className="text-center">{r.quantity}</TableCell>
-                      <TableCell className="text-center">{r.daysElapsed}</TableCell>
-                      <TableCell className="text-center font-semibold text-amber-700">{r.daysRemaining}</TableCell>
-                      <TableCell className="text-end font-semibold">
-                        {r.deduction.toLocaleString()} {t('currency')}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {lostDeductionRows.map((r) => (
-                    <TableRow key={r.key} className="bg-rose-50/60">
-                      <TableCell className="font-medium">{r.employeeName}</TableCell>
-                      <TableCell>
-                        {r.itemName}
-                        <span className="ms-2 inline-block rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-700 align-middle">
-                          {lang === 'ar' ? 'فقدان' : 'Lost'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-center">{r.quantity}</TableCell>
-                      <TableCell className="text-center">-</TableCell>
-                      <TableCell className="text-center">-</TableCell>
-                      <TableCell className="text-end font-semibold text-rose-700">
-                        {r.deduction.toLocaleString()} {t('currency')}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              (() => {
+                type Item = {
+                  key: string; kind: 'regular' | 'lost'; itemName: string;
+                  quantity: number; daysRemaining: number | null; deduction: number;
+                };
+                const groups = new Map<string, { name: string; status: string; items: Item[]; total: number }>();
+                deductionRows.forEach((r) => {
+                  const k = r.employeeName;
+                  if (!groups.has(k)) groups.set(k, { name: r.employeeName, status: r.employeeStatus, items: [], total: 0 });
+                  const g = groups.get(k)!;
+                  g.items.push({ key: r.key, kind: 'regular', itemName: r.itemName, quantity: r.quantity, daysRemaining: r.daysRemaining, deduction: r.deduction });
+                  g.total += r.deduction;
+                });
+                lostDeductionRows.forEach((r) => {
+                  const k = r.employeeName;
+                  if (!groups.has(k)) groups.set(k, { name: r.employeeName, status: r.employeeStatus, items: [], total: 0 });
+                  const g = groups.get(k)!;
+                  g.items.push({ key: r.key, kind: 'lost', itemName: r.itemName, quantity: r.quantity, daysRemaining: null, deduction: r.deduction });
+                  g.total += r.deduction;
+                });
+                const statusLabel = (s: string) => {
+                  if (s === 'resigned') return t('resigned');
+                  if (s === 'terminated') return t('terminated');
+                  if (s === 'archived') return lang === 'ar' ? 'مؤرشف' : 'Archived';
+                  return '';
+                };
+                return Array.from(groups.values()).map((g) => (
+                  <Card key={g.name} className="overflow-hidden">
+                    <div className="bg-muted/40 px-4 py-3 border-b flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-base">{g.name}</h3>
+                        {g.status && <p className="text-xs text-muted-foreground mt-0.5">{statusLabel(g.status)}</p>}
+                      </div>
+                      <div className="text-end shrink-0">
+                        <p className="text-[11px] text-muted-foreground">{lang === 'ar' ? 'إجمالي الموظف' : 'Employee total'}</p>
+                        <p className="text-xl font-bold text-amber-600 leading-none">{g.total.toLocaleString()} {t('currency')}</p>
+                      </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>{t('item')}</TableHead>
+                            <TableHead className="text-center">{t('quantity')}</TableHead>
+                            <TableHead className="text-center">{t('daysRemaining')}</TableHead>
+                            <TableHead className="text-end">{t('deductionValue')}</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {g.items.map((it) => (
+                            <TableRow key={it.key} className={it.kind === 'lost' ? 'bg-rose-50/60' : ''}>
+                              <TableCell className="font-medium">
+                                {it.itemName}
+                                {it.kind === 'lost' && (
+                                  <span className="ms-2 inline-block rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-700 align-middle">
+                                    {lang === 'ar' ? 'فقدان' : 'Lost'}
+                                  </span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-center">{it.quantity}</TableCell>
+                              <TableCell className="text-center font-semibold text-amber-700">{it.daysRemaining ?? '-'}</TableCell>
+                              <TableCell className={`text-end font-semibold ${it.kind === 'lost' ? 'text-rose-700' : 'text-amber-600'}`}>
+                                {it.deduction.toLocaleString()} {t('currency')}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </Card>
+                ));
+              })()
             )}
           </div>
+
           {(deductionRows.length > 0 || lostDeductionRows.length > 0) && (
             <div className="border-t pt-3 mt-2 flex flex-wrap items-center justify-between gap-3 text-sm">
               <div>
