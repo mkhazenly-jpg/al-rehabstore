@@ -276,6 +276,7 @@ export function DashboardContent() {
     const rows: Array<{
       key: string;
       employeeName: string;
+      employeeStatus: string;
       itemName: string;
       category: string;
       quantity: number;
