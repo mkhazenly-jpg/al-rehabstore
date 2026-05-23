@@ -309,6 +309,7 @@ export function DashboardContent() {
       rows.push({
         key: `lost-${a.employee_id}-${a.stock_item_id}-${idx}`,
         employeeName: a.employees?.name || '—',
+        employeeStatus: a.employees?.status || '',
         itemName: a.stock_items?.name || item?.name || '—',
         category: a.stock_items?.category || item?.category || '',
         quantity: qty,
