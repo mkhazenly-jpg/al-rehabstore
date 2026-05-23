@@ -1126,42 +1126,57 @@ export function DashboardContent() {
             <DialogTitle>{t('topViolatorsTitle')}</DialogTitle>
             <DialogDescription>{t('topViolatorsDesc')}</DialogDescription>
           </DialogHeader>
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto space-y-4 pe-1">
             {topViolatorsData.length === 0 ? (
               <p className="py-8 text-center text-muted-foreground">{t('noViolations')}</p>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">#</TableHead>
-                    <TableHead>{t('employee')}</TableHead>
-                    <TableHead>{t('jobTitle')}</TableHead>
-                    <TableHead>{t('location')}</TableHead>
-                    <TableHead>{t('violationsList')}</TableHead>
-                    <TableHead className="text-end">{t('violationsCount')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {topViolatorsData.map((row, idx) => (
-                    <TableRow key={row.name + idx}>
-                      <TableCell className="font-semibold text-muted-foreground">{idx + 1}</TableCell>
-                      <TableCell className="font-medium">{row.name}</TableCell>
-                      <TableCell>{row.jobTitle}</TableCell>
-                      <TableCell>{row.location}</TableCell>
-                      <TableCell className="whitespace-pre-wrap text-xs text-muted-foreground max-w-[320px]">
-                        {row.descriptions.length > 0
-                          ? row.descriptions.map((d, i) => `${i + 1}. ${d}`).join('\n')
-                          : '-'}
-                      </TableCell>
-                      <TableCell className="text-end font-bold text-amber-600">{row.count}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              topViolatorsData.map((row, idx) => (
+                <Card key={row.name + idx} className="overflow-hidden">
+                  <div className="bg-muted/40 px-4 py-3 border-b">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-base">{idx + 1}. {row.name}</h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {t('totalDays')}: <span className="font-semibold text-foreground">{row.totalDays}</span>
+                          {' • '}
+                          {t('grandTotal')}: <span className="font-semibold text-foreground">{row.totalAmount.toLocaleString()} {t('currency')}</span>
+                        </p>
+                      </div>
+                      <div className="text-center shrink-0">
+                        <p className="text-[11px] text-muted-foreground">{t('violationsCount')}</p>
+                        <p className="text-2xl font-bold text-amber-600 leading-none">{row.count}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>{t('violationDescription')}</TableHead>
+                          <TableHead>{t('violationDate')}</TableHead>
+                          <TableHead className="text-center">{t('totalDays')}</TableHead>
+                          <TableHead className="text-end">{t('deductionValue')}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {row.items.map((it) => (
+                          <TableRow key={it.id}>
+                            <TableCell className="whitespace-pre-wrap max-w-[260px]">{it.description}</TableCell>
+                            <TableCell className="text-xs">{new Date(it.date).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-GB')}</TableCell>
+                            <TableCell className="text-center">{it.days}</TableCell>
+                            <TableCell className="text-end font-semibold text-amber-600">{it.amount.toLocaleString()} {t('currency')}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </Card>
+              ))
             )}
           </div>
         </DialogContent>
       </Dialog>
+
 
       <Dialog open={stockDetailsOpen} onOpenChange={setStockDetailsOpen}>
         <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden flex flex-col">
