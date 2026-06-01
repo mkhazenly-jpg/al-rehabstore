@@ -1563,8 +1563,8 @@ export function DashboardContent() {
                   key={cat}
                   className="overflow-hidden rounded-md border border-foreground bg-card p-0 shadow-sm gap-0"
                 >
-                  <div className="bg-primary px-3 py-2 border-b border-foreground">
-                    <p className="text-xs sm:text-sm font-bold tracking-wide text-primary-foreground uppercase truncate">
+                  <div className="bg-primary px-3 py-2 border-b border-foreground flex items-center justify-center">
+                    <p className="text-xs sm:text-sm font-bold tracking-wide text-primary-foreground uppercase truncate text-center">
                       {categoryNames[cat] || cat}
                     </p>
                   </div>
