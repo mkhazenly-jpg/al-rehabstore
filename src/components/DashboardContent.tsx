@@ -1717,14 +1717,17 @@ export function DashboardContent() {
           <CardContent>
             <div className="h-[350px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={barChartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(value: number) => `${value.toLocaleString()} ${t('currency')}`} />
-                  <Legend />
-                  <Bar dataKey={t('purchases')} fill="#10b981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey={t('consumption')} fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                <BarChart data={barChartData} margin={{ top: 10, right: 10, left: 10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#475569' }} />
+                  <YAxis tick={{ fontSize: 11, fill: '#475569' }} />
+                  <Tooltip
+                    formatter={(value: number) => `${value.toLocaleString()} ${t('currency')}`}
+                    contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 8 }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Bar dataKey={t('purchases')} fill="#7BB8A8" radius={[8, 8, 0, 0]} />
+                  <Bar dataKey={t('consumption')} fill="#F0B27A" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
