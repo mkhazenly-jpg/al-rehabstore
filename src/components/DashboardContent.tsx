@@ -1655,7 +1655,7 @@ export function DashboardContent() {
         </>
       )}
 
-      {/* Pie Chart */}
+      {/* Bar Chart - Cost distribution */}
       {pieData.length > 0 && (() => {
         const totalPie = pieData.reduce((s, d) => s + d.value, 0);
         return (
@@ -1663,40 +1663,31 @@ export function DashboardContent() {
           <CardHeader className="flex flex-row items-center justify-between gap-2">
             <CardTitle className="text-base font-bold">{t('costDistribution')}</CardTitle>
             <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-              <PieChartIcon className="h-5 w-5 text-primary" />
+              <BarChart3 className="h-5 w-5 text-primary" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px] w-full">
+            <div className="h-[320px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={75}
-                    outerRadius={120}
-                    paddingAngle={2}
-                    dataKey="value"
-                    stroke="#fff"
-                    strokeWidth={3}
-                    label={({ percent }) => `${((percent ?? 0) * 100).toFixed(0)}%`}
-                    labelLine={false}
-                    fontSize={14}
-                    fontWeight={700}
-                    fill="#fff"
-                  >
+                <BarChart data={pieData} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#475569' }} />
+                  <YAxis tick={{ fontSize: 11, fill: '#475569' }} />
+                  <Tooltip
+                    formatter={(value: number) => `${value.toLocaleString()} ${t('currency')}`}
+                    contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 8 }}
+                  />
+                  <Bar dataKey="value" radius={[8, 8, 0, 0]}>
                     {pieData.map((_, idx) => (
-                      <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
+                      <Cell key={idx} fill={SOFT_BAR_COLORS[idx % SOFT_BAR_COLORS.length]} />
                     ))}
-                  </Pie>
-                  <Tooltip formatter={(value: number) => `${value.toLocaleString()} ${t('currency')}`} />
-                </PieChart>
+                  </Bar>
+                </BarChart>
               </ResponsiveContainer>
             </div>
             <div className="mt-4 grid grid-cols-3 gap-2 pt-4 border-t border-border/60">
               {pieData.map((d, idx) => {
-                const color = PIE_COLORS[idx % PIE_COLORS.length];
+                const color = SOFT_BAR_COLORS[idx % SOFT_BAR_COLORS.length];
                 const pct = totalPie > 0 ? (d.value / totalPie) * 100 : 0;
                 return (
                   <div key={d.name} className="flex flex-col items-center text-center gap-1">
@@ -1713,6 +1704,7 @@ export function DashboardContent() {
         </Card>
         );
       })()}
+
 
       {/* Bar Chart - Monthly comparison */}
       {selectedYear !== 'all' && barChartData.length > 0 && (
