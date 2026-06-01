@@ -857,11 +857,11 @@ export function DashboardContent() {
             key={card.title}
             className="overflow-hidden rounded-md border border-foreground bg-card p-0 shadow-sm gap-0"
           >
-            <div className="bg-primary px-3 py-2 flex items-center justify-between gap-2 border-b border-foreground">
-              <p className="text-xs sm:text-sm font-bold tracking-wide text-primary-foreground uppercase">
+            <div className="bg-primary px-3 py-2 flex items-center justify-center gap-2 border-b border-foreground">
+              <card.icon className="h-4 w-4 text-primary-foreground/90 shrink-0" />
+              <p className="text-xs sm:text-sm font-bold tracking-wide text-primary-foreground uppercase text-center">
                 {card.title}
               </p>
-              <card.icon className="h-4 w-4 text-primary-foreground/90 shrink-0" />
             </div>
             <div className="bg-card px-3 py-4 flex flex-col items-center justify-center text-center">
               <p className="text-3xl font-extrabold text-foreground leading-none">
