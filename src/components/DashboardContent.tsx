@@ -1767,9 +1767,9 @@ export function DashboardContent() {
               key={item.id}
               className="overflow-hidden rounded-md border border-foreground bg-card p-0 shadow-sm gap-0"
             >
-              <div className="bg-primary px-3 py-2 flex items-center justify-between gap-2 border-b border-foreground">
-                <p className="text-xs sm:text-sm font-bold text-primary-foreground uppercase truncate">{item.name}</p>
-                <span className="text-[10px] font-semibold text-primary-foreground/85 shrink-0">{categoryNames[item.category] || item.category}</span>
+              <div className="bg-primary px-3 py-2 flex flex-col items-center justify-center text-center gap-0.5 border-b border-foreground">
+                <p className="text-xs sm:text-sm font-bold text-primary-foreground uppercase truncate max-w-full">{item.name}</p>
+                <span className="text-[10px] font-semibold text-primary-foreground/85">{categoryNames[item.category] || item.category}</span>
               </div>
               {item.size !== 'N/A' && (
                 <div className="px-3 pt-2 text-xs text-muted-foreground">{t('size')}: {item.size}</div>
