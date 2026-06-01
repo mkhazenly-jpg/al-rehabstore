@@ -15,6 +15,8 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 
 const PIE_COLORS = ['#16a34a', '#f97316', '#2563eb', '#ef4444', '#8b5cf6', '#ec4899'];
+// Soft, eye-friendly palette for bar charts
+const SOFT_BAR_COLORS = ['#7BB8A8', '#F0B27A', '#85A8D0', '#E8A0A0', '#B39DDB', '#F5C99B'];
 
 export function DashboardContent() {
   const { t, lang } = useLanguage();
