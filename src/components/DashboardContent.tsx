@@ -1532,18 +1532,20 @@ export function DashboardContent() {
 
       <h2 className="text-lg font-bold"><span className="mr-1" aria-hidden>💵</span>{t('categoryCost')}</h2>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {Object.entries(costByCategory).map(([cat, cost], idx) => (
-          <Card key={cat} className="overflow-hidden">
-            <div className={`bg-gradient-to-br ${itemGradients[idx % itemGradients.length]} p-4`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-primary-foreground/80">
-                    <span className="mr-1" aria-hidden>{emojiFor(cat)}</span>{categoryNames[cat] || cat}
-                  </p>
-                  <p className="text-3xl font-bold text-primary-foreground">{cost.toLocaleString()} {t('currency')}</p>
-                </div>
-                
-              </div>
+        {Object.entries(costByCategory).map(([cat, cost]) => (
+          <Card
+            key={cat}
+            className="overflow-hidden rounded-md border border-foreground bg-card p-0 shadow-sm gap-0"
+          >
+            <div className="bg-primary px-3 py-2 border-b border-foreground">
+              <p className="text-xs sm:text-sm font-bold tracking-wide text-primary-foreground uppercase truncate">
+                {categoryNames[cat] || cat}
+              </p>
+            </div>
+            <div className="bg-card px-3 py-4 flex items-center justify-center text-center">
+              <p className="text-2xl font-extrabold text-foreground leading-none">
+                {cost.toLocaleString()} {t('currency')}
+              </p>
             </div>
           </Card>
         ))}
@@ -1556,23 +1558,27 @@ export function DashboardContent() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {Object.entries(quantityByCategory)
               .filter(([, qty]) => qty !== 0)
-              .map(([cat, qty], idx) => (
-                <Card key={cat} className="overflow-hidden">
-                  <div className={`bg-gradient-to-br ${itemGradients[idx % itemGradients.length]} p-4`}>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-primary-foreground/80">
-                          <span className="mr-1" aria-hidden>{emojiFor(cat)}</span>{categoryNames[cat] || cat}
-                        </p>
-                        <p className="text-3xl font-bold text-primary-foreground">{qty.toLocaleString()} {t('piece')}</p>
-                      </div>
-                    </div>
+              .map(([cat, qty]) => (
+                <Card
+                  key={cat}
+                  className="overflow-hidden rounded-md border border-foreground bg-card p-0 shadow-sm gap-0"
+                >
+                  <div className="bg-primary px-3 py-2 border-b border-foreground">
+                    <p className="text-xs sm:text-sm font-bold tracking-wide text-primary-foreground uppercase truncate">
+                      {categoryNames[cat] || cat}
+                    </p>
+                  </div>
+                  <div className="bg-card px-3 py-4 flex items-center justify-center text-center">
+                    <p className="text-2xl font-extrabold text-foreground leading-none">
+                      {qty.toLocaleString()} {t('piece')}
+                    </p>
                   </div>
                 </Card>
               ))}
           </div>
         </>
       )}
+
 
       {/* Damaged Items */}
       {Object.keys(damagedByItem).length > 0 && (
@@ -1756,17 +1762,19 @@ export function DashboardContent() {
       <div>
         <h2 className="text-lg font-bold mb-4">{t('consumptionOverview')}</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {itemConsumption.map((item, idx) => (
-            <Card key={item.id} className="overflow-hidden">
-              <div className={`bg-gradient-to-br ${itemGradients[idx % itemGradients.length]} p-4`}>
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-bold text-primary-foreground">{item.name}</p>
-                  <span className="text-xs text-primary-foreground/70">{categoryNames[item.category] || item.category}</span>
-                </div>
-                {item.size !== 'N/A' && (
-                  <p className="text-xs text-primary-foreground/70 mb-2">{t('size')}: {item.size}</p>
-                )}
+          {itemConsumption.map((item) => (
+            <Card
+              key={item.id}
+              className="overflow-hidden rounded-md border border-foreground bg-card p-0 shadow-sm gap-0"
+            >
+              <div className="bg-primary px-3 py-2 flex items-center justify-between gap-2 border-b border-foreground">
+                <p className="text-xs sm:text-sm font-bold text-primary-foreground uppercase truncate">{item.name}</p>
+                <span className="text-[10px] font-semibold text-primary-foreground/85 shrink-0">{categoryNames[item.category] || item.category}</span>
               </div>
+              {item.size !== 'N/A' && (
+                <div className="px-3 pt-2 text-xs text-muted-foreground">{t('size')}: {item.size}</div>
+              )}
+
               <CardContent className="p-4 space-y-3">
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div>
