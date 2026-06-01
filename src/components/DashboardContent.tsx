@@ -853,29 +853,32 @@ export function DashboardContent() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((card) => (
-          <Card key={card.title} className="overflow-hidden">
-            <div className={`bg-gradient-to-br ${card.gradient} p-4`}>
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium text-primary-foreground/80">{card.title}</p>
-                  <p className="text-3xl font-bold text-primary-foreground">
-                    <span className="mr-1" aria-hidden>{card.emoji}</span>{card.value}
-                  </p>
-                  {card.key === 'totalStock' && (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="mt-3 bg-background/95 text-foreground hover:bg-background"
-                      onClick={() => setStockDetailsOpen(true)}
-                      disabled={stockDetailRows.length === 0}
-                    >
-                      <Eye className="h-4 w-4" />
-                      {t('viewDetails')}
-                    </Button>
+          <Card
+            key={card.title}
+            className="overflow-hidden rounded-md border border-foreground bg-card p-0 shadow-sm gap-0"
+          >
+            <div className="bg-primary px-3 py-2 flex items-center justify-between gap-2 border-b border-foreground">
+              <p className="text-xs sm:text-sm font-bold tracking-wide text-primary-foreground uppercase">
+                {card.title}
+              </p>
+              <card.icon className="h-4 w-4 text-primary-foreground/90 shrink-0" />
+            </div>
+            <div className="bg-card px-3 py-4 flex flex-col items-center justify-center text-center">
+              <p className="text-3xl font-extrabold text-foreground leading-none">
+                {card.value}
+              </p>
+              {card.key === 'totalStock' && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-3 border-foreground/30"
+                  onClick={() => setStockDetailsOpen(true)}
+                  disabled={stockDetailRows.length === 0}
+                >
+                  <Eye className="h-4 w-4" />
+                  {t('viewDetails')}
+                </Button>
               )}
-                </div>
-                <card.icon className="h-8 w-8 text-primary-foreground/60" />
-              </div>
             </div>
           </Card>
         ))}
