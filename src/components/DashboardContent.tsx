@@ -15,6 +15,8 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 
 const PIE_COLORS = ['#16a34a', '#f97316', '#2563eb', '#ef4444', '#8b5cf6', '#ec4899'];
+// Soft, eye-friendly palette for bar charts
+const SOFT_BAR_COLORS = ['#7BB8A8', '#F0B27A', '#85A8D0', '#E8A0A0', '#B39DDB', '#F5C99B'];
 
 export function DashboardContent() {
   const { t, lang } = useLanguage();
@@ -857,11 +859,11 @@ export function DashboardContent() {
             key={card.title}
             className="overflow-hidden rounded-md border border-foreground bg-card p-0 shadow-sm gap-0"
           >
-            <div className="bg-primary px-3 py-2 flex items-center justify-between gap-2 border-b border-foreground">
-              <p className="text-xs sm:text-sm font-bold tracking-wide text-primary-foreground uppercase">
+            <div className="bg-primary px-3 py-2 flex items-center justify-center gap-2 border-b border-foreground">
+              <card.icon className="h-4 w-4 text-primary-foreground/90 shrink-0" />
+              <p className="text-xs sm:text-sm font-bold tracking-wide text-primary-foreground uppercase text-center">
                 {card.title}
               </p>
-              <card.icon className="h-4 w-4 text-primary-foreground/90 shrink-0" />
             </div>
             <div className="bg-card px-3 py-4 flex flex-col items-center justify-center text-center">
               <p className="text-3xl font-extrabold text-foreground leading-none">
@@ -1537,8 +1539,8 @@ export function DashboardContent() {
             key={cat}
             className="overflow-hidden rounded-md border border-foreground bg-card p-0 shadow-sm gap-0"
           >
-            <div className="bg-primary px-3 py-2 border-b border-foreground">
-              <p className="text-xs sm:text-sm font-bold tracking-wide text-primary-foreground uppercase truncate">
+            <div className="bg-primary px-3 py-2 border-b border-foreground flex items-center justify-center">
+              <p className="text-xs sm:text-sm font-bold tracking-wide text-primary-foreground uppercase truncate text-center">
                 {categoryNames[cat] || cat}
               </p>
             </div>
@@ -1563,8 +1565,8 @@ export function DashboardContent() {
                   key={cat}
                   className="overflow-hidden rounded-md border border-foreground bg-card p-0 shadow-sm gap-0"
                 >
-                  <div className="bg-primary px-3 py-2 border-b border-foreground">
-                    <p className="text-xs sm:text-sm font-bold tracking-wide text-primary-foreground uppercase truncate">
+                  <div className="bg-primary px-3 py-2 border-b border-foreground flex items-center justify-center">
+                    <p className="text-xs sm:text-sm font-bold tracking-wide text-primary-foreground uppercase truncate text-center">
                       {categoryNames[cat] || cat}
                     </p>
                   </div>
@@ -1655,7 +1657,7 @@ export function DashboardContent() {
         </>
       )}
 
-      {/* Pie Chart */}
+      {/* Bar Chart - Cost distribution */}
       {pieData.length > 0 && (() => {
         const totalPie = pieData.reduce((s, d) => s + d.value, 0);
         return (
@@ -1663,40 +1665,31 @@ export function DashboardContent() {
           <CardHeader className="flex flex-row items-center justify-between gap-2">
             <CardTitle className="text-base font-bold">{t('costDistribution')}</CardTitle>
             <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-              <PieChartIcon className="h-5 w-5 text-primary" />
+              <BarChart3 className="h-5 w-5 text-primary" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px] w-full">
+            <div className="h-[320px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={75}
-                    outerRadius={120}
-                    paddingAngle={2}
-                    dataKey="value"
-                    stroke="#fff"
-                    strokeWidth={3}
-                    label={({ percent }) => `${((percent ?? 0) * 100).toFixed(0)}%`}
-                    labelLine={false}
-                    fontSize={14}
-                    fontWeight={700}
-                    fill="#fff"
-                  >
+                <BarChart data={pieData} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#475569' }} />
+                  <YAxis tick={{ fontSize: 11, fill: '#475569' }} />
+                  <Tooltip
+                    formatter={(value: number) => `${value.toLocaleString()} ${t('currency')}`}
+                    contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 8 }}
+                  />
+                  <Bar dataKey="value" radius={[8, 8, 0, 0]}>
                     {pieData.map((_, idx) => (
-                      <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
+                      <Cell key={idx} fill={SOFT_BAR_COLORS[idx % SOFT_BAR_COLORS.length]} />
                     ))}
-                  </Pie>
-                  <Tooltip formatter={(value: number) => `${value.toLocaleString()} ${t('currency')}`} />
-                </PieChart>
+                  </Bar>
+                </BarChart>
               </ResponsiveContainer>
             </div>
             <div className="mt-4 grid grid-cols-3 gap-2 pt-4 border-t border-border/60">
               {pieData.map((d, idx) => {
-                const color = PIE_COLORS[idx % PIE_COLORS.length];
+                const color = SOFT_BAR_COLORS[idx % SOFT_BAR_COLORS.length];
                 const pct = totalPie > 0 ? (d.value / totalPie) * 100 : 0;
                 return (
                   <div key={d.name} className="flex flex-col items-center text-center gap-1">
@@ -1714,6 +1707,7 @@ export function DashboardContent() {
         );
       })()}
 
+
       {/* Bar Chart - Monthly comparison */}
       {selectedYear !== 'all' && barChartData.length > 0 && (
         <Card>
@@ -1723,14 +1717,17 @@ export function DashboardContent() {
           <CardContent>
             <div className="h-[350px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={barChartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(value: number) => `${value.toLocaleString()} ${t('currency')}`} />
-                  <Legend />
-                  <Bar dataKey={t('purchases')} fill="#10b981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey={t('consumption')} fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                <BarChart data={barChartData} margin={{ top: 10, right: 10, left: 10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#475569' }} />
+                  <YAxis tick={{ fontSize: 11, fill: '#475569' }} />
+                  <Tooltip
+                    formatter={(value: number) => `${value.toLocaleString()} ${t('currency')}`}
+                    contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 8 }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Bar dataKey={t('purchases')} fill="#7BB8A8" radius={[8, 8, 0, 0]} />
+                  <Bar dataKey={t('consumption')} fill="#F0B27A" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -1767,9 +1764,9 @@ export function DashboardContent() {
               key={item.id}
               className="overflow-hidden rounded-md border border-foreground bg-card p-0 shadow-sm gap-0"
             >
-              <div className="bg-primary px-3 py-2 flex items-center justify-between gap-2 border-b border-foreground">
-                <p className="text-xs sm:text-sm font-bold text-primary-foreground uppercase truncate">{item.name}</p>
-                <span className="text-[10px] font-semibold text-primary-foreground/85 shrink-0">{categoryNames[item.category] || item.category}</span>
+              <div className="bg-primary px-3 py-2 flex flex-col items-center justify-center text-center gap-0.5 border-b border-foreground">
+                <p className="text-xs sm:text-sm font-bold text-primary-foreground uppercase truncate max-w-full">{item.name}</p>
+                <span className="text-[10px] font-semibold text-primary-foreground/85">{categoryNames[item.category] || item.category}</span>
               </div>
               {item.size !== 'N/A' && (
                 <div className="px-3 pt-2 text-xs text-muted-foreground">{t('size')}: {item.size}</div>
