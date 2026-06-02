@@ -631,7 +631,7 @@ export function EmployeesContent() {
           </div>
           <div className="flex gap-2 justify-end p-6 pt-4 border-t shrink-0 bg-background">
             <Button variant="outline" onClick={() => setDialogOpen(false)}>{t('cancel')}</Button>
-            <Button onClick={handleSave}>{t('save')}</Button>
+            <Button onClick={handleSave} disabled={isSaving}>{isSaving ? (lang === 'ar' ? 'جارٍ الحفظ...' : 'Saving...') : t('save')}</Button>
           </div>
         </DialogContent>
       </Dialog>
