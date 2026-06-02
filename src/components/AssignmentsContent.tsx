@@ -120,6 +120,7 @@ export function AssignmentsContent() {
   };
 
   const handleSave = async () => {
+    if (saving) return;
     setError('');
 
     if (editingAssignment) {
