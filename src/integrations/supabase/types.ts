@@ -289,6 +289,60 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_changes: {
+        Row: {
+          action: string
+          created_at: string
+          description: string | null
+          id: string
+          payload: Json | null
+          record_id: string
+          requested_by: string
+          requested_by_email: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          snapshot: Json | null
+          status: string
+          table_name: string
+          updated_at: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          payload?: Json | null
+          record_id: string
+          requested_by: string
+          requested_by_email?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          snapshot?: Json | null
+          status?: string
+          table_name: string
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          payload?: Json | null
+          record_id?: string
+          requested_by?: string
+          requested_by_email?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          snapshot?: Json | null
+          status?: string
+          table_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -525,6 +579,7 @@ export type Database = {
         Returns: boolean
       }
       is_approved: { Args: { _user_id: string }; Returns: boolean }
+      is_master_admin: { Args: { _user_id: string }; Returns: boolean }
       mark_as_replaced: { Args: { _assignment_id: string }; Returns: undefined }
       return_assignment: {
         Args: { _assignment_id: string }
