@@ -154,6 +154,7 @@ export function EmployeesContent() {
   };
 
   const handleSave = async () => {
+    if (isSaving) return;
     const dept = form.department === '__new__' ? '' : form.department.trim();
     // Auto-archive any non-active status (resigned / terminated / archived all become archived)
     const finalStatus: EmployeeStatus = form.status === 'active' ? 'active' : 'archived';
@@ -192,13 +193,20 @@ export function EmployeesContent() {
       job_title: form.job_title || null,
       location: form.location || null,
     };
-    if (editItem) {
-      await supabase.from('employees').update(payload).eq('id', editItem.id);
-    } else {
-      await supabase.from('employees').insert(payload);
+    setIsSaving(true);
+    try {
+      if (editItem) {
+        const { error } = await supabase.from('employees').update(payload).eq('id', editItem.id);
+        if (error) { toast.error(error.message); return; }
+      } else {
+        const { error } = await supabase.from('employees').insert(payload);
+        if (error) { toast.error(error.message); return; }
+      }
+      setDialogOpen(false);
+      loadEmployees();
+    } finally {
+      setIsSaving(false);
     }
-    setDialogOpen(false);
-    loadEmployees();
   };
 
   const handleDelete = async (emp: Employee) => {
