@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { requestPendingChange, formatSupabaseError, isMasterAdminEmail } from '@/lib/pending-changes';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
@@ -178,59 +179,91 @@ export function StockContent() {
     let stockItemId: string | null = editItem?.id ?? existingMatch?.id ?? null;
     let stockError = null;
 
-    if (editItem) {
-      const { error } = await supabase.from('stock_items').update({ ...rest, name: nameVal, size: sizeVal, location: locationVal } as any).eq('id', editItem.id);
-      stockError = error;
-    } else if (existingMatch) {
-      const updatePayload: { quantity_in_stock: number; unit_price?: number; location?: string | null } = {
-        quantity_in_stock: existingMatch.quantity_in_stock + form.quantity_in_stock,
-      };
-      if (form.unit_price > 0) {
-        updatePayload.unit_price = form.unit_price;
+    try {
+      if (editItem) {
+        // Edits go to approval queue for non-master admins.
+        const { data: { user: cu } } = await supabase.auth.getUser();
+        const { data: prof } = await supabase.from('profiles').select('email').eq('user_id', cu?.id || '').maybeSingle();
+        if (!isMasterAdminEmail(prof?.email)) {
+          const res = await requestPendingChange({
+            table: 'stock_items',
+            recordId: editItem.id,
+            action: 'update',
+            payload: { ...rest, name: nameVal, size: sizeVal, location: locationVal },
+            snapshot: { name: editItem.name, quantity_in_stock: editItem.quantity_in_stock },
+            description: 'تعديل صنف مخزون',
+          });
+          if (!res.ok) { toast.error(res.error || 'Error'); return; }
+          toast.success('تم إرسال طلب التعديل للموافقة');
+          setDialogOpen(false);
+          return;
+        }
+        const { error } = await supabase.from('stock_items').update({ ...rest, name: nameVal, size: sizeVal, location: locationVal } as any).eq('id', editItem.id);
+        stockError = error;
+      } else if (existingMatch) {
+        const updatePayload: { quantity_in_stock: number; unit_price?: number; location?: string | null } = {
+          quantity_in_stock: existingMatch.quantity_in_stock + form.quantity_in_stock,
+        };
+        if (form.unit_price > 0) updatePayload.unit_price = form.unit_price;
+        if (locationVal && !(existingMatch as any).location) updatePayload.location = locationVal;
+        const { error } = await supabase.from('stock_items').update(updatePayload as any).eq('id', existingMatch.id);
+        stockError = error;
+      } else {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        const { data, error } = await supabase.from('stock_items').insert({ ...rest, name: nameVal, size: sizeVal, location: locationVal, created_by: currentUser?.id ?? null } as any).select('id').single();
+        stockError = error;
+        stockItemId = data?.id ?? null;
       }
-      if (locationVal && !(existingMatch as any).location) {
-        updatePayload.location = locationVal;
-      }
-      const { error } = await supabase
-        .from('stock_items')
-        .update(updatePayload as any)
-        .eq('id', existingMatch.id);
-      stockError = error;
-    } else {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      const { data, error } = await supabase.from('stock_items').insert({ ...rest, name: nameVal, size: sizeVal, location: locationVal, created_by: currentUser?.id ?? null } as any).select('id').single();
-      stockError = error;
-      stockItemId = data?.id ?? null;
-    }
 
-    if (stockError || !stockItemId) {
-      console.error('Failed to save stock item', stockError);
-      return;
-    }
-
-    if (!editItem) {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      const { error: additionError } = await supabase.from('stock_additions').insert({
-        stock_item_id: stockItemId,
-        quantity_added: form.quantity_in_stock,
-        unit_price_at_addition: form.unit_price,
-        added_by: currentUser?.id ?? null,
-      });
-
-      if (additionError) {
-        console.error('Failed to log stock addition', additionError);
+      if (stockError || !stockItemId) {
+        toast.error(formatSupabaseError(stockError));
         return;
       }
-    }
 
-    setDialogOpen(false);
-    setExistingMatch(null);
-    await loadItems();
+      if (!editItem) {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        const { error: additionError } = await supabase.from('stock_additions').insert({
+          stock_item_id: stockItemId,
+          quantity_added: form.quantity_in_stock,
+          unit_price_at_addition: form.unit_price,
+          added_by: currentUser?.id ?? null,
+        });
+        if (additionError) { toast.error(formatSupabaseError(additionError)); return; }
+      }
+
+      toast.success('تم الحفظ');
+      setDialogOpen(false);
+      setExistingMatch(null);
+      await loadItems();
+    } catch (e) {
+      toast.error(formatSupabaseError(e));
+    }
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from('stock_items').delete().eq('id', id);
-    loadItems();
+    try {
+      const { data: { user: cu } } = await supabase.auth.getUser();
+      const { data: prof } = await supabase.from('profiles').select('email').eq('user_id', cu?.id || '').maybeSingle();
+      if (!isMasterAdminEmail(prof?.email)) {
+        const target = items.find((i) => i.id === id);
+        const res = await requestPendingChange({
+          table: 'stock_items',
+          recordId: id,
+          action: 'delete',
+          snapshot: { name: target?.name, quantity_in_stock: target?.quantity_in_stock },
+          description: 'حذف صنف مخزون',
+        });
+        if (!res.ok) { toast.error(res.error || 'Error'); return; }
+        toast.success('تم إرسال طلب الحذف للموافقة');
+        return;
+      }
+      const { error } = await supabase.from('stock_items').delete().eq('id', id);
+      if (error) { toast.error(formatSupabaseError(error)); return; }
+      toast.success('تم الحذف');
+      loadItems();
+    } catch (e) {
+      toast.error(formatSupabaseError(e));
+    }
   };
 
   const openHistory = async (item: StockItem) => {

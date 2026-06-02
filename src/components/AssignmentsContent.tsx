@@ -1,5 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { requestPendingChange, formatSupabaseError, isMasterAdminEmail } from '@/lib/pending-changes';
+import { toast } from 'sonner';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
 import { useProfilesMap } from '@/hooks/use-profiles';
@@ -124,7 +126,6 @@ export function AssignmentsContent() {
     setError('');
 
     if (editingAssignment) {
-      // Edit mode - single item update
       const line = lines[0];
       if (!line.stock_item_id || !employeeId) return;
       if (line.quantity_assigned < 1) return;
@@ -136,9 +137,35 @@ export function AssignmentsContent() {
           : (notes || null);
 
         const oldA = editingAssignment;
+
+        // Non-master admins: queue for approval rather than executing.
+        const { data: { user: cu } } = await supabase.auth.getUser();
+        const { data: prof } = await supabase.from('profiles').select('email').eq('user_id', cu?.id || '').maybeSingle();
+        if (!isMasterAdminEmail(prof?.email)) {
+          const res = await requestPendingChange({
+            table: 'assignments',
+            recordId: oldA.id,
+            action: 'update',
+            payload: {
+              employee_id: employeeId,
+              stock_item_id: line.stock_item_id,
+              quantity_assigned: line.quantity_assigned,
+              notes: reasonNote,
+              assignment_date: assignmentDate.toISOString(),
+            },
+            snapshot: { quantity_assigned: oldA.quantity_assigned, employee_id: oldA.employee_id },
+            description: 'تعديل تسليم',
+          });
+          if (!res.ok) { setError(res.error || ''); toast.error(res.error || 'Error'); setSaving(false); return; }
+          toast.success('تم إرسال طلب التعديل للموافقة');
+          setDialogOpen(false);
+          setSaving(false);
+          return;
+        }
+
         if (oldA.status === 'approved') {
           const { error: retErr } = await supabase.rpc('return_with_fifo', { _assignment_id: oldA.id });
-          if (retErr) { setError(retErr.message); setSaving(false); return; }
+          if (retErr) { setError(formatSupabaseError(retErr)); toast.error(formatSupabaseError(retErr)); setSaving(false); return; }
         }
 
         const { error: updErr } = await supabase.from('assignments').update({
@@ -150,15 +177,17 @@ export function AssignmentsContent() {
           status: 'pending',
         }).eq('id', oldA.id);
 
-        if (updErr) { setError(updErr.message); setSaving(false); return; }
+        if (updErr) { setError(formatSupabaseError(updErr)); toast.error(formatSupabaseError(updErr)); setSaving(false); return; }
 
         const { error: appErr } = await supabase.rpc('assign_with_fifo', { _assignment_id: oldA.id });
-        if (appErr) { setError(appErr.message); setSaving(false); return; }
+        if (appErr) { setError(formatSupabaseError(appErr)); toast.error(formatSupabaseError(appErr)); setSaving(false); return; }
 
         setDialogOpen(false);
         await loadAll();
       } catch (e) {
-        setError(String(e));
+        const msg = formatSupabaseError(e);
+        setError(msg);
+        toast.error(msg);
       } finally {
         setSaving(false);
       }
@@ -302,15 +331,32 @@ export function AssignmentsContent() {
 
   const handleDelete = async (assignment: any) => {
     try {
-      // If approved, return stock first (FIFO: returns to original batches)
-      if (assignment.status === 'approved') {
-        await supabase.rpc('return_with_fifo', { _assignment_id: assignment.id });
+      const { data: { user: cu } } = await supabase.auth.getUser();
+      const { data: prof } = await supabase.from('profiles').select('email').eq('user_id', cu?.id || '').maybeSingle();
+      if (!isMasterAdminEmail(prof?.email)) {
+        const res = await requestPendingChange({
+          table: 'assignments',
+          recordId: assignment.id,
+          action: 'delete',
+          snapshot: { quantity_assigned: assignment.quantity_assigned, status: assignment.status },
+          description: 'حذف تسليم',
+        });
+        if (!res.ok) { toast.error(res.error || 'Error'); return; }
+        toast.success('تم إرسال طلب الحذف للموافقة');
+        setDeleteConfirmId(null);
+        return;
       }
-      await supabase.from('assignments').delete().eq('id', assignment.id);
+      if (assignment.status === 'approved') {
+        const { error: retErr } = await supabase.rpc('return_with_fifo', { _assignment_id: assignment.id });
+        if (retErr) { toast.error(formatSupabaseError(retErr)); return; }
+      }
+      const { error: delErr } = await supabase.from('assignments').delete().eq('id', assignment.id);
+      if (delErr) { toast.error(formatSupabaseError(delErr)); return; }
+      toast.success('تم الحذف');
       setDeleteConfirmId(null);
       await loadAll();
     } catch (e) {
-      console.error(e);
+      toast.error(formatSupabaseError(e));
     }
   };
 
