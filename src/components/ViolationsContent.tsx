@@ -197,7 +197,11 @@ export function ViolationsContent() {
       employee_id: '',
       violation_description: '',
       violation_location: '',
-      violation_date: new Date().toISOString().slice(0, 16),
+      violation_date: (() => {
+        const d = new Date();
+        const pad = (n: number) => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      })(),
       action_taken: 'warning',
       deduction_amount: 1,
       daily_wage: 0,
