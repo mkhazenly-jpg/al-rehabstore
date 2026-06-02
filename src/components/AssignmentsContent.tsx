@@ -331,15 +331,32 @@ export function AssignmentsContent() {
 
   const handleDelete = async (assignment: any) => {
     try {
-      // If approved, return stock first (FIFO: returns to original batches)
-      if (assignment.status === 'approved') {
-        await supabase.rpc('return_with_fifo', { _assignment_id: assignment.id });
+      const { data: { user: cu } } = await supabase.auth.getUser();
+      const { data: prof } = await supabase.from('profiles').select('email').eq('user_id', cu?.id || '').maybeSingle();
+      if (!isMasterAdminEmail(prof?.email)) {
+        const res = await requestPendingChange({
+          table: 'assignments',
+          recordId: assignment.id,
+          action: 'delete',
+          snapshot: { quantity_assigned: assignment.quantity_assigned, status: assignment.status },
+          description: 'حذف تسليم',
+        });
+        if (!res.ok) { toast.error(res.error || 'Error'); return; }
+        toast.success('تم إرسال طلب الحذف للموافقة');
+        setDeleteConfirmId(null);
+        return;
       }
-      await supabase.from('assignments').delete().eq('id', assignment.id);
+      if (assignment.status === 'approved') {
+        const { error: retErr } = await supabase.rpc('return_with_fifo', { _assignment_id: assignment.id });
+        if (retErr) { toast.error(formatSupabaseError(retErr)); return; }
+      }
+      const { error: delErr } = await supabase.from('assignments').delete().eq('id', assignment.id);
+      if (delErr) { toast.error(formatSupabaseError(delErr)); return; }
+      toast.success('تم الحذف');
       setDeleteConfirmId(null);
       await loadAll();
     } catch (e) {
-      console.error(e);
+      toast.error(formatSupabaseError(e));
     }
   };
 
