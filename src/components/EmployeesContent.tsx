@@ -46,6 +46,7 @@ export function EmployeesContent() {
   const [editItem, setEditItem] = useState<Employee | null>(null);
   const [form, setForm] = useState({ name: '', hire_date: '', status: 'active' as EmployeeStatus, termination_date: '', department: '', notes: '', shift: '' as '' | 'morning' | 'middle' | 'night', mobile: '', emergency_contact: '', job_title: '', location: '' as '' | 'RDC' | 'SDC' });
   const [isAddingDept, setIsAddingDept] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [showJobSuggestions, setShowJobSuggestions] = useState(false);
   const jobInputWrapRef = useRef<HTMLDivElement>(null);
   const [nowTick, setNowTick] = useState(() => Date.now());
@@ -153,6 +154,7 @@ export function EmployeesContent() {
   };
 
   const handleSave = async () => {
+    if (isSaving) return;
     const dept = form.department === '__new__' ? '' : form.department.trim();
     // Auto-archive any non-active status (resigned / terminated / archived all become archived)
     const finalStatus: EmployeeStatus = form.status === 'active' ? 'active' : 'archived';
@@ -191,13 +193,20 @@ export function EmployeesContent() {
       job_title: form.job_title || null,
       location: form.location || null,
     };
-    if (editItem) {
-      await supabase.from('employees').update(payload).eq('id', editItem.id);
-    } else {
-      await supabase.from('employees').insert(payload);
+    setIsSaving(true);
+    try {
+      if (editItem) {
+        const { error } = await supabase.from('employees').update(payload).eq('id', editItem.id);
+        if (error) { toast.error(error.message); return; }
+      } else {
+        const { error } = await supabase.from('employees').insert(payload);
+        if (error) { toast.error(error.message); return; }
+      }
+      setDialogOpen(false);
+      loadEmployees();
+    } finally {
+      setIsSaving(false);
     }
-    setDialogOpen(false);
-    loadEmployees();
   };
 
   const handleDelete = async (emp: Employee) => {
@@ -622,7 +631,7 @@ export function EmployeesContent() {
           </div>
           <div className="flex gap-2 justify-end p-6 pt-4 border-t shrink-0 bg-background">
             <Button variant="outline" onClick={() => setDialogOpen(false)}>{t('cancel')}</Button>
-            <Button onClick={handleSave}>{t('save')}</Button>
+            <Button onClick={handleSave} disabled={isSaving}>{isSaving ? (lang === 'ar' ? 'جارٍ الحفظ...' : 'Saving...') : t('save')}</Button>
           </div>
         </DialogContent>
       </Dialog>
