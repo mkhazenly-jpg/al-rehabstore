@@ -46,6 +46,7 @@ export function EmployeesContent() {
   const [editItem, setEditItem] = useState<Employee | null>(null);
   const [form, setForm] = useState({ name: '', hire_date: '', status: 'active' as EmployeeStatus, termination_date: '', department: '', notes: '', shift: '' as '' | 'morning' | 'middle' | 'night', mobile: '', emergency_contact: '', job_title: '', location: '' as '' | 'RDC' | 'SDC' });
   const [isAddingDept, setIsAddingDept] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [showJobSuggestions, setShowJobSuggestions] = useState(false);
   const jobInputWrapRef = useRef<HTMLDivElement>(null);
   const [nowTick, setNowTick] = useState(() => Date.now());
