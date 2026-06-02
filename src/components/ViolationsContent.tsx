@@ -237,8 +237,6 @@ export function ViolationsContent() {
     }
     setIsSaving(true);
     try {
-      // Stamp the timestamp at click time (not at dialog-open time) so a slow
-      // network does not shift the recorded moment.
       const violationDateIso = editItem
         ? new Date(form.violation_date).toISOString()
         : new Date().toISOString();
@@ -253,18 +251,34 @@ export function ViolationsContent() {
         daily_wage: Number(form.daily_wage) || 0,
         notes: form.notes || null,
       };
+
       if (editItem) {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: prof } = await supabase.from('profiles').select('email').eq('user_id', user?.id || '').maybeSingle();
+        if (!isMasterAdminEmail(prof?.email)) {
+          const res = await requestPendingChange({
+            table: 'employee_violations',
+            recordId: editItem.id,
+            action: 'update',
+            payload,
+            snapshot: { violation_description: editItem.violation_description },
+            description: lang === 'ar' ? 'تعديل مخالفة' : 'Edit violation',
+          });
+          if (!res.ok) { toast.error(res.error || 'Error'); return; }
+          toast.success(lang === 'ar' ? 'تم إرسال طلب التعديل للموافقة' : 'Edit submitted for approval');
+          setDialogOpen(false);
+          return;
+        }
         const { error } = await supabase.from('employee_violations').update(payload).eq('id', editItem.id);
-        if (error) { toast.error(error.message); return; }
+        if (error) { toast.error(formatSupabaseError(error, lang)); return; }
         toast.success(lang === 'ar' ? 'تم التحديث' : 'Updated');
       } else {
         const { data: { user: currentUser } } = await supabase.auth.getUser();
         const { error } = await supabase.from('employee_violations').insert({ ...payload, created_by: currentUser?.id ?? null });
-        if (error) { toast.error(error.message); return; }
+        if (error) { toast.error(formatSupabaseError(error, lang)); return; }
         toast.success(lang === 'ar' ? 'تم الإضافة' : 'Added');
       }
 
-      // Auto-update employee status when violation action is suspension or termination.
       if (form.action_taken === 'termination' || form.action_taken === 'suspension') {
         const emp = empMap[form.employee_id];
         const newStatus: 'terminated' | 'archived' =
@@ -274,30 +288,41 @@ export function ViolationsContent() {
           const violationDay = new Date(violationDateIso).toISOString().split('T')[0];
           const { error: updErr } = await supabase
             .from('employees')
-            .update({
-              status: newStatus,
-              termination_date: emp.termination_date || violationDay,
-            })
+            .update({ status: newStatus, termination_date: emp.termination_date || violationDay })
             .eq('id', form.employee_id);
-
-          if (updErr) {
-            toast.error(updErr.message);
-          } else {
-            toast.success(t('employeeStatusAutoUpdated'));
-          }
+          if (updErr) toast.error(formatSupabaseError(updErr, lang));
+          else toast.success(t('employeeStatusAutoUpdated'));
         }
       }
 
       setDialogOpen(false);
       loadData();
+    } catch (e) {
+      toast.error(formatSupabaseError(e, lang));
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
+    const target = violations.find((v: any) => v.id === id);
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data: prof } = await supabase.from('profiles').select('email').eq('user_id', user?.id || '').maybeSingle();
+
+    if (!isMasterAdminEmail(prof?.email)) {
+      const res = await requestPendingChange({
+        table: 'employee_violations',
+        recordId: id,
+        action: 'delete',
+        snapshot: { violation_description: target?.violation_description },
+        description: lang === 'ar' ? 'حذف مخالفة' : 'Delete violation',
+      });
+      if (!res.ok) { toast.error(res.error || 'Error'); return; }
+      toast.success(lang === 'ar' ? 'تم إرسال طلب الحذف للموافقة' : 'Delete submitted for approval');
+      return;
+    }
     const { error } = await supabase.from('employee_violations').delete().eq('id', id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(formatSupabaseError(error, lang)); return; }
     toast.success(lang === 'ar' ? 'تم الحذف' : 'Deleted');
     loadData();
   };
