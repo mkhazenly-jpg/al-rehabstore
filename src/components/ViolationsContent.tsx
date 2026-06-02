@@ -230,61 +230,69 @@ export function ViolationsContent() {
   };
 
   const handleSave = async () => {
+    if (isSaving) return;
     if (!form.employee_id || !form.violation_description.trim()) {
       toast.error(lang === 'ar' ? 'الموظف ووصف المخالفة مطلوبان' : 'Employee and description required');
       return;
     }
-    const payload: any = {
-      employee_id: form.employee_id,
-      violation_description: form.violation_description.trim(),
-      violation_location: form.violation_location.trim() || null,
-      violation_date: new Date(form.violation_date).toISOString(),
-      action_taken: form.action_taken,
-      deduction_amount: form.deduction_amount,
-      daily_wage: Number(form.daily_wage) || 0,
-      notes: form.notes || null,
-    };
-    if (editItem) {
-      const { error } = await supabase.from('employee_violations').update(payload).eq('id', editItem.id);
-      if (error) { toast.error(error.message); return; }
-      toast.success(lang === 'ar' ? 'تم التحديث' : 'Updated');
-    } else {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      const { error } = await supabase.from('employee_violations').insert({ ...payload, created_by: currentUser?.id ?? null });
-      if (error) { toast.error(error.message); return; }
-      toast.success(lang === 'ar' ? 'تم الإضافة' : 'Added');
-    }
+    setIsSaving(true);
+    try {
+      // Stamp the timestamp at click time (not at dialog-open time) so a slow
+      // network does not shift the recorded moment.
+      const violationDateIso = editItem
+        ? new Date(form.violation_date).toISOString()
+        : new Date().toISOString();
 
-    // Auto-update employee status when violation action is suspension or termination.
-    // - termination → 'terminated'
-    // - suspension  → 'archived' (kept out of active lists, deductions counted in dashboard)
-    // Also stamp termination_date so the dashboard's date filter in
-    // "Total Assignment Deductions" can pick it up.
-    if (form.action_taken === 'termination' || form.action_taken === 'suspension') {
-      const emp = empMap[form.employee_id];
-      const newStatus: 'terminated' | 'archived' =
-        form.action_taken === 'termination' ? 'terminated' : 'archived';
+      const payload: any = {
+        employee_id: form.employee_id,
+        violation_description: form.violation_description.trim(),
+        violation_location: form.violation_location.trim() || null,
+        violation_date: violationDateIso,
+        action_taken: form.action_taken,
+        deduction_amount: form.deduction_amount,
+        daily_wage: Number(form.daily_wage) || 0,
+        notes: form.notes || null,
+      };
+      if (editItem) {
+        const { error } = await supabase.from('employee_violations').update(payload).eq('id', editItem.id);
+        if (error) { toast.error(error.message); return; }
+        toast.success(lang === 'ar' ? 'تم التحديث' : 'Updated');
+      } else {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        const { error } = await supabase.from('employee_violations').insert({ ...payload, created_by: currentUser?.id ?? null });
+        if (error) { toast.error(error.message); return; }
+        toast.success(lang === 'ar' ? 'تم الإضافة' : 'Added');
+      }
 
-      if (emp && emp.status !== newStatus) {
-        const violationDay = new Date(form.violation_date).toISOString().split('T')[0];
-        const { error: updErr } = await supabase
-          .from('employees')
-          .update({
-            status: newStatus,
-            termination_date: emp.termination_date || violationDay,
-          })
-          .eq('id', form.employee_id);
+      // Auto-update employee status when violation action is suspension or termination.
+      if (form.action_taken === 'termination' || form.action_taken === 'suspension') {
+        const emp = empMap[form.employee_id];
+        const newStatus: 'terminated' | 'archived' =
+          form.action_taken === 'termination' ? 'terminated' : 'archived';
 
-        if (updErr) {
-          toast.error(updErr.message);
-        } else {
-          toast.success(t('employeeStatusAutoUpdated'));
+        if (emp && emp.status !== newStatus) {
+          const violationDay = new Date(violationDateIso).toISOString().split('T')[0];
+          const { error: updErr } = await supabase
+            .from('employees')
+            .update({
+              status: newStatus,
+              termination_date: emp.termination_date || violationDay,
+            })
+            .eq('id', form.employee_id);
+
+          if (updErr) {
+            toast.error(updErr.message);
+          } else {
+            toast.success(t('employeeStatusAutoUpdated'));
+          }
         }
       }
-    }
 
-    setDialogOpen(false);
-    loadData();
+      setDialogOpen(false);
+      loadData();
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
