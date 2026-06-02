@@ -19,6 +19,7 @@ import { Route as AssignmentsRouteImport } from './routes/assignments'
 import { Route as AssignmentDeductionsRouteImport } from './routes/assignment-deductions'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
+import { Route as AdminPendingRouteImport } from './routes/admin/pending'
 import { Route as AdminBackupsRouteImport } from './routes/admin/backups'
 import { Route as ApiPublicHooksAutoBackupRouteImport } from './routes/api/public/hooks/auto-backup'
 
@@ -72,6 +73,11 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
   path: '/admin/users',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminPendingRoute = AdminPendingRouteImport.update({
+  id: '/admin/pending',
+  path: '/admin/pending',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminBackupsRoute = AdminBackupsRouteImport.update({
   id: '/admin/backups',
   path: '/admin/backups',
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/unauthorized': typeof UnauthorizedRoute
   '/violations': typeof ViolationsRoute
   '/admin/backups': typeof AdminBackupsRoute
+  '/admin/pending': typeof AdminPendingRoute
   '/admin/users': typeof AdminUsersRoute
   '/api/public/hooks/auto-backup': typeof ApiPublicHooksAutoBackupRoute
 }
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/unauthorized': typeof UnauthorizedRoute
   '/violations': typeof ViolationsRoute
   '/admin/backups': typeof AdminBackupsRoute
+  '/admin/pending': typeof AdminPendingRoute
   '/admin/users': typeof AdminUsersRoute
   '/api/public/hooks/auto-backup': typeof ApiPublicHooksAutoBackupRoute
 }
@@ -124,6 +132,7 @@ export interface FileRoutesById {
   '/unauthorized': typeof UnauthorizedRoute
   '/violations': typeof ViolationsRoute
   '/admin/backups': typeof AdminBackupsRoute
+  '/admin/pending': typeof AdminPendingRoute
   '/admin/users': typeof AdminUsersRoute
   '/api/public/hooks/auto-backup': typeof ApiPublicHooksAutoBackupRoute
 }
@@ -140,6 +149,7 @@ export interface FileRouteTypes {
     | '/unauthorized'
     | '/violations'
     | '/admin/backups'
+    | '/admin/pending'
     | '/admin/users'
     | '/api/public/hooks/auto-backup'
   fileRoutesByTo: FileRoutesByTo
@@ -154,6 +164,7 @@ export interface FileRouteTypes {
     | '/unauthorized'
     | '/violations'
     | '/admin/backups'
+    | '/admin/pending'
     | '/admin/users'
     | '/api/public/hooks/auto-backup'
   id:
@@ -168,6 +179,7 @@ export interface FileRouteTypes {
     | '/unauthorized'
     | '/violations'
     | '/admin/backups'
+    | '/admin/pending'
     | '/admin/users'
     | '/api/public/hooks/auto-backup'
   fileRoutesById: FileRoutesById
@@ -183,6 +195,7 @@ export interface RootRouteChildren {
   UnauthorizedRoute: typeof UnauthorizedRoute
   ViolationsRoute: typeof ViolationsRoute
   AdminBackupsRoute: typeof AdminBackupsRoute
+  AdminPendingRoute: typeof AdminPendingRoute
   AdminUsersRoute: typeof AdminUsersRoute
   ApiPublicHooksAutoBackupRoute: typeof ApiPublicHooksAutoBackupRoute
 }
@@ -259,6 +272,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/pending': {
+      id: '/admin/pending'
+      path: '/admin/pending'
+      fullPath: '/admin/pending'
+      preLoaderRoute: typeof AdminPendingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/backups': {
       id: '/admin/backups'
       path: '/admin/backups'
@@ -287,9 +307,19 @@ const rootRouteChildren: RootRouteChildren = {
   UnauthorizedRoute: UnauthorizedRoute,
   ViolationsRoute: ViolationsRoute,
   AdminBackupsRoute: AdminBackupsRoute,
+  AdminPendingRoute: AdminPendingRoute,
   AdminUsersRoute: AdminUsersRoute,
   ApiPublicHooksAutoBackupRoute: ApiPublicHooksAutoBackupRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
