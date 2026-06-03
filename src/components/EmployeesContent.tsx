@@ -244,6 +244,10 @@ export function EmployeesContent() {
   };
 
   const handleDelete = async (emp: Employee) => {
+    const { data: { user: cu } } = await supabase.auth.getUser();
+    const { data: profCheck } = await supabase.from('profiles').select('email').eq('user_id', cu?.id || '').maybeSingle();
+    const isMaster = isMasterAdminEmail(profCheck?.email);
+
     // Check if employee has assignments
     const { count } = await supabase
       .from('assignments')
@@ -251,29 +255,43 @@ export function EmployeesContent() {
       .eq('employee_id', emp.id);
 
     if ((count || 0) > 0) {
-      // Has assignments → archive instead
+      // Has assignments → archive instead (treated as update)
       if (!confirm(t('archiveConfirm'))) return;
-      const { error } = await supabase
-        .from('employees')
-        .update({ status: 'archived' as any })
-        .eq('id', emp.id);
-      if (error) {
-        toast.error(error.message);
-      } else {
-        toast.success(t('archived'));
-        loadEmployees();
+      if (!isMaster) {
+        const res = await requestPendingChange({
+          table: 'employees',
+          recordId: emp.id,
+          action: 'update',
+          payload: { status: 'archived' },
+          snapshot: { name: emp.name, status: emp.status },
+          description: `أرشفة الموظف: ${emp.name}`,
+        });
+        if (!res.ok) { toast.error(res.error || 'Error'); return; }
+        toast.success('تم إرسال طلب الأرشفة للموافقة');
+        return;
       }
+      const { error } = await supabase.from('employees').update({ status: 'archived' as any }).eq('id', emp.id);
+      if (error) toast.error(error.message);
+      else { toast.success(t('archived')); loadEmployees(); }
       return;
     }
 
-    // No assignments → safe to delete
     if (!confirm(lang === 'ar' ? 'هل أنت متأكد من حذف هذا الموظف؟' : 'Are you sure you want to delete this employee?')) return;
-    const { error } = await supabase.from('employees').delete().eq('id', emp.id);
-    if (error) {
-      toast.error(error.message.includes('assignments') ? t('cannotDeleteHasAssignments') : error.message);
-    } else {
-      loadEmployees();
+    if (!isMaster) {
+      const res = await requestPendingChange({
+        table: 'employees',
+        recordId: emp.id,
+        action: 'delete',
+        snapshot: { name: emp.name, mobile: (emp as any).mobile },
+        description: `حذف الموظف: ${emp.name}`,
+      });
+      if (!res.ok) { toast.error(res.error || 'Error'); return; }
+      toast.success('تم إرسال طلب الحذف للموافقة');
+      return;
     }
+    const { error } = await supabase.from('employees').delete().eq('id', emp.id);
+    if (error) toast.error(error.message.includes('assignments') ? t('cannotDeleteHasAssignments') : error.message);
+    else loadEmployees();
   };
 
   const handleUnarchive = async (emp: Employee) => {
