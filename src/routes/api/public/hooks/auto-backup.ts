@@ -53,6 +53,14 @@ async function authorize(request: Request): Promise<{ ok: boolean; userId: strin
     return { ok: true, userId: null };
   }
 
+  // Allow cron with Supabase anon key in apikey header (canonical pg_cron pattern)
+  const anonKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
+  const providedApiKey = request.headers.get('apikey');
+  if (anonKey && providedApiKey && timingSafeEqual(anonKey, providedApiKey)) {
+    return { ok: true, userId: null };
+  }
+
+
   // Allow authenticated admin users (manual trigger from UI)
   const authHeader = request.headers.get('authorization') || request.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) return { ok: false, userId: null };
