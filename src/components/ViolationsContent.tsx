@@ -483,10 +483,33 @@ export function ViolationsContent() {
         </div>
       </div>
 
+      {/* Monthly statistics */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="p-4">
+            <div className="text-xs text-muted-foreground">{lang === 'ar' ? 'إجمالي مخالفات الشهر الحالي' : 'This month violations'}</div>
+            <div className="text-3xl font-bold text-primary">{monthlyStats.currentMonth}</div>
+            <div className="text-xs text-muted-foreground mt-1">{new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { month: 'long', year: 'numeric' })}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-xs text-muted-foreground">{lang === 'ar' ? 'إجمالي المخالفات' : 'Total violations'}</div>
+            <div className="text-3xl font-bold">{violations.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-xs text-muted-foreground">{lang === 'ar' ? 'النتائج الحالية' : 'Filtered results'}</div>
+            <div className="text-3xl font-bold">{filtered.length}</div>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
         <div className="relative">
           <Search className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input className="ps-9" placeholder={t('search')} value={search} onChange={e => setSearch(e.target.value)} />
+          <Input className="ps-9" placeholder={lang === 'ar' ? 'بحث بالاسم أو رقم الموبايل أو الوصف' : 'Search by name, mobile or description'} value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <Select value={filterEmployee} onValueChange={setFilterEmployee}>
           <SelectTrigger><SelectValue /></SelectTrigger>
