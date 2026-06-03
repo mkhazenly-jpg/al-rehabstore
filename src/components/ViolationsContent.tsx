@@ -175,8 +175,16 @@ export function ViolationsContent() {
   }, [repeatMap]);
 
   const filtered = violations.filter(v => {
-    const empName = empMap[v.employee_id]?.name || '';
-    if (search && !empName.toLowerCase().includes(search.toLowerCase()) && !v.violation_description.toLowerCase().includes(search.toLowerCase())) return false;
+    const emp = empMap[v.employee_id];
+    const empName = emp?.name || '';
+    const empMobile = (emp as any)?.mobile || '';
+    const q = search.trim().toLowerCase();
+    if (q) {
+      const matchName = empName.toLowerCase().includes(q);
+      const matchMobile = empMobile.toString().toLowerCase().includes(q);
+      const matchDesc = v.violation_description.toLowerCase().includes(q);
+      if (!matchName && !matchMobile && !matchDesc) return false;
+    }
     if (filterEmployee !== 'all' && v.employee_id !== filterEmployee) return false;
     if (filterRepeats.length > 0 && !filterRepeats.includes(repeatMap[v.id] || 1)) return false;
     if (fromDate && new Date(v.violation_date) < new Date(fromDate)) return false;
@@ -187,6 +195,19 @@ export function ViolationsContent() {
     }
     return true;
   });
+
+  // Monthly counts of violations (current calendar month and per-month breakdown)
+  const monthlyStats = useMemo(() => {
+    const now = new Date();
+    const curKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const byMonth: Record<string, number> = {};
+    violations.forEach(v => {
+      const d = new Date(v.violation_date);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      byMonth[key] = (byMonth[key] || 0) + 1;
+    });
+    return { currentMonth: byMonth[curKey] || 0, byMonth, curKey };
+  }, [violations]);
 
   const toggleRepeat = (n: number) => {
     setFilterRepeats(prev => prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n]);
