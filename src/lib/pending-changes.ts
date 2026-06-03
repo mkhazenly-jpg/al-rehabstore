@@ -2,12 +2,12 @@ import { supabase } from '@/integrations/supabase/client';
 
 export const MASTER_ADMIN_EMAIL = 'm.khazenly@gmail.com';
 
-export type PendingTable = 'stock_items' | 'employee_violations' | 'assignments';
-export type PendingAction = 'update' | 'delete';
+export type PendingTable = 'stock_items' | 'stock_additions' | 'employee_violations' | 'assignments' | 'employees';
+export type PendingAction = 'insert' | 'update' | 'delete';
 
 interface RequestArgs {
   table: PendingTable;
-  recordId: string;
+  recordId: string;          // For insert: pre-generated UUID (use crypto.randomUUID())
   action: PendingAction;
   payload?: Record<string, any> | null;
   snapshot?: Record<string, any> | null;
@@ -16,7 +16,6 @@ interface RequestArgs {
 
 /**
  * Convert any Supabase / fetch error into a clear Arabic message.
- * Detects network/offline/timeout failures and falls back to the original message.
  */
 export function formatSupabaseError(err: any, lang: 'ar' | 'en' = 'ar'): string {
   const msg = err?.message || String(err || '');
@@ -40,10 +39,6 @@ export function formatSupabaseError(err: any, lang: 'ar' | 'en' = 'ar'): string 
   return msg || (lang === 'ar' ? 'حدث خطأ غير معروف' : 'Unknown error');
 }
 
-/**
- * Insert a pending change request into the approval queue.
- * Returns { ok, error } so callers can show a toast.
- */
 export async function requestPendingChange(args: RequestArgs): Promise<{ ok: boolean; error?: string }> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -73,7 +68,57 @@ export async function requestPendingChange(args: RequestArgs): Promise<{ ok: boo
   }
 }
 
-/** Returns true if the currently signed-in user is the master admin. */
 export function isMasterAdminEmail(email?: string | null): boolean {
   return (email || '').trim().toLowerCase() === MASTER_ADMIN_EMAIL;
+}
+
+/** Arabic labels for common fields shown in the pending diff view. */
+export const FIELD_LABELS_AR: Record<string, string> = {
+  // Common
+  name: 'الاسم',
+  notes: 'ملاحظات',
+  status: 'الحالة',
+  quantity_assigned: 'الكمية',
+  quantity_in_stock: 'الكمية بالمخزن',
+  quantity_added: 'الكمية المضافة',
+  unit_price: 'سعر الوحدة',
+  unit_price_at_addition: 'سعر الوحدة عند الإضافة',
+  // Stock
+  category: 'الفئة',
+  size: 'المقاس',
+  unit: 'الوحدة',
+  location: 'الموقع',
+  // Violations
+  violation_description: 'وصف المخالفة',
+  violation_location: 'مكان المخالفة',
+  violation_date: 'تاريخ المخالفة',
+  action_taken: 'الإجراء المتخذ',
+  deduction_amount: 'مقدار الخصم',
+  daily_wage: 'الأجر اليومي',
+  // Assignment
+  assignment_date: 'تاريخ التسليم',
+  employee_id: 'الموظف',
+  stock_item_id: 'الصنف',
+  // Employee
+  hire_date: 'تاريخ التعيين',
+  termination_date: 'تاريخ الإنهاء',
+  department: 'القسم',
+  shift: 'الشفت',
+  mobile: 'الموبايل',
+  job_title: 'الوظيفة',
+  emergency_contact: 'جهة الطوارئ',
+};
+
+/** Format a field value for display. */
+export function formatFieldValue(key: string, value: any, lookups: { employees?: Record<string, string>; stock?: Record<string, string> } = {}): string {
+  if (value === null || value === undefined || value === '') return '—';
+  if (key === 'employee_id' && lookups.employees?.[value]) return lookups.employees[value];
+  if (key === 'stock_item_id' && lookups.stock?.[value]) return lookups.stock[value];
+  if (key.endsWith('_date') || key === 'violation_date' || key === 'assignment_date') {
+    try {
+      return new Date(value).toLocaleString('ar-EG');
+    } catch { return String(value); }
+  }
+  if (typeof value === 'boolean') return value ? 'نعم' : 'لا';
+  return String(value);
 }

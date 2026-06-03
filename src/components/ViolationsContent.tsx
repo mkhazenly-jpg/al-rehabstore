@@ -175,8 +175,16 @@ export function ViolationsContent() {
   }, [repeatMap]);
 
   const filtered = violations.filter(v => {
-    const empName = empMap[v.employee_id]?.name || '';
-    if (search && !empName.toLowerCase().includes(search.toLowerCase()) && !v.violation_description.toLowerCase().includes(search.toLowerCase())) return false;
+    const emp = empMap[v.employee_id];
+    const empName = emp?.name || '';
+    const empMobile = (emp as any)?.mobile || '';
+    const q = search.trim().toLowerCase();
+    if (q) {
+      const matchName = empName.toLowerCase().includes(q);
+      const matchMobile = empMobile.toString().toLowerCase().includes(q);
+      const matchDesc = v.violation_description.toLowerCase().includes(q);
+      if (!matchName && !matchMobile && !matchDesc) return false;
+    }
     if (filterEmployee !== 'all' && v.employee_id !== filterEmployee) return false;
     if (filterRepeats.length > 0 && !filterRepeats.includes(repeatMap[v.id] || 1)) return false;
     if (fromDate && new Date(v.violation_date) < new Date(fromDate)) return false;
@@ -187,6 +195,19 @@ export function ViolationsContent() {
     }
     return true;
   });
+
+  // Monthly counts of violations (current calendar month and per-month breakdown)
+  const monthlyStats = useMemo(() => {
+    const now = new Date();
+    const curKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const byMonth: Record<string, number> = {};
+    violations.forEach(v => {
+      const d = new Date(v.violation_date);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      byMonth[key] = (byMonth[key] || 0) + 1;
+    });
+    return { currentMonth: byMonth[curKey] || 0, byMonth, curKey };
+  }, [violations]);
 
   const toggleRepeat = (n: number) => {
     setFilterRepeats(prev => prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n]);
@@ -275,6 +296,24 @@ export function ViolationsContent() {
         toast.success(lang === 'ar' ? 'تم التحديث' : 'Updated');
       } else {
         const { data: { user: currentUser } } = await supabase.auth.getUser();
+        // Route insert through pending approval for non-master admins
+        const { data: prof2 } = await supabase.from('profiles').select('email').eq('user_id', currentUser?.id || '').maybeSingle();
+        if (!isMasterAdminEmail(prof2?.email)) {
+          const newId = crypto.randomUUID();
+          const empName = empMap[form.employee_id]?.name || '';
+          const res = await requestPendingChange({
+            table: 'employee_violations',
+            recordId: newId,
+            action: 'insert',
+            payload: { ...payload, created_by: currentUser?.id ?? null },
+            snapshot: { name: empName },
+            description: `إضافة مخالفة جديدة للموظف: ${empName}`,
+          });
+          if (!res.ok) { toast.error(res.error || 'Error'); return; }
+          toast.success(lang === 'ar' ? 'تم إرسال طلب الإضافة للموافقة' : 'Add submitted for approval');
+          setDialogOpen(false);
+          return;
+        }
         const { error } = await supabase.from('employee_violations').insert({ ...payload, created_by: currentUser?.id ?? null });
         if (error) { toast.error(formatSupabaseError(error, lang)); return; }
         toast.success(lang === 'ar' ? 'تم الإضافة' : 'Added');
@@ -444,10 +483,33 @@ export function ViolationsContent() {
         </div>
       </div>
 
+      {/* Monthly statistics */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="p-4">
+            <div className="text-xs text-muted-foreground">{lang === 'ar' ? 'إجمالي مخالفات الشهر الحالي' : 'This month violations'}</div>
+            <div className="text-3xl font-bold text-primary">{monthlyStats.currentMonth}</div>
+            <div className="text-xs text-muted-foreground mt-1">{new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { month: 'long', year: 'numeric' })}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-xs text-muted-foreground">{lang === 'ar' ? 'إجمالي المخالفات' : 'Total violations'}</div>
+            <div className="text-3xl font-bold">{violations.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-xs text-muted-foreground">{lang === 'ar' ? 'النتائج الحالية' : 'Filtered results'}</div>
+            <div className="text-3xl font-bold">{filtered.length}</div>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
         <div className="relative">
           <Search className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input className="ps-9" placeholder={t('search')} value={search} onChange={e => setSearch(e.target.value)} />
+          <Input className="ps-9" placeholder={lang === 'ar' ? 'بحث بالاسم أو رقم الموبايل أو الوصف' : 'Search by name, mobile or description'} value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <Select value={filterEmployee} onValueChange={setFilterEmployee}>
           <SelectTrigger><SelectValue /></SelectTrigger>

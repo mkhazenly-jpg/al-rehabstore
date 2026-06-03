@@ -250,6 +250,33 @@ export function AssignmentsContent() {
           : (notes || null);
 
         const { data: { user: currentUser } } = await supabase.auth.getUser();
+        const { data: profIns } = await supabase.from('profiles').select('email').eq('user_id', currentUser?.id || '').maybeSingle();
+        const isMaster = isMasterAdminEmail(profIns?.email);
+
+        if (!isMaster) {
+          // Route insert through pending approval — no stock deduction until approved
+          const newId = crypto.randomUUID();
+          const empName = employees.find(e => e.id === employeeId)?.name || '';
+          const stockName = stockItems.find(s => s.id === line.stock_item_id)?.name || '';
+          const res = await requestPendingChange({
+            table: 'assignments',
+            recordId: newId,
+            action: 'insert',
+            payload: {
+              employee_id: employeeId,
+              stock_item_id: line.stock_item_id,
+              quantity_assigned: line.quantity_assigned,
+              notes: reasonNote,
+              assignment_date: assignmentDate.toISOString(),
+              created_by: currentUser?.id ?? null,
+            },
+            snapshot: { name: `${empName} → ${stockName}`, quantity_assigned: line.quantity_assigned },
+            description: `إضافة تسليم: ${empName} يستلم ${line.quantity_assigned} من ${stockName}`,
+          });
+          if (!res.ok) { setError(res.error || ''); toast.error(res.error || 'Error'); setSaving(false); return; }
+          continue; // proceed to next line, don't insert yet
+        }
+
         const { data: assignment, error: insertErr } = await supabase.from('assignments').insert({
           employee_id: employeeId,
           stock_item_id: line.stock_item_id,
@@ -266,8 +293,6 @@ export function AssignmentsContent() {
         }
 
         if (assignment) {
-          // FIFO assign: pulls from oldest batches first, sets unit_price_at_assignment
-          // automatically as weighted average of pulled batches.
           const { error: approveErr } = await supabase.rpc('assign_with_fifo', { _assignment_id: assignment.id });
           if (approveErr) {
             setError(approveErr.message);
@@ -275,6 +300,12 @@ export function AssignmentsContent() {
             return;
           }
         }
+      }
+      // If any insert was queued for approval, notify
+      const { data: { user: cu2 } } = await supabase.auth.getUser();
+      const { data: prof2 } = await supabase.from('profiles').select('email').eq('user_id', cu2?.id || '').maybeSingle();
+      if (!isMasterAdminEmail(prof2?.email)) {
+        toast.success('تم إرسال التسليم للموافقة - لن يتم خصم المخزون إلا بعد موافقة الادمن');
       }
       setDialogOpen(false);
       await loadAll();
