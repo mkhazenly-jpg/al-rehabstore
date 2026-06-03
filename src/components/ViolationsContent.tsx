@@ -296,6 +296,24 @@ export function ViolationsContent() {
         toast.success(lang === 'ar' ? 'تم التحديث' : 'Updated');
       } else {
         const { data: { user: currentUser } } = await supabase.auth.getUser();
+        // Route insert through pending approval for non-master admins
+        const { data: prof2 } = await supabase.from('profiles').select('email').eq('user_id', currentUser?.id || '').maybeSingle();
+        if (!isMasterAdminEmail(prof2?.email)) {
+          const newId = crypto.randomUUID();
+          const empName = empMap[form.employee_id]?.name || '';
+          const res = await requestPendingChange({
+            table: 'employee_violations',
+            recordId: newId,
+            action: 'insert',
+            payload: { ...payload, created_by: currentUser?.id ?? null },
+            snapshot: { name: empName },
+            description: `إضافة مخالفة جديدة للموظف: ${empName}`,
+          });
+          if (!res.ok) { toast.error(res.error || 'Error'); return; }
+          toast.success(lang === 'ar' ? 'تم إرسال طلب الإضافة للموافقة' : 'Add submitted for approval');
+          setDialogOpen(false);
+          return;
+        }
         const { error } = await supabase.from('employee_violations').insert({ ...payload, created_by: currentUser?.id ?? null });
         if (error) { toast.error(formatSupabaseError(error, lang)); return; }
         toast.success(lang === 'ar' ? 'تم الإضافة' : 'Added');
