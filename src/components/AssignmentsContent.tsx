@@ -157,7 +157,7 @@ export function AssignmentsContent() {
             description: 'تعديل تسليم',
           });
           if (!res.ok) { setError(res.error || ''); toast.error(res.error || 'Error'); setSaving(false); return; }
-          toast.success('تم إرسال طلب التعديل للموافقة');
+          notifyPendingQueued('تعديل التسليم');
           setDialogOpen(false);
           setSaving(false);
           return;
