@@ -201,30 +201,7 @@ export function StockContent() {
         const { error } = await supabase.from('stock_items').update({ ...rest, name: nameVal, size: sizeVal, location: locationVal } as any).eq('id', editItem.id);
         stockError = error;
       } else if (existingMatch) {
-        // Adding stock to existing item — route through pending for non-master
-        const { data: { user: cu0 } } = await supabase.auth.getUser();
-        const { data: prof0 } = await supabase.from('profiles').select('email').eq('user_id', cu0?.id || '').maybeSingle();
-        if (!isMasterAdminEmail(prof0?.email)) {
-          const newAdditionId = crypto.randomUUID();
-          const res = await requestPendingChange({
-            table: 'stock_additions',
-            recordId: newAdditionId,
-            action: 'insert',
-            payload: {
-              stock_item_id: existingMatch.id,
-              quantity_added: form.quantity_in_stock,
-              unit_price_at_addition: form.unit_price,
-              added_by: cu0?.id ?? null,
-            },
-            snapshot: { name: existingMatch.name, quantity_added: form.quantity_in_stock },
-            description: `إضافة كمية ${form.quantity_in_stock} إلى الصنف: ${existingMatch.name}`,
-          });
-          if (!res.ok) { toast.error(res.error || 'Error'); return; }
-          notifyPendingQueued('إضافة كمية', `${existingMatch.name} — ${form.quantity_in_stock}`);
-          setDialogOpen(false);
-          setExistingMatch(null);
-          return;
-        }
+        // Adding stock to existing item — applied directly without approval
         const updatePayload: { quantity_in_stock: number; unit_price?: number; location?: string | null } = {
           quantity_in_stock: existingMatch.quantity_in_stock + form.quantity_in_stock,
         };
@@ -234,41 +211,7 @@ export function StockContent() {
         stockError = error;
       } else {
         const { data: { user: currentUser } } = await supabase.auth.getUser();
-        // New stock item — route through pending for non-master
-        const { data: prof1 } = await supabase.from('profiles').select('email').eq('user_id', currentUser?.id || '').maybeSingle();
-        if (!isMasterAdminEmail(prof1?.email)) {
-          const newItemId = crypto.randomUUID();
-          const itemPayload = { ...rest, name: nameVal, size: sizeVal, location: locationVal, created_by: currentUser?.id ?? null, quantity_in_stock: 0 };
-          const res = await requestPendingChange({
-            table: 'stock_items',
-            recordId: newItemId,
-            action: 'insert',
-            payload: itemPayload,
-            snapshot: { name: nameVal, category: form.category, size: sizeVal, quantity_in_stock: form.quantity_in_stock },
-            description: `إضافة صنف مخزون جديد: ${nameVal} (${form.category}${sizeVal !== 'N/A' ? ` - ${sizeVal}` : ''}) بكمية ${form.quantity_in_stock}`,
-          });
-          if (!res.ok) { toast.error(res.error || 'Error'); return; }
-          // Queue the corresponding stock addition too
-          if (form.quantity_in_stock > 0) {
-            await requestPendingChange({
-              table: 'stock_additions',
-              recordId: crypto.randomUUID(),
-              action: 'insert',
-              payload: {
-                stock_item_id: newItemId,
-                quantity_added: form.quantity_in_stock,
-                unit_price_at_addition: form.unit_price,
-                added_by: currentUser?.id ?? null,
-              },
-              snapshot: { name: nameVal, quantity_added: form.quantity_in_stock },
-              description: `الكمية الأولية للصنف الجديد: ${nameVal}`,
-            });
-          }
-          notifyPendingQueued('إضافة صنف جديد', nameVal);
-          setDialogOpen(false);
-          setExistingMatch(null);
-          return;
-        }
+        // New stock item — applied directly without approval
         const { data, error } = await supabase.from('stock_items').insert({ ...rest, name: nameVal, size: sizeVal, location: locationVal, created_by: currentUser?.id ?? null } as any).select('id').single();
         stockError = error;
         stockItemId = data?.id ?? null;
