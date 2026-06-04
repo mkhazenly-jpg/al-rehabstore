@@ -264,7 +264,7 @@ export function StockContent() {
               description: `الكمية الأولية للصنف الجديد: ${nameVal}`,
             });
           }
-          toast.success('تم إرسال طلب إضافة الصنف للموافقة');
+          notifyPendingQueued('إضافة صنف جديد', nameVal);
           setDialogOpen(false);
           setExistingMatch(null);
           return;
