@@ -218,23 +218,10 @@ export function EmployeesContent() {
         const { error } = await supabase.from('employees').update(payload).eq('id', editItem.id);
         if (error) { toast.error(error.message); return; }
       } else {
-        if (!isMaster) {
-          const newId = crypto.randomUUID();
-          const res = await requestPendingChange({
-            table: 'employees',
-            recordId: newId,
-            action: 'insert',
-            payload,
-            snapshot: { name: form.name },
-            description: `إضافة موظف جديد: ${form.name}`,
-          });
-          if (!res.ok) { toast.error(res.error || 'Error'); return; }
-          notifyPendingQueued('إضافة موظف', form.name);
-          setDialogOpen(false);
-          return;
-        }
+        // Inserts are applied directly without approval
         const { error } = await supabase.from('employees').insert(payload);
         if (error) { toast.error(error.message); return; }
+        toast.success(lang === 'ar' ? 'تم إضافة الموظف بنجاح' : 'Employee added successfully');
       }
       setDialogOpen(false);
       loadEmployees();
