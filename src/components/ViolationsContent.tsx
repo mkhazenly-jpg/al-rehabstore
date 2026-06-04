@@ -287,7 +287,7 @@ export function ViolationsContent() {
             description: lang === 'ar' ? 'تعديل مخالفة' : 'Edit violation',
           });
           if (!res.ok) { toast.error(res.error || 'Error'); return; }
-          toast.success(lang === 'ar' ? 'تم إرسال طلب التعديل للموافقة' : 'Edit submitted for approval');
+          notifyPendingQueued('التعديل', editItem.violation_description?.slice(0, 40));
           setDialogOpen(false);
           return;
         }
