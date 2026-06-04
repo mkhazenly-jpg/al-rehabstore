@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { requestPendingChange, formatSupabaseError, isMasterAdminEmail } from '@/lib/pending-changes';
+import { requestPendingChange, formatSupabaseError, isMasterAdminEmail, notifyPendingQueued } from '@/lib/pending-changes';
 import { toast } from 'sonner';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
@@ -157,7 +157,7 @@ export function AssignmentsContent() {
             description: 'تعديل تسليم',
           });
           if (!res.ok) { setError(res.error || ''); toast.error(res.error || 'Error'); setSaving(false); return; }
-          toast.success('تم إرسال طلب التعديل للموافقة');
+          notifyPendingQueued('تعديل التسليم');
           setDialogOpen(false);
           setSaving(false);
           return;
@@ -305,7 +305,7 @@ export function AssignmentsContent() {
       const { data: { user: cu2 } } = await supabase.auth.getUser();
       const { data: prof2 } = await supabase.from('profiles').select('email').eq('user_id', cu2?.id || '').maybeSingle();
       if (!isMasterAdminEmail(prof2?.email)) {
-        toast.success('تم إرسال التسليم للموافقة - لن يتم خصم المخزون إلا بعد موافقة الادمن');
+        notifyPendingQueued('التسليم', 'لن يتم خصم المخزون إلا بعد موافقة المسؤول الرئيسي');
       }
       setDialogOpen(false);
       await loadAll();
@@ -373,7 +373,7 @@ export function AssignmentsContent() {
           description: 'حذف تسليم',
         });
         if (!res.ok) { toast.error(res.error || 'Error'); return; }
-        toast.success('تم إرسال طلب الحذف للموافقة');
+        notifyPendingQueued('حذف التسليم');
         setDeleteConfirmId(null);
         return;
       }

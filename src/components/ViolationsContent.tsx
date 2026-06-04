@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { requestPendingChange, formatSupabaseError, isMasterAdminEmail } from '@/lib/pending-changes';
+import { requestPendingChange, formatSupabaseError, isMasterAdminEmail, notifyPendingQueued } from '@/lib/pending-changes';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
 import { useProfilesMap } from '@/hooks/use-profiles';
@@ -287,7 +287,7 @@ export function ViolationsContent() {
             description: lang === 'ar' ? 'تعديل مخالفة' : 'Edit violation',
           });
           if (!res.ok) { toast.error(res.error || 'Error'); return; }
-          toast.success(lang === 'ar' ? 'تم إرسال طلب التعديل للموافقة' : 'Edit submitted for approval');
+          notifyPendingQueued('التعديل', editItem.violation_description?.slice(0, 40));
           setDialogOpen(false);
           return;
         }
@@ -310,7 +310,7 @@ export function ViolationsContent() {
             description: `إضافة مخالفة جديدة للموظف: ${empName}`,
           });
           if (!res.ok) { toast.error(res.error || 'Error'); return; }
-          toast.success(lang === 'ar' ? 'تم إرسال طلب الإضافة للموافقة' : 'Add submitted for approval');
+          notifyPendingQueued('إضافة المخالفة', empName);
           setDialogOpen(false);
           return;
         }
@@ -358,7 +358,7 @@ export function ViolationsContent() {
         description: lang === 'ar' ? 'حذف مخالفة' : 'Delete violation',
       });
       if (!res.ok) { toast.error(res.error || 'Error'); return; }
-      toast.success(lang === 'ar' ? 'تم إرسال طلب الحذف للموافقة' : 'Delete submitted for approval');
+      notifyPendingQueued('الحذف', target?.violation_description?.slice(0, 40));
       return;
     }
     const { error } = await supabase.from('employee_violations').delete().eq('id', id);

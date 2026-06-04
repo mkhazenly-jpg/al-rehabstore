@@ -1,4 +1,24 @@
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+/**
+ * Show a clear, prominent confirmation that an operation was queued
+ * for master-admin approval. Use after a successful requestPendingChange().
+ *
+ * @param actionLabel Arabic verb describing what was queued, e.g.
+ *   "الإضافة", "التعديل", "الحذف", "التسليم", "الأرشفة"
+ * @param itemName Optional name of the affected record (employee/item/...)
+ */
+export function notifyPendingQueued(actionLabel: string, itemName?: string) {
+  const title = `✅ تم إرسال طلب ${actionLabel} بنجاح`;
+  const description = itemName
+    ? `(${itemName}) — في انتظار موافقة المسؤول الرئيسي قبل تطبيق التغيير على النظام. لا حاجة لإعادة المحاولة.`
+    : 'في انتظار موافقة المسؤول الرئيسي قبل تطبيق التغيير على النظام. لا حاجة لإعادة المحاولة.';
+  toast.success(title, {
+    description,
+    duration: 7000,
+  });
+}
 
 export const MASTER_ADMIN_EMAIL = 'm.khazenly@gmail.com';
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { requestPendingChange, formatSupabaseError, isMasterAdminEmail } from '@/lib/pending-changes';
+import { requestPendingChange, formatSupabaseError, isMasterAdminEmail, notifyPendingQueued } from '@/lib/pending-changes';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
@@ -194,7 +194,7 @@ export function StockContent() {
             description: 'تعديل صنف مخزون',
           });
           if (!res.ok) { toast.error(res.error || 'Error'); return; }
-          toast.success('تم إرسال طلب التعديل للموافقة');
+          notifyPendingQueued('التعديل', editItem.name);
           setDialogOpen(false);
           return;
         }
@@ -220,7 +220,7 @@ export function StockContent() {
             description: `إضافة كمية ${form.quantity_in_stock} إلى الصنف: ${existingMatch.name}`,
           });
           if (!res.ok) { toast.error(res.error || 'Error'); return; }
-          toast.success('تم إرسال طلب الإضافة للموافقة');
+          notifyPendingQueued('إضافة كمية', `${existingMatch.name} — ${form.quantity_in_stock}`);
           setDialogOpen(false);
           setExistingMatch(null);
           return;
@@ -264,7 +264,7 @@ export function StockContent() {
               description: `الكمية الأولية للصنف الجديد: ${nameVal}`,
             });
           }
-          toast.success('تم إرسال طلب إضافة الصنف للموافقة');
+          notifyPendingQueued('إضافة صنف جديد', nameVal);
           setDialogOpen(false);
           setExistingMatch(null);
           return;
@@ -313,7 +313,7 @@ export function StockContent() {
           description: 'حذف صنف مخزون',
         });
         if (!res.ok) { toast.error(res.error || 'Error'); return; }
-        toast.success('تم إرسال طلب الحذف للموافقة');
+        notifyPendingQueued('الحذف', target?.name);
         return;
       }
       const { error } = await supabase.from('stock_items').delete().eq('id', id);

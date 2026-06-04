@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { requestPendingChange, isMasterAdminEmail } from '@/lib/pending-changes';
+import { requestPendingChange, isMasterAdminEmail, notifyPendingQueued } from '@/lib/pending-changes';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
@@ -211,7 +211,7 @@ export function EmployeesContent() {
             description: `تعديل بيانات الموظف: ${editItem.name}`,
           });
           if (!res.ok) { toast.error(res.error || 'Error'); return; }
-          toast.success('تم إرسال طلب التعديل للموافقة');
+          notifyPendingQueued('التعديل', editItem.name);
           setDialogOpen(false);
           return;
         }
@@ -229,7 +229,7 @@ export function EmployeesContent() {
             description: `إضافة موظف جديد: ${form.name}`,
           });
           if (!res.ok) { toast.error(res.error || 'Error'); return; }
-          toast.success('تم إرسال طلب إضافة الموظف للموافقة');
+          notifyPendingQueued('إضافة موظف', form.name);
           setDialogOpen(false);
           return;
         }
@@ -267,7 +267,7 @@ export function EmployeesContent() {
           description: `أرشفة الموظف: ${emp.name}`,
         });
         if (!res.ok) { toast.error(res.error || 'Error'); return; }
-        toast.success('تم إرسال طلب الأرشفة للموافقة');
+        notifyPendingQueued('الأرشفة', emp.name);
         return;
       }
       const { error } = await supabase.from('employees').update({ status: 'archived' as any }).eq('id', emp.id);
@@ -286,7 +286,7 @@ export function EmployeesContent() {
         description: `حذف الموظف: ${emp.name}`,
       });
       if (!res.ok) { toast.error(res.error || 'Error'); return; }
-      toast.success('تم إرسال طلب الحذف للموافقة');
+      notifyPendingQueued('الحذف', emp.name);
       return;
     }
     const { error } = await supabase.from('employees').delete().eq('id', emp.id);
