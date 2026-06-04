@@ -194,7 +194,7 @@ export function StockContent() {
             description: 'تعديل صنف مخزون',
           });
           if (!res.ok) { toast.error(res.error || 'Error'); return; }
-          toast.success('تم إرسال طلب التعديل للموافقة');
+          notifyPendingQueued('التعديل', editItem.name);
           setDialogOpen(false);
           return;
         }
