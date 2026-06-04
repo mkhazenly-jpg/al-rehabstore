@@ -229,7 +229,7 @@ export function EmployeesContent() {
             description: `إضافة موظف جديد: ${form.name}`,
           });
           if (!res.ok) { toast.error(res.error || 'Error'); return; }
-          toast.success('تم إرسال طلب إضافة الموظف للموافقة');
+          notifyPendingQueued('إضافة موظف', form.name);
           setDialogOpen(false);
           return;
         }
