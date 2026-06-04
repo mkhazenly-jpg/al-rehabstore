@@ -310,7 +310,7 @@ export function ViolationsContent() {
             description: `إضافة مخالفة جديدة للموظف: ${empName}`,
           });
           if (!res.ok) { toast.error(res.error || 'Error'); return; }
-          toast.success(lang === 'ar' ? 'تم إرسال طلب الإضافة للموافقة' : 'Add submitted for approval');
+          notifyPendingQueued('إضافة المخالفة', empName);
           setDialogOpen(false);
           return;
         }
