@@ -4,11 +4,20 @@ const FUNCTIONS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-a
 const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 async function authHeaders() {
+  // Re-validate with the Auth server so a stale/expired local session
+  // doesn't send a dead token to the edge function (causes 401).
+  const { data: userData, error: userErr } = await supabase.auth.getUser();
+  if (userErr || !userData.user) {
+    throw new Error('انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى.');
+  }
   const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) {
+    throw new Error('انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى.');
+  }
   return {
     'Content-Type': 'application/json',
     'apikey': ANON_KEY,
-    'Authorization': `Bearer ${session?.access_token ?? ''}`,
+    'Authorization': `Bearer ${session.access_token}`,
   };
 }
 
