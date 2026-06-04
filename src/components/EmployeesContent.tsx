@@ -267,7 +267,7 @@ export function EmployeesContent() {
           description: `أرشفة الموظف: ${emp.name}`,
         });
         if (!res.ok) { toast.error(res.error || 'Error'); return; }
-        toast.success('تم إرسال طلب الأرشفة للموافقة');
+        notifyPendingQueued('الأرشفة', emp.name);
         return;
       }
       const { error } = await supabase.from('employees').update({ status: 'archived' as any }).eq('id', emp.id);
