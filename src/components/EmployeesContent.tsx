@@ -286,7 +286,7 @@ export function EmployeesContent() {
         description: `حذف الموظف: ${emp.name}`,
       });
       if (!res.ok) { toast.error(res.error || 'Error'); return; }
-      toast.success('تم إرسال طلب الحذف للموافقة');
+      notifyPendingQueued('الحذف', emp.name);
       return;
     }
     const { error } = await supabase.from('employees').delete().eq('id', emp.id);
