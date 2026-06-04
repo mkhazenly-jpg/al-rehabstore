@@ -211,7 +211,7 @@ export function EmployeesContent() {
             description: `تعديل بيانات الموظف: ${editItem.name}`,
           });
           if (!res.ok) { toast.error(res.error || 'Error'); return; }
-          toast.success('تم إرسال طلب التعديل للموافقة');
+          notifyPendingQueued('التعديل', editItem.name);
           setDialogOpen(false);
           return;
         }
