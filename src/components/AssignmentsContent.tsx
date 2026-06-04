@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { requestPendingChange, formatSupabaseError, isMasterAdminEmail } from '@/lib/pending-changes';
+import { requestPendingChange, formatSupabaseError, isMasterAdminEmail, notifyPendingQueued } from '@/lib/pending-changes';
 import { toast } from 'sonner';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
