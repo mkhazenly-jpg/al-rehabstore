@@ -220,7 +220,7 @@ export function StockContent() {
             description: `إضافة كمية ${form.quantity_in_stock} إلى الصنف: ${existingMatch.name}`,
           });
           if (!res.ok) { toast.error(res.error || 'Error'); return; }
-          toast.success('تم إرسال طلب الإضافة للموافقة');
+          notifyPendingQueued('إضافة كمية', `${existingMatch.name} — ${form.quantity_in_stock}`);
           setDialogOpen(false);
           setExistingMatch(null);
           return;
