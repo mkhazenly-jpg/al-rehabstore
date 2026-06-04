@@ -305,7 +305,7 @@ export function AssignmentsContent() {
       const { data: { user: cu2 } } = await supabase.auth.getUser();
       const { data: prof2 } = await supabase.from('profiles').select('email').eq('user_id', cu2?.id || '').maybeSingle();
       if (!isMasterAdminEmail(prof2?.email)) {
-        toast.success('تم إرسال التسليم للموافقة - لن يتم خصم المخزون إلا بعد موافقة الادمن');
+        notifyPendingQueued('التسليم', 'لن يتم خصم المخزون إلا بعد موافقة المسؤول الرئيسي');
       }
       setDialogOpen(false);
       await loadAll();
