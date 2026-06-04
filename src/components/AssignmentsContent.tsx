@@ -373,7 +373,7 @@ export function AssignmentsContent() {
           description: 'حذف تسليم',
         });
         if (!res.ok) { toast.error(res.error || 'Error'); return; }
-        toast.success('تم إرسال طلب الحذف للموافقة');
+        notifyPendingQueued('حذف التسليم');
         setDeleteConfirmId(null);
         return;
       }
