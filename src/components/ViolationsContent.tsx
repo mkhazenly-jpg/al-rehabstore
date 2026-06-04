@@ -358,7 +358,7 @@ export function ViolationsContent() {
         description: lang === 'ar' ? 'حذف مخالفة' : 'Delete violation',
       });
       if (!res.ok) { toast.error(res.error || 'Error'); return; }
-      toast.success(lang === 'ar' ? 'تم إرسال طلب الحذف للموافقة' : 'Delete submitted for approval');
+      notifyPendingQueued('الحذف', target?.violation_description?.slice(0, 40));
       return;
     }
     const { error } = await supabase.from('employee_violations').delete().eq('id', id);
