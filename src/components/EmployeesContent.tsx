@@ -250,7 +250,7 @@ export function EmployeesContent() {
           recordId: emp.id,
           action: 'update',
           payload: { status: 'archived' },
-          snapshot: { name: emp.name, status: emp.status },
+          snapshot: { ...emp },
           description: `أرشفة الموظف: ${emp.name}`,
         });
         if (!res.ok) { toast.error(res.error || 'Error'); return; }
