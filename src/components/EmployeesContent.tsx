@@ -269,7 +269,7 @@ export function EmployeesContent() {
         table: 'employees',
         recordId: emp.id,
         action: 'delete',
-        snapshot: { name: emp.name, mobile: (emp as any).mobile },
+        snapshot: { ...emp },
         description: `حذف الموظف: ${emp.name}`,
       });
       if (!res.ok) { toast.error(res.error || 'Error'); return; }
