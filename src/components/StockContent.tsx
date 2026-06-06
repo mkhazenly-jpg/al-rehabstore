@@ -252,8 +252,8 @@ export function StockContent() {
           table: 'stock_items',
           recordId: id,
           action: 'delete',
-          snapshot: { name: target?.name, quantity_in_stock: target?.quantity_in_stock },
-          description: 'حذف صنف مخزون',
+          snapshot: target ? { ...target } : null,
+          description: `حذف صنف مخزون: ${target?.name || ''}`,
         });
         if (!res.ok) { toast.error(res.error || 'Error'); return; }
         notifyPendingQueued('الحذف', target?.name);
