@@ -339,7 +339,7 @@ export function AssignmentsContent() {
           table: 'assignments',
           recordId: assignment.id,
           action: 'delete',
-          snapshot: { quantity_assigned: assignment.quantity_assigned, status: assignment.status },
+          snapshot: { ...assignment },
           description: 'حذف تسليم',
         });
         if (!res.ok) { toast.error(res.error || 'Error'); return; }
