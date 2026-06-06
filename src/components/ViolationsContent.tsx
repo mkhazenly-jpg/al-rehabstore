@@ -346,8 +346,19 @@ export function ViolationsContent() {
         table: 'employee_violations',
         recordId: id,
         action: 'delete',
-        snapshot: { violation_description: target?.violation_description },
-        description: lang === 'ar' ? 'حذف مخالفة' : 'Delete violation',
+        snapshot: target ? {
+          employee_id: (target as any).employee_id,
+          violation_description: (target as any).violation_description,
+          violation_location: (target as any).violation_location ?? null,
+          violation_date: (target as any).violation_date,
+          action_taken: (target as any).action_taken,
+          deduction_amount: (target as any).deduction_amount,
+          daily_wage: (target as any).daily_wage ?? 0,
+          notes: (target as any).notes ?? null,
+        } : null,
+        description: lang === 'ar'
+          ? `حذف مخالفة الموظف: ${empMap[(target as any)?.employee_id]?.name || '—'} — ${(target as any)?.violation_description?.slice(0, 60) || ''}`
+          : 'Delete violation',
       });
       if (!res.ok) { toast.error(res.error || 'Error'); return; }
       notifyPendingQueued('الحذف', target?.violation_description?.slice(0, 40));
