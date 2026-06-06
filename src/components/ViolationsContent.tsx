@@ -283,7 +283,16 @@ export function ViolationsContent() {
             recordId: editItem.id,
             action: 'update',
             payload,
-            snapshot: { violation_description: editItem.violation_description },
+            snapshot: {
+              employee_id: editItem.employee_id,
+              violation_description: editItem.violation_description,
+              violation_location: (editItem as any).violation_location ?? null,
+              violation_date: (editItem as any).violation_date,
+              action_taken: editItem.action_taken,
+              deduction_amount: editItem.deduction_amount,
+              daily_wage: (editItem as any).daily_wage ?? 0,
+              notes: editItem.notes ?? null,
+            },
             description: lang === 'ar' ? 'تعديل مخالفة' : 'Edit violation',
           });
           if (!res.ok) { toast.error(res.error || 'Error'); return; }
