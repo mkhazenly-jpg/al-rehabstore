@@ -207,7 +207,7 @@ export function EmployeesContent() {
             recordId: editItem.id,
             action: 'update',
             payload,
-            snapshot: { name: editItem.name, status: editItem.status, department: editItem.department },
+            snapshot: { ...editItem },
             description: `تعديل بيانات الموظف: ${editItem.name}`,
           });
           if (!res.ok) { toast.error(res.error || 'Error'); return; }
