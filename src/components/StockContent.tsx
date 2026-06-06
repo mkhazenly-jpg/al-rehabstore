@@ -190,8 +190,8 @@ export function StockContent() {
             recordId: editItem.id,
             action: 'update',
             payload: { ...rest, name: nameVal, size: sizeVal, location: locationVal },
-            snapshot: { name: editItem.name, quantity_in_stock: editItem.quantity_in_stock },
-            description: 'تعديل صنف مخزون',
+            snapshot: { ...editItem },
+            description: `تعديل صنف مخزون: ${editItem.name}`,
           });
           if (!res.ok) { toast.error(res.error || 'Error'); return; }
           notifyPendingQueued('التعديل', editItem.name);
