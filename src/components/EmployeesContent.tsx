@@ -207,7 +207,7 @@ export function EmployeesContent() {
             recordId: editItem.id,
             action: 'update',
             payload,
-            snapshot: { name: editItem.name, status: editItem.status, department: editItem.department },
+            snapshot: { ...editItem },
             description: `تعديل بيانات الموظف: ${editItem.name}`,
           });
           if (!res.ok) { toast.error(res.error || 'Error'); return; }
@@ -250,7 +250,7 @@ export function EmployeesContent() {
           recordId: emp.id,
           action: 'update',
           payload: { status: 'archived' },
-          snapshot: { name: emp.name, status: emp.status },
+          snapshot: { ...emp },
           description: `أرشفة الموظف: ${emp.name}`,
         });
         if (!res.ok) { toast.error(res.error || 'Error'); return; }
@@ -269,7 +269,7 @@ export function EmployeesContent() {
         table: 'employees',
         recordId: emp.id,
         action: 'delete',
-        snapshot: { name: emp.name, mobile: (emp as any).mobile },
+        snapshot: { ...emp },
         description: `حذف الموظف: ${emp.name}`,
       });
       if (!res.ok) { toast.error(res.error || 'Error'); return; }

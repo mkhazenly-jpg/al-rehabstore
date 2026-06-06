@@ -153,7 +153,7 @@ export function AssignmentsContent() {
               notes: reasonNote,
               assignment_date: assignmentDate.toISOString(),
             },
-            snapshot: { quantity_assigned: oldA.quantity_assigned, employee_id: oldA.employee_id },
+            snapshot: { ...oldA },
             description: 'تعديل تسليم',
           });
           if (!res.ok) { setError(res.error || ''); toast.error(res.error || 'Error'); setSaving(false); return; }
@@ -339,7 +339,7 @@ export function AssignmentsContent() {
           table: 'assignments',
           recordId: assignment.id,
           action: 'delete',
-          snapshot: { quantity_assigned: assignment.quantity_assigned, status: assignment.status },
+          snapshot: { ...assignment },
           description: 'حذف تسليم',
         });
         if (!res.ok) { toast.error(res.error || 'Error'); return; }

@@ -190,8 +190,8 @@ export function StockContent() {
             recordId: editItem.id,
             action: 'update',
             payload: { ...rest, name: nameVal, size: sizeVal, location: locationVal },
-            snapshot: { name: editItem.name, quantity_in_stock: editItem.quantity_in_stock },
-            description: 'تعديل صنف مخزون',
+            snapshot: { ...editItem },
+            description: `تعديل صنف مخزون: ${editItem.name}`,
           });
           if (!res.ok) { toast.error(res.error || 'Error'); return; }
           notifyPendingQueued('التعديل', editItem.name);
@@ -252,8 +252,8 @@ export function StockContent() {
           table: 'stock_items',
           recordId: id,
           action: 'delete',
-          snapshot: { name: target?.name, quantity_in_stock: target?.quantity_in_stock },
-          description: 'حذف صنف مخزون',
+          snapshot: target ? { ...target } : null,
+          description: `حذف صنف مخزون: ${target?.name || ''}`,
         });
         if (!res.ok) { toast.error(res.error || 'Error'); return; }
         notifyPendingQueued('الحذف', target?.name);
