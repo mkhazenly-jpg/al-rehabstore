@@ -722,6 +722,73 @@ export function ViolationsContent() {
               </Popover>
             </div>
 
+            {form.employee_id && (() => {
+              const empViolations = violations.filter(v =>
+                v.employee_id === form.employee_id && (!editItem || v.id !== editItem.id)
+              );
+              if (empViolations.length === 0) {
+                return (
+                  <div className="rounded-md border border-dashed bg-muted/30 p-3 text-xs text-muted-foreground">
+                    {lang === 'ar' ? 'لا توجد مخالفات سابقة لهذا الموظف.' : 'No previous violations for this employee.'}
+                  </div>
+                );
+              }
+              const groups: Record<string, { desc: string; count: number; lastDate: string }> = {};
+              empViolations.forEach(v => {
+                const key = normalizeDescription(v.violation_description);
+                if (!groups[key]) groups[key] = { desc: v.violation_description, count: 0, lastDate: v.violation_date };
+                groups[key].count += 1;
+                if (new Date(v.violation_date) > new Date(groups[key].lastDate)) {
+                  groups[key].lastDate = v.violation_date;
+                  groups[key].desc = v.violation_description;
+                }
+              });
+              const currentKey = normalizeDescription(form.violation_description);
+              const list = Object.entries(groups).sort((a, b) =>
+                new Date(b[1].lastDate).getTime() - new Date(a[1].lastDate).getTime()
+              );
+              return (
+                <div className="rounded-md border bg-muted/30 p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold">
+                      {lang === 'ar' ? 'المخالفات السابقة لهذا الموظف' : 'Previous violations for this employee'}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {lang === 'ar' ? `الإجمالي: ${empViolations.length}` : `Total: ${empViolations.length}`}
+                    </span>
+                  </div>
+                  <div className="max-h-40 overflow-auto space-y-1.5">
+                    {list.map(([key, g]) => {
+                      const isMatch = currentKey && key === currentKey;
+                      return (
+                        <div
+                          key={key}
+                          className={cn(
+                            'flex items-start gap-2 rounded-md px-2 py-1.5 text-xs',
+                            isMatch ? 'bg-primary/10 border border-primary/40' : 'bg-background'
+                          )}
+                        >
+                          <span className={cn('inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-[11px] font-bold', getRepeatBadgeClass(g.count))}>
+                            ×{g.count}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setForm(f => ({ ...f, violation_description: g.desc }))}
+                            className="flex-1 text-start hover:underline"
+                            title={lang === 'ar' ? 'انقر لاستخدام هذا الوصف' : 'Click to use this description'}
+                          >
+                            {g.desc}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+
+
+
             <div className="space-y-2">
               <Label>{t('commonViolations')}</Label>
               <Select
