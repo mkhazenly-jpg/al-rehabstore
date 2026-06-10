@@ -529,7 +529,7 @@ export function ViolationsContent() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-6">
         <div className="relative">
           <Search className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input className="ps-9" placeholder={lang === 'ar' ? 'بحث بالاسم أو رقم الموبايل أو الوصف' : 'Search by name, mobile or description'} value={search} onChange={e => setSearch(e.target.value)} />
