@@ -579,6 +579,14 @@ export function ViolationsContent() {
             </div>
           </PopoverContent>
         </Popover>
+        <Select value={filterCreatedBy} onValueChange={setFilterCreatedBy}>
+          <SelectTrigger><SelectValue placeholder={lang === 'ar' ? 'المسجِّل' : 'Recorder'} /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{lang === 'ar' ? 'كل المسؤولين' : 'All recorders'}</SelectItem>
+            {recorders.list.map(r => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
+            {recorders.hasNone && <SelectItem value="__none__">{lang === 'ar' ? 'بدون مسجِّل' : 'No recorder'}</SelectItem>}
+          </SelectContent>
+        </Select>
         <div className="space-y-1">
           <Label className="text-xs text-muted-foreground">{t('fromDate')}</Label>
           <Input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} />
