@@ -21,6 +21,10 @@ export function notifyPendingQueued(actionLabel: string, itemName?: string) {
 }
 
 export const MASTER_ADMIN_EMAIL = 'm.khazenly@gmail.com';
+export const MASTER_ADMIN_EMAILS: string[] = [
+  'm.khazenly@gmail.com',
+  'abdelrahman.mohamed@khazenly.com',
+];
 
 export type PendingTable = 'stock_items' | 'stock_additions' | 'employee_violations' | 'assignments' | 'employees';
 export type PendingAction = 'insert' | 'update' | 'delete';
