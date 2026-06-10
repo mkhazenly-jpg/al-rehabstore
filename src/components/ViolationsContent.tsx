@@ -188,6 +188,12 @@ export function ViolationsContent() {
     }
     if (filterEmployee !== 'all' && v.employee_id !== filterEmployee) return false;
     if (filterRepeats.length > 0 && !filterRepeats.includes(repeatMap[v.id] || 1)) return false;
+    if (filterCreatedBy !== 'all') {
+      const cb = (v as any).created_by || '';
+      if (filterCreatedBy === '__none__') {
+        if (cb) return false;
+      } else if (cb !== filterCreatedBy) return false;
+    }
     if (fromDate && new Date(v.violation_date) < new Date(fromDate)) return false;
     if (toDate) {
       const end = new Date(toDate);
