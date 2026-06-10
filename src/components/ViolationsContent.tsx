@@ -65,6 +65,7 @@ export function ViolationsContent() {
   const [search, setSearch] = useState('');
   const [filterEmployee, setFilterEmployee] = useState('all');
   const [filterRepeats, setFilterRepeats] = useState<number[]>([]);
+  const [filterCreatedBy, setFilterCreatedBy] = useState('all');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
