@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { AppLayout } from '@/components/AppLayout';
 import { BulkMessagesContent } from '@/components/BulkMessagesContent';
 import { useEffect } from 'react';
+import { isMasterAdminEmail } from '@/lib/pending-changes';
 
 export const Route = createFileRoute('/bulk-messages')({
   component: BulkMessagesPage,
