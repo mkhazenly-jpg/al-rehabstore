@@ -175,6 +175,19 @@ export function ViolationsContent() {
     return Array.from(set).sort((a, b) => a - b);
   }, [repeatMap]);
 
+  const recorders = useMemo(() => {
+    const ids = new Set<string>();
+    let hasNone = false;
+    violations.forEach(v => {
+      const cb = (v as any).created_by;
+      if (cb) ids.add(cb); else hasNone = true;
+    });
+    const list = Array.from(ids).map(id => ({ id, name: profiles[id] || id.slice(0, 8) }));
+    list.sort((a, b) => a.name.localeCompare(b.name));
+    return { list, hasNone };
+  }, [violations, profiles]);
+
+
   const filtered = violations.filter(v => {
     const emp = empMap[v.employee_id];
     const empName = emp?.name || '';
