@@ -65,6 +65,7 @@ export function ViolationsContent() {
   const [search, setSearch] = useState('');
   const [filterEmployee, setFilterEmployee] = useState('all');
   const [filterRepeats, setFilterRepeats] = useState<number[]>([]);
+  const [filterCreatedBy, setFilterCreatedBy] = useState('all');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -174,6 +175,19 @@ export function ViolationsContent() {
     return Array.from(set).sort((a, b) => a - b);
   }, [repeatMap]);
 
+  const recorders = useMemo(() => {
+    const ids = new Set<string>();
+    let hasNone = false;
+    violations.forEach(v => {
+      const cb = (v as any).created_by;
+      if (cb) ids.add(cb); else hasNone = true;
+    });
+    const list = Array.from(ids).map(id => ({ id, name: profiles[id] || id.slice(0, 8) }));
+    list.sort((a, b) => a.name.localeCompare(b.name));
+    return { list, hasNone };
+  }, [violations, profiles]);
+
+
   const filtered = violations.filter(v => {
     const emp = empMap[v.employee_id];
     const empName = emp?.name || '';
@@ -187,6 +201,12 @@ export function ViolationsContent() {
     }
     if (filterEmployee !== 'all' && v.employee_id !== filterEmployee) return false;
     if (filterRepeats.length > 0 && !filterRepeats.includes(repeatMap[v.id] || 1)) return false;
+    if (filterCreatedBy !== 'all') {
+      const cb = (v as any).created_by || '';
+      if (filterCreatedBy === '__none__') {
+        if (cb) return false;
+      } else if (cb !== filterCreatedBy) return false;
+    }
     if (fromDate && new Date(v.violation_date) < new Date(fromDate)) return false;
     if (toDate) {
       const end = new Date(toDate);
@@ -505,11 +525,19 @@ export function ViolationsContent() {
           <CardContent className="p-4">
             <div className="text-xs text-muted-foreground">{lang === 'ar' ? 'النتائج الحالية' : 'Filtered results'}</div>
             <div className="text-3xl font-bold">{filtered.length}</div>
+            {filterCreatedBy !== 'all' && (
+              <div className="text-xs text-muted-foreground mt-1 truncate">
+                {lang === 'ar' ? 'بواسطة: ' : 'By: '}
+                {filterCreatedBy === '__none__'
+                  ? (lang === 'ar' ? 'بدون مسجِّل' : 'No recorder')
+                  : (profiles[filterCreatedBy] || filterCreatedBy.slice(0, 8))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-6">
         <div className="relative">
           <Search className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input className="ps-9" placeholder={lang === 'ar' ? 'بحث بالاسم أو رقم الموبايل أو الوصف' : 'Search by name, mobile or description'} value={search} onChange={e => setSearch(e.target.value)} />
@@ -559,6 +587,14 @@ export function ViolationsContent() {
             </div>
           </PopoverContent>
         </Popover>
+        <Select value={filterCreatedBy} onValueChange={setFilterCreatedBy}>
+          <SelectTrigger><SelectValue placeholder={lang === 'ar' ? 'المسجِّل' : 'Recorder'} /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{lang === 'ar' ? 'كل المسؤولين' : 'All recorders'}</SelectItem>
+            {recorders.list.map(r => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
+            {recorders.hasNone && <SelectItem value="__none__">{lang === 'ar' ? 'بدون مسجِّل' : 'No recorder'}</SelectItem>}
+          </SelectContent>
+        </Select>
         <div className="space-y-1">
           <Label className="text-xs text-muted-foreground">{t('fromDate')}</Label>
           <Input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} />
