@@ -93,7 +93,7 @@ export async function requestPendingChange(args: RequestArgs): Promise<{ ok: boo
 }
 
 export function isMasterAdminEmail(email?: string | null): boolean {
-  return (email || '').trim().toLowerCase() === MASTER_ADMIN_EMAIL;
+  return MASTER_ADMIN_EMAILS.includes((email || '').trim().toLowerCase());
 }
 
 /** Arabic labels for common fields shown in the pending diff view. */
