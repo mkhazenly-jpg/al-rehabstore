@@ -525,6 +525,14 @@ export function ViolationsContent() {
           <CardContent className="p-4">
             <div className="text-xs text-muted-foreground">{lang === 'ar' ? 'النتائج الحالية' : 'Filtered results'}</div>
             <div className="text-3xl font-bold">{filtered.length}</div>
+            {filterCreatedBy !== 'all' && (
+              <div className="text-xs text-muted-foreground mt-1 truncate">
+                {lang === 'ar' ? 'بواسطة: ' : 'By: '}
+                {filterCreatedBy === '__none__'
+                  ? (lang === 'ar' ? 'بدون مسجِّل' : 'No recorder')
+                  : (profiles[filterCreatedBy] || filterCreatedBy.slice(0, 8))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
