@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { AppLayout } from '@/components/AppLayout';
 import { BulkMessagesContent } from '@/components/BulkMessagesContent';
 import { useEffect } from 'react';
+import { isMasterAdminEmail } from '@/lib/pending-changes';
 
 export const Route = createFileRoute('/bulk-messages')({
   component: BulkMessagesPage,
@@ -20,7 +21,7 @@ function BulkMessagesPage() {
 function Guard({ children }: { children: React.ReactNode }) {
   const { isLoading, isAuthenticated, isApproved, profile } = useAuth();
   const navigate = useNavigate();
-  const canSendMessages = profile?.email?.toLowerCase() === 'm.khazenly@gmail.com';
+  const canSendMessages = isMasterAdminEmail(profile?.email);
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || !isApproved)) navigate({ to: '/' });

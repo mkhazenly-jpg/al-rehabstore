@@ -57,7 +57,7 @@ function normalizeDescription(desc: string): string {
 export function ViolationsContent() {
   const { t, lang } = useLanguage();
   const { isAdmin, profile } = useAuth();
-  const canSendMessages = profile?.email?.toLowerCase() === 'm.khazenly@gmail.com';
+  const canSendMessages = isMasterAdminEmail(profile?.email);
   const profiles = useProfilesMap();
   const [violations, setViolations] = useState<Violation[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);

@@ -13,8 +13,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
-  const canSendMessages = profile?.email?.toLowerCase() === 'm.khazenly@gmail.com';
   const isMaster = isMasterAdminEmail(profile?.email);
+  const canSendMessages = isMaster;
 
   // Poll pending count for master admin (shows red badge in sidebar)
   useEffect(() => {
