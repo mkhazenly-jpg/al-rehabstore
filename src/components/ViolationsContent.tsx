@@ -597,6 +597,17 @@ export function ViolationsContent() {
             {recorders.hasNone && <SelectItem value="__none__">{lang === 'ar' ? 'بدون مسجِّل' : 'No recorder'}</SelectItem>}
           </SelectContent>
         </Select>
+        <Select value={filterAction} onValueChange={(v) => setFilterAction(v as 'all' | ActionType)}>
+          <SelectTrigger><SelectValue placeholder={t('actionTaken')} /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('actionTaken')}: {t('allCategories')}</SelectItem>
+            <SelectItem value="verbal_warning">{t('verbal_warning')}</SelectItem>
+            <SelectItem value="warning">{t('warning')}</SelectItem>
+            <SelectItem value="deduction">{t('deduction')}</SelectItem>
+            <SelectItem value="suspension">{t('suspension')}</SelectItem>
+            <SelectItem value="termination">{t('termination')}</SelectItem>
+          </SelectContent>
+        </Select>
         <div className="space-y-1">
           <Label className="text-xs text-muted-foreground">{t('fromDate')}</Label>
           <Input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} />
