@@ -66,6 +66,7 @@ export function ViolationsContent() {
   const [filterEmployee, setFilterEmployee] = useState('all');
   const [filterRepeats, setFilterRepeats] = useState<number[]>([]);
   const [filterCreatedBy, setFilterCreatedBy] = useState('all');
+  const [filterAction, setFilterAction] = useState<'all' | ActionType>('all');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -207,6 +208,7 @@ export function ViolationsContent() {
         if (cb) return false;
       } else if (cb !== filterCreatedBy) return false;
     }
+    if (filterAction !== 'all' && v.action_taken !== filterAction) return false;
     if (fromDate && new Date(v.violation_date) < new Date(fromDate)) return false;
     if (toDate) {
       const end = new Date(toDate);
@@ -537,7 +539,7 @@ export function ViolationsContent() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-6">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-7">
         <div className="relative">
           <Search className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input className="ps-9" placeholder={lang === 'ar' ? 'بحث بالاسم أو رقم الموبايل أو الوصف' : 'Search by name, mobile or description'} value={search} onChange={e => setSearch(e.target.value)} />
@@ -593,6 +595,17 @@ export function ViolationsContent() {
             <SelectItem value="all">{lang === 'ar' ? 'كل المسؤولين' : 'All recorders'}</SelectItem>
             {recorders.list.map(r => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
             {recorders.hasNone && <SelectItem value="__none__">{lang === 'ar' ? 'بدون مسجِّل' : 'No recorder'}</SelectItem>}
+          </SelectContent>
+        </Select>
+        <Select value={filterAction} onValueChange={(v) => setFilterAction(v as 'all' | ActionType)}>
+          <SelectTrigger><SelectValue placeholder={t('actionTaken')} /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('actionTaken')}: {t('allCategories')}</SelectItem>
+            <SelectItem value="verbal_warning">{t('verbal_warning')}</SelectItem>
+            <SelectItem value="warning">{t('warning')}</SelectItem>
+            <SelectItem value="deduction">{t('deduction')}</SelectItem>
+            <SelectItem value="suspension">{t('suspension')}</SelectItem>
+            <SelectItem value="termination">{t('termination')}</SelectItem>
           </SelectContent>
         </Select>
         <div className="space-y-1">
