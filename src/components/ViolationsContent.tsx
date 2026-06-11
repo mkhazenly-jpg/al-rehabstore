@@ -208,6 +208,7 @@ export function ViolationsContent() {
         if (cb) return false;
       } else if (cb !== filterCreatedBy) return false;
     }
+    if (filterAction !== 'all' && v.action_taken !== filterAction) return false;
     if (fromDate && new Date(v.violation_date) < new Date(fromDate)) return false;
     if (toDate) {
       const end = new Date(toDate);
