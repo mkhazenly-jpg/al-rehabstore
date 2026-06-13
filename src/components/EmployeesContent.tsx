@@ -160,23 +160,51 @@ export function EmployeesContent() {
     // Auto-archive any non-active status (resigned / terminated / archived all become archived)
     const finalStatus: EmployeeStatus = form.status === 'active' ? 'active' : 'archived';
 
-    // If adding (not editing) and name already exists (including archived), ask for reason
+    // If adding (not editing), check for duplicates by name OR mobile (including archived)
     let extraNotes = '';
     if (!editItem) {
       const trimmedName = form.name.trim().toLowerCase();
-      const duplicate = employees.find(e => e.name.trim().toLowerCase() === trimmedName);
-      if (duplicate) {
-        const dupStatus = t(duplicate.status as any);
+      const normalizeMobile = (m: string) => (m || '').replace(/\D/g, '');
+      const trimmedMobile = normalizeMobile(form.mobile || '');
+      const duplicates = employees.filter(e => {
+        const nameMatch = e.name.trim().toLowerCase() === trimmedName;
+        const mobileMatch = trimmedMobile.length >= 6 && normalizeMobile(e.mobile || '') === trimmedMobile;
+        return nameMatch || mobileMatch;
+      });
+      if (duplicates.length > 0) {
+        const lines = duplicates.map(d => {
+          const isArchived = d.status !== 'active';
+          const statusLabel = isArchived
+            ? (lang === 'ar' ? `مؤرشف - ${t(d.status as any)}` : `Archived - ${t(d.status as any)}`)
+            : (lang === 'ar' ? 'نشط' : 'Active');
+          const nameMatched = d.name.trim().toLowerCase() === trimmedName;
+          const mobileMatched = trimmedMobile.length >= 6 && normalizeMobile(d.mobile || '') === trimmedMobile;
+          const matchedBy = [
+            nameMatched ? (lang === 'ar' ? 'الاسم' : 'name') : null,
+            mobileMatched ? (lang === 'ar' ? 'الموبايل' : 'mobile') : null,
+          ].filter(Boolean).join(lang === 'ar' ? ' و' : ' & ');
+          return lang === 'ar'
+            ? `• ${d.name}${d.mobile ? ` — 📱 ${d.mobile}` : ''} — [${statusLabel}] — تطابق في: ${matchedBy}`
+            : `• ${d.name}${d.mobile ? ` — 📱 ${d.mobile}` : ''} — [${statusLabel}] — matched by: ${matchedBy}`;
+        }).join('\n');
+
+        const header = lang === 'ar'
+          ? `⚠️ تحذير: الموظف موجود بالفعل في النظام (${duplicates.length}):\n\n${lines}\n\nهل تريد المتابعة وإضافته كموظف جديد؟`
+          : `⚠️ Warning: Employee already exists in the system (${duplicates.length}):\n\n${lines}\n\nDo you want to continue and add as a new employee?`;
+        if (!window.confirm(header)) {
+          toast.info(lang === 'ar' ? 'تم إلغاء الإضافة' : 'Add cancelled');
+          return;
+        }
         const promptMsg = lang === 'ar'
-          ? `يوجد موظف بنفس الاسم "${duplicate.name}" (${dupStatus}). الرجاء كتابة سبب الإضافة:`
-          : `An employee named "${duplicate.name}" already exists (${dupStatus}). Please enter the reason for adding:`;
+          ? 'الرجاء كتابة سبب إضافة موظف مكرر:'
+          : 'Please enter the reason for adding a duplicate employee:';
         const reason = window.prompt(promptMsg, '');
-        if (reason === null) return; // cancelled
+        if (reason === null) return;
         if (!reason.trim()) {
           toast.error(lang === 'ar' ? 'يجب كتابة سبب الإضافة' : 'Reason is required');
           return;
         }
-        extraNotes = (lang === 'ar' ? `[سبب إضافة موظف بنفس الاسم]: ${reason.trim()}` : `[Reason for duplicate add]: ${reason.trim()}`);
+        extraNotes = (lang === 'ar' ? `[سبب إضافة موظف مكرر]: ${reason.trim()}` : `[Reason for duplicate add]: ${reason.trim()}`);
       }
     }
 
